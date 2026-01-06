@@ -16,17 +16,24 @@ ClientAdapter.ExtractInfo()  → 提取 SessionID, RequestModel
   ↓
 ctx 写入 ClientType, SessionID, RequestModel
   ↓
-Router 根据 RoutingStrategy 匹配 Route 列表
+创建 ProxyRequest (status=PENDING)，写入 ctx
   ↓
-遍历 Route:
-  ├── 计算 MappedModel (Route > Provider > 原始)
-  ├── ctx 写入 MappedModel
-  ├── ProviderAdapter.Execute()
-  ├── err == nil → 成功，跳出
-  ├── 未写入客户端 + 失败 → 按 RetryConfig 重试 / 下一个 Route
-  └── 已写入客户端 + 失败 → 直接整体失败，跳出
+Router.Match(clientType, projectID)
+  ├── 失败 → ProxyRequest.Status = FAILED，返回错误
   ↓
-成功: Execute 过程中将 ResponseModel 写入 ctx
+Executor.Execute(ctx, w, req, matchedRoutes)
+  ├── 遍历 Route:
+  │   ├── 创建 ProxyUpstreamAttempt
+  │   ├── 计算 MappedModel (Route > Provider > 原始)
+  │   ├── ctx 写入 MappedModel
+  │   ├── ProviderAdapter.Execute()
+  │   ├── 成功 → 更新 Attempt，跳出
+  │   ├── 未写入客户端 + 失败 → 按 RetryConfig 重试 / 下一个 Route
+  │   └── 已写入客户端 + 失败 → 不可重试，整体失败
+  ├── 成功 → ProxyRequest.Status = COMPLETED
+  └── 失败 → ProxyRequest.Status = FAILED
+  ↓
+更新 ProxyRequest
   ↓
 Response
 ```
@@ -216,6 +223,7 @@ const (
     CtxKeyRequestModel  contextKey = "request_model"
     CtxKeyMappedModel   contextKey = "mapped_model"
     CtxKeyResponseModel contextKey = "response_model"
+    CtxKeyProxyRequest  contextKey = "proxy_request"
 )
 ```
 
@@ -238,9 +246,10 @@ const (
 ```go
 // Router 匹配结果，预关联所有需要的数据
 type MatchedRoute struct {
-    Route       *Route
-    Provider    *Provider
-    RetryConfig *RetryConfig  // 已解析，包括默认配置
+    Route           *Route
+    Provider        *Provider
+    ProviderAdapter ProviderAdapter   // 直接带上 Adapter
+    RetryConfig     *RetryConfig      // 已解析，包括默认配置
 }
 
 type Router struct {
@@ -248,6 +257,7 @@ type Router struct {
     routes             []*Route
     routingStrategies  []*RoutingStrategy
     providers          map[uint64]*Provider
+    providerAdapters   map[uint64]ProviderAdapter  // ProviderID → Adapter
     retryConfigs       map[uint64]*RetryConfig
     defaultRetryConfig *RetryConfig
 }
@@ -281,6 +291,115 @@ func (r *Router) Match(clientType ClientType, projectID uint64) ([]*MatchedRoute
 
 5. 返回列表
    - 空列表返回 error
+```
+
+---
+
+## Executor 设计
+
+### 结构
+
+```go
+type Executor struct {
+    proxyRequestRepo         ProxyRequestRepository
+    proxyUpstreamAttemptRepo ProxyUpstreamAttemptRepository
+}
+```
+
+### 接口
+
+```go
+func (e *Executor) Execute(ctx context.Context, w http.ResponseWriter, req *http.Request, matchedRoutes []*MatchedRoute) error
+```
+
+ProxyRequest 从 ctx 获取。
+
+### 执行逻辑
+
+```go
+func (e *Executor) Execute(ctx context.Context, w http.ResponseWriter, req *http.Request, matchedRoutes []*MatchedRoute) error {
+    proxyRequest := GetProxyRequest(ctx)
+
+    for _, mr := range matchedRoutes {
+        retryCount := 0
+        maxRetries := mr.RetryConfig.MaxRetries
+        interval := mr.RetryConfig.InitialInterval
+
+        for {
+            // 创建 Attempt
+            attempt := &ProxyUpstreamAttempt{
+                ProxyRequestID: proxyRequest.ID,
+                RouteID:        mr.Route.ID,
+                ProviderID:     mr.Provider.ID,
+                Status:         "IN_PROGRESS",
+            }
+            e.proxyUpstreamAttemptRepo.Create(attempt)
+            proxyRequest.ProxyUpstreamAttemptCount++
+
+            // 计算 MappedModel
+            mappedModel := resolveMappedModel(ctx, mr)
+            ctx = SetMappedModel(ctx, mappedModel)
+
+            // 执行
+            err := mr.ProviderAdapter.Execute(ctx, w, req)
+
+            if err == nil {
+                // 成功
+                attempt.Status = "COMPLETED"
+                e.proxyUpstreamAttemptRepo.Update(attempt)
+                proxyRequest.FinalProxyUpstreamAttemptID = attempt.ID
+                return nil
+            }
+
+            // 失败
+            attempt.Status = "FAILED"
+            e.proxyUpstreamAttemptRepo.Update(attempt)
+
+            if !err.Retryable {
+                // 不可重试，整体失败
+                return err
+            }
+
+            retryCount++
+            if retryCount >= maxRetries {
+                // 超过重试次数，下一个 Route
+                break
+            }
+
+            // 等待后重试（阻塞）
+            time.Sleep(interval)
+            interval = time.Duration(float64(interval) * mr.RetryConfig.BackoffRate)
+            if interval > mr.RetryConfig.MaxInterval {
+                interval = mr.RetryConfig.MaxInterval
+            }
+        }
+    }
+    return errors.New("all routes failed")
+}
+```
+
+### MappedModel 解析
+
+```go
+func resolveMappedModel(ctx context.Context, mr *MatchedRoute) string {
+    requestModel := GetRequestModel(ctx)
+
+    // Route 映射优先
+    if mr.Route.ModelMapping != nil {
+        if mapped, ok := mr.Route.ModelMapping[requestModel]; ok {
+            return mapped
+        }
+    }
+
+    // Provider 映射次之
+    if mr.Provider.Config != nil {
+        // 根据 Provider 类型获取 ModelMapping
+        // ...
+    }
+
+    // 原始 Model
+    return requestModel
+}
 ```
 
 ---
