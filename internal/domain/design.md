@@ -822,3 +822,375 @@ func (r *CachedProviderRepository) Load() error {
     return nil
 }
 ```
+
+---
+
+## FormatConverter 详细设计
+
+### 架构：Registry + Hub 模式
+
+采用 **Hub 模式**，以 OpenAI 格式作为中间格式，实现任意格式互转：
+
+```
+Claude ←→ OpenAI (Hub) ←→ Gemini
+              ↑
+           Codex
+```
+
+- 每种格式只需实现 `X → OpenAI` 和 `OpenAI → X`
+- 常用路径可直接实现（如 Claude↔OpenAI）跳过 Hub
+
+### 数据结构
+
+```go
+// 转换器接口
+type RequestTransformer interface {
+    Transform(body []byte, model string, stream bool) ([]byte, error)
+}
+
+type ResponseTransformer interface {
+    // 非流式响应转换
+    Transform(body []byte) ([]byte, error)
+    // 流式响应转换（需要状态）
+    TransformChunk(chunk []byte, state *TransformState) ([]byte, error)
+}
+
+// 流式转换状态（跨 chunk 保持）
+type TransformState struct {
+    MessageID        string
+    CurrentIndex     int
+    CurrentBlockType string  // "text" | "thinking" | "tool_use"
+    ToolCalls        map[int]*ToolCallState
+    Buffer           string  // SSE 行缓冲
+}
+
+type ToolCallState struct {
+    ID        string
+    Name      string
+    Arguments string
+}
+
+// 转换器注册表
+type TransformerRegistry struct {
+    requests  map[ClientType]map[ClientType]RequestTransformer
+    responses map[ClientType]map[ClientType]ResponseTransformer
+    hub       ClientType  // 中间格式，默认 OpenAI
+}
+
+func NewTransformerRegistry() *TransformerRegistry {
+    r := &TransformerRegistry{
+        requests:  make(map[ClientType]map[ClientType]RequestTransformer),
+        responses: make(map[ClientType]map[ClientType]ResponseTransformer),
+        hub:       ClientTypeOpenAI,
+    }
+    // 注册内置转换器
+    r.registerBuiltins()
+    return r
+}
+
+// 注册转换器
+func (r *TransformerRegistry) Register(from, to ClientType, req RequestTransformer, resp ResponseTransformer)
+
+// 转换请求（支持直连或 Hub 中转）
+func (r *TransformerRegistry) TransformRequest(from, to ClientType, body []byte, model string, stream bool) ([]byte, error) {
+    if from == to {
+        return body, nil
+    }
+
+    // 1. 尝试直连
+    if transformer := r.getRequestTransformer(from, to); transformer != nil {
+        return transformer.Transform(body, model, stream)
+    }
+
+    // 2. 通过 Hub 中转
+    hubBody, err := r.TransformRequest(from, r.hub, body, model, stream)
+    if err != nil {
+        return nil, err
+    }
+    return r.TransformRequest(r.hub, to, hubBody, model, stream)
+}
+```
+
+### 转换矩阵
+
+| From \ To | Claude | OpenAI | Codex | Gemini |
+|-----------|--------|--------|-------|--------|
+| Claude | - | ✅ 直连 | Hub | Hub |
+| OpenAI | ✅ 直连 | - | ✅ 直连 | Hub |
+| Codex | Hub | ✅ 直连 | - | Hub |
+| Gemini | Hub | Hub | Hub | - |
+
+### SSE 解析
+
+```go
+// SSE 事件
+type SSEEvent struct {
+    Event string          // event: 行
+    Data  json.RawMessage // data: 行（已解析）
+}
+
+// 解析 SSE 文本
+func ParseSSE(text string) ([]SSEEvent, string) {
+    // 返回解析的事件 + 剩余缓冲
+}
+
+// 检测是否为 SSE 格式
+func IsSSE(text string) bool {
+    // 检查行首 "event:" 或 "data:"
+}
+```
+
+### Claude → OpenAI 转换示例
+
+**请求转换**：
+```
+Claude:                          OpenAI:
+{                                {
+  "model": "claude-3",             "model": "claude-3",
+  "messages": [...],               "messages": [...],  // 结构相似
+  "system": "...",         →       // system 合并到 messages
+  "max_tokens": 1024,              "max_tokens": 1024,
+  "tools": [...]                   "tools": [...]      // 格式适配
+}                                }
+```
+
+**流式响应转换**（状态机）：
+```
+Claude SSE:                      OpenAI SSE:
+message_start           →        {choices:[{delta:{role:"assistant"}}]}
+content_block_start     →        (缓存 block 类型)
+content_block_delta     →        {choices:[{delta:{content:"..."}}]}
+content_block_stop      →        (无输出)
+message_delta           →        {choices:[{finish_reason:"stop"}]}
+message_stop            →        data: [DONE]
+```
+
+---
+
+## 流式处理设计
+
+### 处理流程
+
+```
+上游响应
+    ↓
+[Content-Type 检测]
+    ↓
+├─ text/event-stream (SSE)
+│   ├─ 创建 TransformState
+│   ├─ 循环读取 chunk
+│   │   ├─ 解析 SSE 事件
+│   │   ├─ 格式转换（如需要）
+│   │   ├─ 写入客户端（标记不可重试）
+│   │   ├─ 累积统计数据
+│   │   └─ 重置静默超时
+│   └─ 完成后异步统计
+│
+└─ application/json（非流式）
+    ├─ 完整读取响应体
+    ├─ 格式转换（如需要）
+    ├─ 写入客户端
+    └─ 统计
+```
+
+### 超时管理
+
+```go
+type TimeoutConfig struct {
+    // 首字节超时（等待上游首次响应）
+    FirstByteTimeout time.Duration
+
+    // 流式静默超时（两个 chunk 之间最大间隔）
+    StreamIdleTimeout time.Duration
+
+    // 总超时（整个请求）
+    TotalTimeout time.Duration
+}
+```
+
+**双层超时机制**：
+
+```go
+func (a *Adapter) handleStream(ctx context.Context, w http.ResponseWriter, resp *http.Response) error {
+    reader := resp.Body
+
+    // 首字节超时
+    firstByteTimer := time.NewTimer(a.config.FirstByteTimeout)
+    defer firstByteTimer.Stop()
+
+    // 静默超时（每次收到数据后重置）
+    idleTimer := time.NewTimer(a.config.StreamIdleTimeout)
+    defer idleTimer.Stop()
+
+    firstChunk := true
+    wroteToClient := false
+
+    for {
+        select {
+        case <-ctx.Done():
+            return &ProxyError{Err: ctx.Err(), Retryable: !wroteToClient}
+
+        case <-firstByteTimer.C:
+            if firstChunk {
+                return &ProxyError{Err: ErrFirstByteTimeout, Retryable: true}
+            }
+
+        case <-idleTimer.C:
+            return &ProxyError{Err: ErrStreamIdle, Retryable: !wroteToClient}
+
+        default:
+            chunk, err := readChunk(reader)
+            if err == io.EOF {
+                return nil
+            }
+            if err != nil {
+                return &ProxyError{Err: err, Retryable: !wroteToClient}
+            }
+
+            // 首字节到达
+            if firstChunk {
+                firstByteTimer.Stop()
+                firstChunk = false
+            }
+
+            // 重置静默超时
+            idleTimer.Reset(a.config.StreamIdleTimeout)
+
+            // 写入客户端
+            if _, err := w.Write(chunk); err != nil {
+                return &ProxyError{Err: err, Retryable: false}
+            }
+            w.(http.Flusher).Flush()
+            wroteToClient = true
+        }
+    }
+}
+```
+
+### 统计收集
+
+流式响应中边转发边累积，完成后异步处理：
+
+```go
+type StreamStats struct {
+    Chunks       [][]byte
+    StartTime    time.Time
+    FirstByteAt  time.Time
+    EndTime      time.Time
+}
+
+// 异步处理统计
+go func() {
+    allContent := bytes.Join(stats.Chunks, nil)
+    usage := parseUsage(allContent, clientType)
+    updateProxyRequest(proxyRequest, usage)
+}()
+```
+
+---
+
+## 管理 API 设计
+
+### RESTful 接口
+
+```
+# Provider 管理
+POST   /api/providers              创建 Provider
+GET    /api/providers              列出所有 Provider
+GET    /api/providers/:id          获取单个 Provider
+PUT    /api/providers/:id          更新 Provider
+DELETE /api/providers/:id          删除 Provider
+
+# Route 管理
+POST   /api/routes                 创建 Route
+GET    /api/routes                 列出所有 Route
+GET    /api/routes/:id             获取单个 Route
+PUT    /api/routes/:id             更新 Route
+DELETE /api/routes/:id             删除 Route
+
+# Project 管理
+POST   /api/projects               创建 Project
+GET    /api/projects               列出所有 Project
+GET    /api/projects/:id           获取单个 Project
+PUT    /api/projects/:id           更新 Project
+DELETE /api/projects/:id           删除 Project
+
+# RetryConfig 管理
+POST   /api/retry-configs          创建 RetryConfig
+GET    /api/retry-configs          列出所有 RetryConfig
+PUT    /api/retry-configs/:id      更新 RetryConfig
+DELETE /api/retry-configs/:id      删除 RetryConfig
+
+# RoutingStrategy 管理
+POST   /api/routing-strategies     创建 RoutingStrategy
+GET    /api/routing-strategies     列出所有 RoutingStrategy
+PUT    /api/routing-strategies/:id 更新 RoutingStrategy
+DELETE /api/routing-strategies/:id 删除 RoutingStrategy
+
+# Session 管理
+GET    /api/sessions               列出 Session
+GET    /api/sessions/:id           获取 Session
+PUT    /api/sessions/:id           更新 Session（如绑定 Project）
+
+# 监控
+GET    /api/stats                  获取统计信息
+GET    /api/proxy-requests         查询代理请求历史
+```
+
+### Handler 结构
+
+```go
+type AdminHandler struct {
+    providerRepo        ProviderRepository
+    routeRepo           RouteRepository
+    projectRepo         ProjectRepository
+    retryConfigRepo     RetryConfigRepository
+    routingStrategyRepo RoutingStrategyRepository
+    sessionRepo         SessionRepository
+    proxyRequestRepo    ProxyRequestRepository
+}
+
+func (h *AdminHandler) RegisterRoutes(mux *http.ServeMux) {
+    mux.HandleFunc("POST /api/providers", h.CreateProvider)
+    mux.HandleFunc("GET /api/providers", h.ListProviders)
+    mux.HandleFunc("GET /api/providers/{id}", h.GetProvider)
+    mux.HandleFunc("PUT /api/providers/{id}", h.UpdateProvider)
+    mux.HandleFunc("DELETE /api/providers/{id}", h.DeleteProvider)
+    // ...
+}
+```
+
+### 请求/响应示例
+
+**创建 Provider**：
+```json
+POST /api/providers
+{
+    "type": "custom",
+    "name": "OpenRouter",
+    "config": {
+        "custom": {
+            "baseURL": "https://openrouter.ai/api",
+            "apiKey": "sk-xxx",
+            "modelMapping": {
+                "claude-3-opus": "anthropic/claude-3-opus"
+            }
+        }
+    },
+    "supportedClientTypes": ["claude", "openai"]
+}
+```
+
+**创建 Route**：
+```json
+POST /api/routes
+{
+    "isEnabled": true,
+    "projectID": 0,
+    "clientType": "claude",
+    "providerID": 1,
+    "position": 1,
+    "retryConfigID": 0,
+    "modelMapping": {}
+}
+```
