@@ -14,7 +14,8 @@
       "Bash(cat:*)",
       "Bash(git mv:*)",
       "Bash(npm run build:*)",
-      "Bash(wc:*)"
+      "Bash(wc:*)",
+      "Bash(sqlite3:*)"
     ]
   }
 }

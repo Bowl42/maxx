@@ -2,6 +2,7 @@ package executor
 
 import (
 	"context"
+	"log"
 	"net/http"
 	"time"
 
@@ -48,13 +49,19 @@ func (e *Executor) Execute(ctx context.Context, w http.ResponseWriter, req *http
 	projectID := ctxutil.GetProjectID(ctx)
 	requestModel := ctxutil.GetRequestModel(ctx)
 
+	log.Printf("[Executor] clientType=%s, projectID=%d, model=%s", clientType, projectID, requestModel)
+
 	// Match routes
 	routes, err := e.router.Match(clientType, projectID)
 	if err != nil {
+		log.Printf("[Executor] Route match error: %v", err)
 		return domain.NewProxyErrorWithMessage(domain.ErrNoRoutes, false, "no routes available")
 	}
 
+	log.Printf("[Executor] Matched %d routes", len(routes))
+
 	if len(routes) == 0 {
+		log.Printf("[Executor] No routes configured for clientType=%s, projectID=%d", clientType, projectID)
 		return domain.NewProxyErrorWithMessage(domain.ErrNoRoutes, false, "no routes configured")
 	}
 

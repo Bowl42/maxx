@@ -83,6 +83,11 @@ func main() {
 	// Create router
 	r := router.NewRouter(cachedRouteRepo, cachedProviderRepo, cachedRoutingStrategyRepo, cachedRetryConfigRepo)
 
+	// Initialize provider adapters
+	if err := r.InitAdapters(); err != nil {
+		log.Printf("Warning: Failed to initialize adapters: %v", err)
+	}
+
 	// Create WebSocket hub
 	wsHub := handler.NewWebSocketHub()
 

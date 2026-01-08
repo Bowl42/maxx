@@ -1,6 +1,7 @@
 package router
 
 import (
+	"log"
 	"math/rand"
 	"sort"
 	"sync"
@@ -93,11 +94,16 @@ func (r *Router) RemoveAdapter(providerID uint64) {
 func (r *Router) Match(clientType domain.ClientType, projectID uint64) ([]*MatchedRoute, error) {
 	routes := r.routeRepo.GetAll()
 
+	log.Printf("[Router] Total routes in cache: %d", len(routes))
+
 	// Filter routes
 	var filtered []*domain.Route
 	var hasProjectRoutes bool
 
 	for _, route := range routes {
+		log.Printf("[Router] Route id=%d, clientType=%s, enabled=%v, projectID=%d",
+			route.ID, route.ClientType, route.IsEnabled, route.ProjectID)
+
 		if !route.IsEnabled {
 			continue
 		}
@@ -125,6 +131,8 @@ func (r *Router) Match(clientType domain.ClientType, projectID uint64) ([]*Match
 		}
 	}
 
+	log.Printf("[Router] Filtered routes: %d", len(filtered))
+
 	if len(filtered) == 0 {
 		return nil, domain.ErrNoRoutes
 	}
@@ -145,14 +153,18 @@ func (r *Router) Match(clientType domain.ClientType, projectID uint64) ([]*Match
 	var matched []*MatchedRoute
 	providers := r.providerRepo.GetAll()
 
+	log.Printf("[Router] Providers in cache: %d, Adapters: %d", len(providers), len(r.adapters))
+
 	for _, route := range filtered {
 		provider, ok := providers[route.ProviderID]
 		if !ok {
+			log.Printf("[Router] Provider not found for route %d (providerID=%d)", route.ID, route.ProviderID)
 			continue
 		}
 
 		adp, ok := r.adapters[route.ProviderID]
 		if !ok {
+			log.Printf("[Router] Adapter not found for provider %d", route.ProviderID)
 			continue
 		}
 
@@ -171,6 +183,8 @@ func (r *Router) Match(clientType domain.ClientType, projectID uint64) ([]*Match
 			RetryConfig:     retryConfig,
 		})
 	}
+
+	log.Printf("[Router] Final matched routes: %d", len(matched))
 
 	if len(matched) == 0 {
 		return nil, domain.ErrNoRoutes
