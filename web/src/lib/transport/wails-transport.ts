@@ -182,6 +182,24 @@ export class WailsTransport implements Transport {
     return this.call<ProxyStatus>('AdminService.GetProxyStatus');
   }
 
+  // ===== Settings API =====
+
+  async getSettings(): Promise<Record<string, string>> {
+    return this.call<Record<string, string>>('AdminService.GetSettings');
+  }
+
+  async getSetting(key: string): Promise<{ key: string; value: string }> {
+    return this.call<{ key: string; value: string }>('AdminService.GetSetting', key);
+  }
+
+  async updateSetting(key: string, value: string): Promise<{ key: string; value: string }> {
+    return this.call<{ key: string; value: string }>('AdminService.UpdateSetting', key, value);
+  }
+
+  async deleteSetting(key: string): Promise<void> {
+    await this.call<void>('AdminService.DeleteSetting', key);
+  }
+
   // ===== Wails Events 订阅 =====
 
   subscribe<T = unknown>(eventType: WSMessageType, callback: EventCallback<T>): UnsubscribeFn {

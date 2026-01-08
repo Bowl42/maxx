@@ -67,3 +67,11 @@ export {
 
 // Proxy hooks
 export { proxyKeys, useProxyStatus } from './use-proxy';
+
+// Settings hooks
+export {
+  useSettings,
+  useSetting,
+  useUpdateSetting,
+  useDeleteSetting,
+} from './use-settings';

@@ -206,6 +206,27 @@ export class HttpTransport implements Transport {
     return data;
   }
 
+  // ===== Settings API =====
+
+  async getSettings(): Promise<Record<string, string>> {
+    const { data } = await this.client.get<Record<string, string>>('/settings');
+    return data ?? {};
+  }
+
+  async getSetting(key: string): Promise<{ key: string; value: string }> {
+    const { data } = await this.client.get<{ key: string; value: string }>(`/settings/${key}`);
+    return data;
+  }
+
+  async updateSetting(key: string, value: string): Promise<{ key: string; value: string }> {
+    const { data } = await this.client.put<{ key: string; value: string }>(`/settings/${key}`, { value });
+    return data;
+  }
+
+  async deleteSetting(key: string): Promise<void> {
+    await this.client.delete(`/settings/${key}`);
+  }
+
   // ===== WebSocket 订阅 =====
 
   subscribe<T = unknown>(eventType: WSMessageType, callback: EventCallback<T>): UnsubscribeFn {

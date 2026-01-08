@@ -12,6 +12,8 @@ import {
   Radio,
   Check,
   Copy,
+  Terminal,
+  Settings,
 } from 'lucide-react';
 import { ClientIcon, allClientTypes, getClientName, getClientColor } from '@/components/icons/client-icons';
 import { StreamingBadge } from '@/components/ui/streaming-badge';
@@ -30,6 +32,7 @@ interface NavItem {
 const mainNavItems: NavItem[] = [
   { to: '/', icon: LayoutDashboard, label: 'Dashboard' },
   { to: '/requests', icon: Activity, label: 'Requests' },
+  { to: '/console', icon: Terminal, label: 'Console' },
 ];
 
 const managementItems: NavItem[] = [
@@ -41,6 +44,7 @@ const managementItems: NavItem[] = [
 const configItems: NavItem[] = [
   { to: '/retry-configs', icon: RefreshCw, label: 'Retry Configs' },
   { to: '/routing-strategies', icon: Shuffle, label: 'Strategies' },
+  { to: '/settings', icon: Settings, label: 'Settings' },
 ];
 
 /**

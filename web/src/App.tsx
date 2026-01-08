@@ -10,6 +10,8 @@ import { ProjectsPage } from '@/pages/projects';
 import { SessionsPage } from '@/pages/sessions';
 import { RetryConfigsPage } from '@/pages/retry-configs';
 import { RoutingStrategiesPage } from '@/pages/routing-strategies';
+import { ConsolePage } from '@/pages/console';
+import { SettingsPage } from '@/pages/settings';
 
 function App() {
   return (
@@ -19,6 +21,7 @@ function App() {
           <Route index element={<OverviewPage />} />
           <Route path="requests" element={<RequestsPage />} />
           <Route path="requests/:id" element={<RequestDetailPage />} />
+          <Route path="console" element={<ConsolePage />} />
           <Route path="providers" element={<ProvidersPage />} />
           <Route path="routes" element={<RoutesPage />} />
           <Route path="routes/:clientType" element={<ClientRoutesPage />} />
@@ -26,6 +29,7 @@ function App() {
           <Route path="sessions" element={<SessionsPage />} />
           <Route path="retry-configs" element={<RetryConfigsPage />} />
           <Route path="routing-strategies" element={<RoutingStrategiesPage />} />
+          <Route path="settings" element={<SettingsPage />} />
         </Route>
       </Routes>
     </BrowserRouter>

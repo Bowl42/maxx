@@ -72,6 +72,12 @@ export interface Transport {
   // ===== Proxy Status API =====
   getProxyStatus(): Promise<ProxyStatus>;
 
+  // ===== Settings API =====
+  getSettings(): Promise<Record<string, string>>;
+  getSetting(key: string): Promise<{ key: string; value: string }>;
+  updateSetting(key: string, value: string): Promise<{ key: string; value: string }>;
+  deleteSetting(key: string): Promise<void>;
+
   // ===== 实时订阅 =====
   subscribe<T = unknown>(eventType: WSMessageType, callback: EventCallback<T>): UnsubscribeFn;
 
