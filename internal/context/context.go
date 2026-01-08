@@ -9,14 +9,15 @@ import (
 type contextKey string
 
 const (
-	CtxKeyClientType    contextKey = "client_type"
-	CtxKeySessionID     contextKey = "session_id"
-	CtxKeyProjectID     contextKey = "project_id"
-	CtxKeyRequestModel  contextKey = "request_model"
-	CtxKeyMappedModel   contextKey = "mapped_model"
-	CtxKeyResponseModel contextKey = "response_model"
-	CtxKeyProxyRequest  contextKey = "proxy_request"
-	CtxKeyRequestBody   contextKey = "request_body"
+	CtxKeyClientType     contextKey = "client_type"
+	CtxKeySessionID      contextKey = "session_id"
+	CtxKeyProjectID      contextKey = "project_id"
+	CtxKeyRequestModel   contextKey = "request_model"
+	CtxKeyMappedModel    contextKey = "mapped_model"
+	CtxKeyResponseModel  contextKey = "response_model"
+	CtxKeyProxyRequest   contextKey = "proxy_request"
+	CtxKeyRequestBody    contextKey = "request_body"
+	CtxKeyUpstreamAttempt contextKey = "upstream_attempt"
 )
 
 // Setters
@@ -50,6 +51,10 @@ func WithProxyRequest(ctx context.Context, pr *domain.ProxyRequest) context.Cont
 
 func WithRequestBody(ctx context.Context, body []byte) context.Context {
 	return context.WithValue(ctx, CtxKeyRequestBody, body)
+}
+
+func WithUpstreamAttempt(ctx context.Context, attempt *domain.ProxyUpstreamAttempt) context.Context {
+	return context.WithValue(ctx, CtxKeyUpstreamAttempt, attempt)
 }
 
 // Getters
@@ -104,6 +109,13 @@ func GetProxyRequest(ctx context.Context) *domain.ProxyRequest {
 
 func GetRequestBody(ctx context.Context) []byte {
 	if v, ok := ctx.Value(CtxKeyRequestBody).([]byte); ok {
+		return v
+	}
+	return nil
+}
+
+func GetUpstreamAttempt(ctx context.Context) *domain.ProxyUpstreamAttempt {
+	if v, ok := ctx.Value(CtxKeyUpstreamAttempt).(*domain.ProxyUpstreamAttempt); ok {
 		return v
 	}
 	return nil

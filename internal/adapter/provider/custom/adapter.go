@@ -93,6 +93,16 @@ func (a *CustomAdapter) Execute(ctx context.Context, w http.ResponseWriter, req 
 		setAuthHeader(upstreamReq, targetType, a.provider.Config.Custom.APIKey)
 	}
 
+	// Capture request info for attempt record
+	if attempt := ctxutil.GetUpstreamAttempt(ctx); attempt != nil {
+		attempt.RequestInfo = &domain.RequestInfo{
+			Method:  upstreamReq.Method,
+			URL:     upstreamURL,
+			Headers: flattenHeaders(upstreamReq.Header),
+			Body:    string(upstreamBody),
+		}
+	}
+
 	// Execute request
 	client := &http.Client{}
 	resp, err := client.Do(upstreamReq)
@@ -104,6 +114,14 @@ func (a *CustomAdapter) Execute(ctx context.Context, w http.ResponseWriter, req 
 	// Check for error response
 	if resp.StatusCode >= 400 {
 		body, _ := io.ReadAll(resp.Body)
+		// Capture error response info
+		if attempt := ctxutil.GetUpstreamAttempt(ctx); attempt != nil {
+			attempt.ResponseInfo = &domain.ResponseInfo{
+				Status:  resp.StatusCode,
+				Headers: flattenHeaders(resp.Header),
+				Body:    string(body),
+			}
+		}
 		return domain.NewProxyErrorWithMessage(
 			fmt.Errorf("upstream error: %s", string(body)),
 			isRetryableStatusCode(resp.StatusCode),
@@ -141,6 +159,15 @@ func (a *CustomAdapter) handleNonStreamResponse(ctx context.Context, w http.Resp
 		return domain.NewProxyErrorWithMessage(domain.ErrUpstreamError, true, "failed to read upstream response")
 	}
 
+	// Capture response info
+	if attempt := ctxutil.GetUpstreamAttempt(ctx); attempt != nil {
+		attempt.ResponseInfo = &domain.ResponseInfo{
+			Status:  resp.StatusCode,
+			Headers: flattenHeaders(resp.Header),
+			Body:    string(body),
+		}
+	}
+
 	var responseBody []byte
 	if needsConversion {
 		responseBody, err = a.converter.TransformResponse(targetType, clientType, body)
@@ -166,6 +193,15 @@ func (a *CustomAdapter) handleNonStreamResponse(ctx context.Context, w http.Resp
 }
 
 func (a *CustomAdapter) handleStreamResponse(ctx context.Context, w http.ResponseWriter, resp *http.Response, clientType, targetType domain.ClientType, needsConversion bool) error {
+	// Capture response info (for streaming, we only capture status and headers)
+	if attempt := ctxutil.GetUpstreamAttempt(ctx); attempt != nil {
+		attempt.ResponseInfo = &domain.ResponseInfo{
+			Status:  resp.StatusCode,
+			Headers: flattenHeaders(resp.Header),
+			Body:    "[streaming]",
+		}
+	}
+
 	// Set streaming headers
 	w.Header().Set("Content-Type", "text/event-stream")
 	w.Header().Set("Cache-Control", "no-cache")
@@ -273,4 +309,14 @@ func isRetryableStatusCode(code int) bool {
 	default:
 		return false
 	}
+}
+
+func flattenHeaders(h http.Header) map[string]string {
+	result := make(map[string]string)
+	for k, v := range h {
+		if len(v) > 0 {
+			result[k] = v[0]
+		}
+	}
+	return result
 }

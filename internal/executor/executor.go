@@ -112,8 +112,11 @@ func (e *Executor) Execute(ctx context.Context, w http.ResponseWriter, req *http
 				e.broadcaster.BroadcastProxyUpstreamAttempt(attemptRecord)
 			}
 
+			// Put attempt into context so adapter can populate request/response info
+			attemptCtx := ctxutil.WithUpstreamAttempt(ctx, attemptRecord)
+
 			// Execute request
-			err := matchedRoute.ProviderAdapter.Execute(ctx, w, req, matchedRoute.Provider)
+			err := matchedRoute.ProviderAdapter.Execute(attemptCtx, w, req, matchedRoute.Provider)
 			if err == nil {
 				// Success
 				attemptRecord.Status = "COMPLETED"

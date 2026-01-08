@@ -15,7 +15,8 @@
       "Bash(git mv:*)",
       "Bash(npm run build:*)",
       "Bash(wc:*)",
-      "Bash(sqlite3:*)"
+      "Bash(sqlite3:*)",
+      "Bash(curl:*)"
     ]
   }
 }
