@@ -139,6 +139,9 @@ func main() {
 	staticHandler := handler.NewStaticHandler()
 	mux.Handle("/", staticHandler)
 
+	// Wrap with logging middleware
+	loggedMux := handler.LoggingMiddleware(mux)
+
 	// Start server
 	log.Printf("Starting maxx-next server on %s", *addr)
 	log.Printf("Database: %s", *dbPath)
@@ -150,7 +153,7 @@ func main() {
 	log.Printf("  Codex:  http://localhost%s/v1/responses", *addr)
 	log.Printf("  Gemini: http://localhost%s/v1beta/models/{model}:generateContent", *addr)
 
-	if err := http.ListenAndServe(*addr, mux); err != nil {
+	if err := http.ListenAndServe(*addr, loggedMux); err != nil {
 		log.Printf("Server error: %v", err)
 		os.Exit(1)
 	}
