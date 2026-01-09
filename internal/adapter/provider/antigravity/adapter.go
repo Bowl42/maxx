@@ -502,41 +502,43 @@ func unwrapV1InternalResponse(body []byte) []byte {
 
 // unwrapV1InternalSSEChunk unwraps a single SSE chunk from v1internal format
 // Input: "data: {"response": {...}}\n"
-// Output: "data: {...}\n"
+// Output: "data: {...}\n\n" (with double newline for proper SSE format)
+// Returns nil for empty lines (they are already handled by \n\n terminator)
 func unwrapV1InternalSSEChunk(line []byte) []byte {
 	lineStr := strings.TrimSpace(string(line))
 
-	// Skip empty lines
+	// Skip empty lines - we already add \n\n after each data line
 	if lineStr == "" {
-		return line
+		return nil
 	}
 
-	// Check if it's a data line
+	// Non-data lines pass through with proper SSE terminator
 	if !strings.HasPrefix(lineStr, "data: ") {
-		return line
+		return []byte(lineStr + "\n\n")
 	}
 
 	jsonPart := strings.TrimPrefix(lineStr, "data: ")
 
-	// Skip non-JSON data
+	// Non-JSON data passes through with proper SSE terminator
 	if !strings.HasPrefix(jsonPart, "{") {
-		return line
+		return []byte(lineStr + "\n\n")
 	}
 
 	// Try to parse and extract response field
 	var wrapper map[string]interface{}
 	if err := json.Unmarshal([]byte(jsonPart), &wrapper); err != nil {
-		return line
+		return []byte(lineStr + "\n\n")
 	}
 
-	// Extract "response" field if present
+	// Extract "response" field if present (v1internal wraps response)
 	if response, ok := wrapper["response"]; ok {
 		if unwrapped, err := json.Marshal(response); err == nil {
-			return []byte("data: " + string(unwrapped) + "\n")
+			return []byte("data: " + string(unwrapped) + "\n\n")
 		}
 	}
 
-	return line
+	// No response field - pass through with proper SSE terminator
+	return []byte(lineStr + "\n\n")
 }
 
 // Response headers to exclude when copying
