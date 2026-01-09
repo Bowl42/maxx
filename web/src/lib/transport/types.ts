@@ -152,6 +152,9 @@ export interface ProxyRequest {
   error: string;
   proxyUpstreamAttemptCount: number;
   finalProxyUpstreamAttemptID: number;
+  // 当前使用的 Route 和 Provider (用于实时追踪)
+  routeID: number;
+  providerID: number;
   inputTokenCount: number;
   outputTokenCount: number;
   cacheReadCount: number;

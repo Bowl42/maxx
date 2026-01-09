@@ -92,10 +92,11 @@ type GeminiSafetyRating struct {
 }
 
 type GeminiUsageMetadata struct {
-	PromptTokenCount     int `json:"promptTokenCount"`
-	CandidatesTokenCount int `json:"candidatesTokenCount"`
-	TotalTokenCount      int `json:"totalTokenCount"`
+	PromptTokenCount        int `json:"promptTokenCount"`
+	CandidatesTokenCount    int `json:"candidatesTokenCount"`
+	TotalTokenCount         int `json:"totalTokenCount"`
 	CachedContentTokenCount int `json:"cachedContentTokenCount,omitempty"`
+	ThoughtsTokenCount      int `json:"thoughtsTokenCount,omitempty"` // Gemini 思考模型的推理 token
 }
 
 type GeminiPromptFeedback struct {

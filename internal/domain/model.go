@@ -159,6 +159,10 @@ type ProxyRequest struct {
 	ProxyUpstreamAttemptCount   uint64 `json:"proxyUpstreamAttemptCount"`
 	FinalProxyUpstreamAttemptID uint64 `json:"finalProxyUpstreamAttemptID"`
 
+	// 当前使用的 Route 和 Provider (用于实时追踪)
+	RouteID    uint64 `json:"routeID"`
+	ProviderID uint64 `json:"providerID"`
+
 	// Token 使用情况
 	InputTokenCount  uint64 `json:"inputTokenCount"`
 	OutputTokenCount uint64 `json:"outputTokenCount"`

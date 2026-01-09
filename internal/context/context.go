@@ -5,6 +5,7 @@ import (
 	"net/http"
 
 	"github.com/Bowl42/maxx-next/internal/domain"
+	"github.com/Bowl42/maxx-next/internal/event"
 )
 
 type contextKey string
@@ -21,6 +22,7 @@ const (
 	CtxKeyUpstreamAttempt contextKey = "upstream_attempt"
 	CtxKeyRequestHeaders  contextKey = "request_headers"
 	CtxKeyRequestPath     contextKey = "request_path"
+	CtxKeyBroadcaster     contextKey = "broadcaster"
 )
 
 // Setters
@@ -144,4 +146,15 @@ func GetRequestPath(ctx context.Context) string {
 		return v
 	}
 	return ""
+}
+
+func WithBroadcaster(ctx context.Context, bc event.Broadcaster) context.Context {
+	return context.WithValue(ctx, CtxKeyBroadcaster, bc)
+}
+
+func GetBroadcaster(ctx context.Context) event.Broadcaster {
+	if v, ok := ctx.Value(CtxKeyBroadcaster).(event.Broadcaster); ok {
+		return v
+	}
+	return nil
 }

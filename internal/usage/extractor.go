@@ -5,6 +5,8 @@ package usage
 import (
 	"encoding/json"
 	"strings"
+
+	"github.com/Bowl42/maxx-next/internal/domain"
 )
 
 // Metrics represents extracted usage information from an API response.
@@ -100,6 +102,17 @@ func extractFromSSE(body string) *Metrics {
 					}
 				}
 			}
+			// Codex SSE: Check for response.completed type which contains final usage
+			if eventType == "response.completed" {
+				if response, ok := data["response"].(map[string]interface{}); ok {
+					if usage, ok := response["usage"].(map[string]interface{}); ok {
+						m := extractOpenAIUsage(usage)
+						if m != nil && !m.IsEmpty() {
+							lastMetrics = m
+						}
+					}
+				}
+			}
 		}
 	}
 
@@ -123,6 +136,14 @@ func extractUsageFromMap(data map[string]interface{}) *Metrics {
 	if message, ok := data["message"].(map[string]interface{}); ok {
 		if usage, ok := message["usage"].(map[string]interface{}); ok {
 			return extractClaudeUsage(usage)
+		}
+	}
+
+	// Try Codex/OpenAI Response API format: { "response": { "usage": { ... } } }
+	// This is used in response.completed events
+	if response, ok := data["response"].(map[string]interface{}); ok {
+		if usage, ok := response["usage"].(map[string]interface{}); ok {
+			return extractOpenAIUsage(usage)
 		}
 	}
 
@@ -178,21 +199,33 @@ func extractClaudeUsage(usage map[string]interface{}) *Metrics {
 }
 
 // extractOpenAIUsage extracts metrics from OpenAI usage format.
-// Example: { "prompt_tokens": 100, "completion_tokens": 50, "total_tokens": 150 }
+// Supports both standard OpenAI format and Codex/Response API format:
+// - Standard: { "prompt_tokens": 100, "completion_tokens": 50, "total_tokens": 150 }
+// - Response API: { "input_tokens": 100, "output_tokens": 50, "input_tokens_details": {...} }
 func extractOpenAIUsage(usage map[string]interface{}) *Metrics {
 	metrics := &Metrics{}
 
-	// Prompt tokens → Input tokens
+	// Standard OpenAI format: prompt_tokens → Input tokens
 	if v, ok := usage["prompt_tokens"].(float64); ok {
 		metrics.InputTokens = uint64(v)
 	}
 
-	// Completion tokens → Output tokens
+	// Response API / Codex format: input_tokens (may include cached tokens)
+	if v, ok := usage["input_tokens"].(float64); ok {
+		metrics.InputTokens = uint64(v)
+	}
+
+	// Standard OpenAI format: completion_tokens → Output tokens
 	if v, ok := usage["completion_tokens"].(float64); ok {
 		metrics.OutputTokens = uint64(v)
 	}
 
-	// OpenAI Response API format: input_tokens_details.cached_tokens
+	// Response API / Codex format: output_tokens
+	if v, ok := usage["output_tokens"].(float64); ok {
+		metrics.OutputTokens = uint64(v)
+	}
+
+	// OpenAI Response API format: prompt_tokens_details.cached_tokens
 	if details, ok := usage["prompt_tokens_details"].(map[string]interface{}); ok {
 		if v, ok := details["cached_tokens"].(float64); ok {
 			metrics.CacheReadCount = uint64(v)
@@ -204,6 +237,11 @@ func extractOpenAIUsage(usage map[string]interface{}) *Metrics {
 		if v, ok := details["cached_tokens"].(float64); ok {
 			metrics.CacheReadCount = uint64(v)
 		}
+	}
+
+	// Also check top-level cache_read_input_tokens (some relays use this)
+	if v, ok := usage["cache_read_input_tokens"].(float64); ok {
+		metrics.CacheReadCount = uint64(v)
 	}
 
 	return metrics
@@ -250,4 +288,23 @@ func extractGeminiUsage(usage map[string]interface{}) *Metrics {
 // This is useful when you've collected all SSE chunks into a single string.
 func ExtractFromStreamContent(content string) *Metrics {
 	return extractFromSSE(content)
+}
+
+// AdjustForClientType adjusts metrics based on client type specific quirks.
+// For Codex: input_tokens includes cached_tokens, so we subtract to avoid double counting.
+// For other clients: returns metrics unchanged.
+func AdjustForClientType(metrics *Metrics, clientType domain.ClientType) *Metrics {
+	if metrics == nil {
+		return nil
+	}
+
+	// Codex/OpenAI Response API: input_tokens includes cached_tokens
+	// We need to subtract to get actual input tokens (avoiding double billing)
+	if clientType == domain.ClientTypeCodex {
+		if metrics.CacheReadCount > 0 && metrics.InputTokens >= metrics.CacheReadCount {
+			metrics.InputTokens = metrics.InputTokens - metrics.CacheReadCount
+		}
+	}
+
+	return metrics
 }

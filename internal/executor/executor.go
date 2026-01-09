@@ -79,6 +79,11 @@ func (e *Executor) Execute(ctx context.Context, w http.ResponseWriter, req *http
 	}
 	ctx = ctxutil.WithProxyRequest(ctx, proxyReq)
 
+	// Add broadcaster to context so adapters can send updates
+	if e.broadcaster != nil {
+		ctx = ctxutil.WithBroadcaster(ctx, e.broadcaster)
+	}
+
 	// Broadcast new request immediately so frontend sees it
 	if e.broadcaster != nil {
 		e.broadcaster.BroadcastProxyRequest(proxyReq)
@@ -129,6 +134,14 @@ func (e *Executor) Execute(ctx context.Context, w http.ResponseWriter, req *http
 		if ctx.Err() != nil {
 			log.Printf("[Executor] Context cancelled before route %d", routeIdx+1)
 			return ctx.Err()
+		}
+
+		// Update proxyReq with current route/provider for real-time tracking
+		proxyReq.RouteID = matchedRoute.Route.ID
+		proxyReq.ProviderID = matchedRoute.Provider.ID
+		_ = e.proxyRequestRepo.Update(proxyReq)
+		if e.broadcaster != nil {
+			e.broadcaster.BroadcastProxyRequest(proxyReq)
 		}
 
 		// Determine model mapping

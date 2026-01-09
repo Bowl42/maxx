@@ -181,12 +181,19 @@ func (a *CustomAdapter) handleNonStreamResponse(ctx context.Context, w http.Resp
 
 		// Extract token usage from response
 		if metrics := usage.ExtractFromResponse(string(body)); metrics != nil {
+			// Adjust for client-specific quirks (e.g., Codex input_tokens includes cached tokens)
+			metrics = usage.AdjustForClientType(metrics, clientType)
 			attempt.InputTokenCount = metrics.InputTokens
 			attempt.OutputTokenCount = metrics.OutputTokens
 			attempt.CacheReadCount = metrics.CacheReadCount
 			attempt.CacheWriteCount = metrics.CacheCreationCount
 			attempt.Cache5mWriteCount = metrics.Cache5mCreationCount
 			attempt.Cache1hWriteCount = metrics.Cache1hCreationCount
+		}
+
+		// Broadcast attempt update with token info
+		if bc := ctxutil.GetBroadcaster(ctx); bc != nil {
+			bc.BroadcastProxyUpstreamAttempt(attempt)
 		}
 	}
 
@@ -251,12 +258,18 @@ func (a *CustomAdapter) handleStreamResponse(ctx context.Context, w http.Respons
 			}
 			// Extract token usage
 			if metrics := usage.ExtractFromStreamContent(sseBuffer.String()); metrics != nil {
+				// Adjust for client-specific quirks (e.g., Codex input_tokens includes cached tokens)
+				metrics = usage.AdjustForClientType(metrics, clientType)
 				attempt.InputTokenCount = metrics.InputTokens
 				attempt.OutputTokenCount = metrics.OutputTokens
 				attempt.CacheReadCount = metrics.CacheReadCount
 				attempt.CacheWriteCount = metrics.CacheCreationCount
 				attempt.Cache5mWriteCount = metrics.Cache5mCreationCount
 				attempt.Cache1hWriteCount = metrics.Cache1hCreationCount
+			}
+			// Broadcast attempt update with token info
+			if bc := ctxutil.GetBroadcaster(ctx); bc != nil {
+				bc.BroadcastProxyUpstreamAttempt(attempt)
 			}
 		}
 	}

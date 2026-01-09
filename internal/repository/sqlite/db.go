@@ -166,6 +166,10 @@ func (d *DB) migrate() error {
 	d.db.Exec("ALTER TABLE proxy_upstream_attempts ADD COLUMN cache_5m_write_count INTEGER DEFAULT 0")
 	d.db.Exec("ALTER TABLE proxy_upstream_attempts ADD COLUMN cache_1h_write_count INTEGER DEFAULT 0")
 
+	// Migration: add route_id and provider_id columns to proxy_requests for real-time tracking
+	d.db.Exec("ALTER TABLE proxy_requests ADD COLUMN route_id INTEGER DEFAULT 0")
+	d.db.Exec("ALTER TABLE proxy_requests ADD COLUMN provider_id INTEGER DEFAULT 0")
+
 	return nil
 }
 

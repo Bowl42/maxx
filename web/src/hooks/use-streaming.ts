@@ -72,8 +72,11 @@ export function useStreamingRequests(): StreamingState {
     const clientCount = countsByClient.get(request.clientType) || 0;
     countsByClient.set(request.clientType, clientCount + 1);
 
-    // 按 providerID 统计 (需要从 request 中获取，如果有的话)
-    // 注意: 当前 ProxyRequest 类型可能没有 providerID，需要检查
+    // 按 providerID 统计
+    if (request.providerID > 0) {
+      const providerCount = countsByProvider.get(request.providerID) || 0;
+      countsByProvider.set(request.providerID, providerCount + 1);
+    }
   }
 
   return {

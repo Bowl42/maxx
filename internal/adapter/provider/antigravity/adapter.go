@@ -275,6 +275,11 @@ func (a *AntigravityAdapter) handleNonStreamResponse(ctx context.Context, w http
 			attempt.Cache5mWriteCount = metrics.Cache5mCreationCount
 			attempt.Cache1hWriteCount = metrics.Cache1hCreationCount
 		}
+
+		// Broadcast attempt update with token info
+		if bc := ctxutil.GetBroadcaster(ctx); bc != nil {
+			bc.BroadcastProxyUpstreamAttempt(attempt)
+		}
 	}
 
 	var responseBody []byte
@@ -344,6 +349,10 @@ func (a *AntigravityAdapter) handleStreamResponse(ctx context.Context, w http.Re
 				attempt.CacheWriteCount = metrics.CacheCreationCount
 				attempt.Cache5mWriteCount = metrics.Cache5mCreationCount
 				attempt.Cache1hWriteCount = metrics.Cache1hCreationCount
+			}
+			// Broadcast attempt update with token info
+			if bc := ctxutil.GetBroadcaster(ctx); bc != nil {
+				bc.BroadcastProxyUpstreamAttempt(attempt)
 			}
 		}
 	}

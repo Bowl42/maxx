@@ -100,6 +100,11 @@ export function useProxyRequestUpdates() {
             return [...old, updatedAttempt];
           }
         );
+
+        // 触发 Attempts 查询刷新，确保数据一致性
+        queryClient.invalidateQueries({
+          queryKey: requestKeys.attempts(updatedAttempt.proxyRequestID),
+        });
       }
     );
 
