@@ -26,6 +26,14 @@ export function useProxyRequests(params?: PaginationParams) {
   });
 }
 
+// 获取 ProxyRequests 总数
+export function useProxyRequestsCount() {
+  return useQuery({
+    queryKey: ['requestsCount'] as const,
+    queryFn: () => transport.getProxyRequestsCount(),
+  });
+}
+
 // 获取单个 ProxyRequest
 export function useProxyRequest(id: number) {
   return useQuery({
@@ -66,13 +74,15 @@ export function useProxyRequestUpdates() {
         queryClient.setQueriesData<ProxyRequest[]>(
           { queryKey: requestKeys.lists() },
           (old) => {
-            if (!old) return [updatedRequest];
+            // 确保 old 是数组类型，防止错误更新其他缓存
+            if (!old || !Array.isArray(old)) return old;
             const index = old.findIndex((r) => r.id === updatedRequest.id);
             if (index >= 0) {
               const newList = [...old];
               newList[index] = updatedRequest;
               return newList;
             }
+            // 新请求只添加到第一页（offset=0 的页面）
             return [updatedRequest, ...old];
           }
         );

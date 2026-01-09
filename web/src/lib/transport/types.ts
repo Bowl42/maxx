@@ -146,6 +146,7 @@ export interface ProxyRequest {
   startTime: string;
   endTime: string;
   duration: number; // nanoseconds
+  isStream: boolean; // 是否为 SSE 流式请求
   status: ProxyRequestStatus;
   requestInfo: RequestInfo | null;
   responseInfo: ResponseInfo | null;
@@ -174,6 +175,7 @@ export interface ProxyUpstreamAttempt {
   updatedAt: string;
   status: ProxyUpstreamAttemptStatus;
   proxyRequestID: number;
+  isStream: boolean; // 是否为 SSE 流式请求
   requestInfo: RequestInfo | null;
   responseInfo: ResponseInfo | null;
   routeID: number;

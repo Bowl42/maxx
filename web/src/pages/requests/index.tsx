@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useProxyRequests, useProxyRequestUpdates, useProviders } from '@/hooks/queries';
+import { useProxyRequests, useProxyRequestUpdates, useProxyRequestsCount, useProviders } from '@/hooks/queries';
 import {
   Activity,
   RefreshCw,
@@ -38,6 +38,7 @@ export function RequestsPage() {
   const navigate = useNavigate();
   const [page, setPage] = useState(0);
   const { data: requests = [], isLoading, refetch } = useProxyRequests({ limit: PAGE_SIZE, offset: page * PAGE_SIZE });
+  const { data: totalCount, refetch: refetchCount } = useProxyRequestsCount();
   const { data: providers = [] } = useProviders();
 
   // Subscribe to real-time updates
@@ -46,8 +47,15 @@ export function RequestsPage() {
   // Create provider ID to name mapping
   const providerMap = new Map(providers.map(p => [p.id, p.name]));
 
-  const total = requests.length;
+  // 使用 totalCount，如果未加载则用当前页数据长度估算
+  const total = typeof totalCount === 'number' ? totalCount : (requests.length > 0 ? requests.length + page * PAGE_SIZE : 0);
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
+
+  // Refetch count when requests change
+  const handleRefresh = () => {
+    refetch();
+    refetchCount();
+  };
 
   return (
     <div className="flex flex-col h-full bg-background">
@@ -66,7 +74,7 @@ export function RequestsPage() {
         </div>
         <div className="flex items-center gap-2">
           <button
-            onClick={() => refetch()}
+            onClick={handleRefresh}
             disabled={isLoading}
             className="btn btn-secondary flex items-center gap-2 h-9 px-3"
           >

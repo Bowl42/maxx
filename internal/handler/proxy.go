@@ -71,6 +71,7 @@ func (h *ProxyHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	ctx = ctxutil.WithRequestBody(ctx, body)
 	ctx = ctxutil.WithRequestHeaders(ctx, r.Header)
 	ctx = ctxutil.WithRequestPath(ctx, r.URL.Path)
+	ctx = ctxutil.WithIsStream(ctx, stream)
 
 	// Get or create session to get project ID
 	session, _ := h.sessionRepo.GetBySessionID(sessionID)

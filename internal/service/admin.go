@@ -218,6 +218,10 @@ func (s *AdminService) GetProxyRequests(limit, offset int) ([]*domain.ProxyReque
 	return s.proxyRequestRepo.List(limit, offset)
 }
 
+func (s *AdminService) GetProxyRequestsCount() (int64, error) {
+	return s.proxyRequestRepo.Count()
+}
+
 func (s *AdminService) GetProxyRequest(id uint64) (*domain.ProxyRequest, error) {
 	return s.proxyRequestRepo.GetByID(id)
 }

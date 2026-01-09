@@ -255,6 +255,7 @@ func (a *CustomAdapter) handleStreamResponse(ctx context.Context, w http.Respons
 
 	// Collect all SSE events for response body and token extraction
 	var sseBuffer strings.Builder
+	var sseError error // Track any SSE error event
 
 	// Helper to extract tokens and update attempt with final response body
 	extractTokens := func() {
@@ -279,6 +280,42 @@ func (a *CustomAdapter) handleStreamResponse(ctx context.Context, w http.Respons
 				bc.BroadcastProxyUpstreamAttempt(attempt)
 			}
 		}
+	}
+
+	// Helper to parse SSE error event from data line
+	parseSSEError := func(dataLine string) error {
+		// Remove "data:" prefix and trim whitespace
+		data := strings.TrimSpace(strings.TrimPrefix(dataLine, "data:"))
+		if data == "" || data == "[DONE]" {
+			return nil
+		}
+
+		// Try to parse as JSON
+		var payload map[string]interface{}
+		if err := json.Unmarshal([]byte(data), &payload); err != nil {
+			return nil
+		}
+
+		// Check for error type
+		if payloadType, ok := payload["type"].(string); ok && payloadType == "error" {
+			// Extract error message
+			if errObj, ok := payload["error"].(map[string]interface{}); ok {
+				msg := "SSE error"
+				if m, ok := errObj["message"].(string); ok {
+					msg = m
+				}
+				code := 0
+				if c, ok := errObj["code"].(float64); ok {
+					code = int(c)
+				}
+				return domain.NewProxyErrorWithMessage(
+					fmt.Errorf("SSE error (code=%d): %s", code, msg),
+					isRetryableStatusCode(code),
+					msg,
+				)
+			}
+		}
+		return nil
 	}
 
 	// Create a channel for read results
@@ -313,6 +350,10 @@ func (a *CustomAdapter) handleStreamResponse(ctx context.Context, w http.Respons
 			if result.err != nil {
 				if result.err == io.EOF {
 					extractTokens() // Extract tokens at normal completion
+					// Return SSE error if one was detected during streaming
+					if sseError != nil {
+						return sseError
+					}
 					return nil
 				}
 				// Upstream connection closed - check if client is still connected
@@ -321,11 +362,24 @@ func (a *CustomAdapter) handleStreamResponse(ctx context.Context, w http.Respons
 					return domain.NewProxyErrorWithMessage(ctx.Err(), false, "client disconnected")
 				}
 				extractTokens()
+				// Return SSE error if one was detected during streaming
+				if sseError != nil {
+					return sseError
+				}
 				return nil // Upstream closed normally
 			}
 
 			// Collect all SSE content (preserve complete format including newlines)
 			sseBuffer.Write(result.line)
+
+			// Check for SSE error events in data lines
+			lineStr := string(result.line)
+			if strings.HasPrefix(strings.TrimSpace(lineStr), "data:") {
+				if err := parseSSEError(lineStr); err != nil {
+					sseError = err
+					// Continue to forward the error to client, but track it
+				}
+			}
 
 			var output []byte
 			if needsConversion {

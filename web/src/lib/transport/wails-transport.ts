@@ -173,6 +173,10 @@ export class WailsTransport implements Transport {
     );
   }
 
+  async getProxyRequestsCount(): Promise<number> {
+    return this.call<number>('AdminService.GetProxyRequestsCount');
+  }
+
   async getProxyRequest(id: number): Promise<ProxyRequest> {
     return this.call<ProxyRequest>('AdminService.GetProxyRequest', id);
   }

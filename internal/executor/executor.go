@@ -47,8 +47,9 @@ func (e *Executor) Execute(ctx context.Context, w http.ResponseWriter, req *http
 	clientType := ctxutil.GetClientType(ctx)
 	projectID := ctxutil.GetProjectID(ctx)
 	requestModel := ctxutil.GetRequestModel(ctx)
+	isStream := ctxutil.GetIsStream(ctx)
 
-	log.Printf("[Executor] clientType=%s, projectID=%d, model=%s", clientType, projectID, requestModel)
+	log.Printf("[Executor] clientType=%s, projectID=%d, model=%s, isStream=%v", clientType, projectID, requestModel, isStream)
 
 	// Match routes
 	routes, err := e.router.Match(clientType, projectID)
@@ -72,6 +73,7 @@ func (e *Executor) Execute(ctx context.Context, w http.ResponseWriter, req *http
 		ClientType:   clientType,
 		RequestModel: requestModel,
 		StartTime:    time.Now(),
+		IsStream:     isStream,
 		Status:       "IN_PROGRESS",
 	}
 	if err := e.proxyRequestRepo.Create(proxyReq); err != nil {
@@ -163,6 +165,7 @@ func (e *Executor) Execute(ctx context.Context, w http.ResponseWriter, req *http
 				ProxyRequestID: proxyReq.ID,
 				RouteID:        matchedRoute.Route.ID,
 				ProviderID:     matchedRoute.Provider.ID,
+				IsStream:       isStream,
 				Status:         "IN_PROGRESS",
 			}
 			log.Printf("[Executor] Creating attempt for route %d, attempt %d (proxyRequestID=%d, routeID=%d, providerID=%d)",

@@ -196,6 +196,11 @@ export class HttpTransport implements Transport {
     return data ?? [];
   }
 
+  async getProxyRequestsCount(): Promise<number> {
+    const { data } = await this.client.get<number>('/requests/count');
+    return data ?? 0;
+  }
+
   async getProxyRequest(id: number): Promise<ProxyRequest> {
     const { data } = await this.client.get<ProxyRequest>(`/requests/${id}`);
     return data;

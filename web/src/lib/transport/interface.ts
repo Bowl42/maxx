@@ -69,6 +69,7 @@ export interface Transport {
 
   // ===== ProxyRequest API (只读) =====
   getProxyRequests(params?: PaginationParams): Promise<ProxyRequest[]>;
+  getProxyRequestsCount(): Promise<number>;
   getProxyRequest(id: number): Promise<ProxyRequest>;
   getProxyUpstreamAttempts(proxyRequestId: number): Promise<ProxyUpstreamAttempt[]>;
 

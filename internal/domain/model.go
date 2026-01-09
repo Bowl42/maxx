@@ -150,6 +150,9 @@ type ProxyRequest struct {
 	EndTime   time.Time     `json:"endTime"`
 	Duration  time.Duration `json:"duration"`
 
+	// 是否为 SSE 流式请求
+	IsStream bool `json:"isStream"`
+
 	// PENDING, IN_PROGRESS, COMPLETED, FAILED
 	Status string `json:"status"`
 
@@ -193,6 +196,9 @@ type ProxyUpstreamAttempt struct {
 	Status string `json:"status"`
 
 	ProxyRequestID uint64 `json:"proxyRequestID"`
+
+	// 是否为 SSE 流式请求
+	IsStream bool `json:"isStream"`
 
 	RequestInfo  *RequestInfo  `json:"requestInfo"`
 	ResponseInfo *ResponseInfo `json:"responseInfo"`

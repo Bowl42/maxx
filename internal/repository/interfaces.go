@@ -57,6 +57,7 @@ type ProxyRequestRepository interface {
 	Update(req *domain.ProxyRequest) error
 	GetByID(id uint64) (*domain.ProxyRequest, error)
 	List(limit, offset int) ([]*domain.ProxyRequest, error)
+	Count() (int64, error)
 }
 
 type ProxyUpstreamAttemptRepository interface {

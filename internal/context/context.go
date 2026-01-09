@@ -23,6 +23,7 @@ const (
 	CtxKeyRequestHeaders  contextKey = "request_headers"
 	CtxKeyRequestPath     contextKey = "request_path"
 	CtxKeyBroadcaster     contextKey = "broadcaster"
+	CtxKeyIsStream        contextKey = "is_stream"
 )
 
 // Setters
@@ -157,4 +158,15 @@ func GetBroadcaster(ctx context.Context) event.Broadcaster {
 		return v
 	}
 	return nil
+}
+
+func WithIsStream(ctx context.Context, isStream bool) context.Context {
+	return context.WithValue(ctx, CtxKeyIsStream, isStream)
+}
+
+func GetIsStream(ctx context.Context) bool {
+	if v, ok := ctx.Value(CtxKeyIsStream).(bool); ok {
+		return v
+	}
+	return false
 }
