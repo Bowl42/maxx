@@ -22,34 +22,36 @@ export function OverviewPage() {
   const hasProviders = (providers?.length ?? 0) > 0;
 
   return (
-    <div className="flex flex-col h-full">
+    <div className="flex flex-col h-full bg-background">
       {/* Header */}
-      <div className="h-[73px] flex items-center justify-between p-lg border-b border-border bg-surface-primary flex-shrink-0">
-        <div className="flex items-center gap-md">
-          <LayoutDashboard size={24} className="text-text-primary" />
+      <div className="h-[73px] flex items-center justify-between px-6 border-b border-border bg-surface-primary flex-shrink-0">
+        <div className="flex items-center gap-3">
+          <div className="p-2 bg-accent/10 rounded-lg">
+             <LayoutDashboard size={20} className="text-accent" />
+          </div>
           <div>
-            <h2 className="text-headline font-semibold text-text-primary">Dashboard</h2>
-            <p className="text-caption text-text-muted">Overview of your proxy gateway</p>
+            <h2 className="text-lg font-semibold text-text-primary leading-tight">Dashboard</h2>
+            <p className="text-xs text-text-secondary">Overview of your proxy gateway</p>
           </div>
         </div>
       </div>
 
       {/* Content */}
-      <div className="flex-1 overflow-y-auto p-lg">
-        <div className="space-y-xl animate-fade-in">
+      <div className="flex-1 overflow-y-auto p-6">
+        <div className="space-y-6 animate-fade-in max-w-7xl mx-auto">
       {/* Welcome Section */}
       {!hasProviders && (
-        <div className="text-center py-xxl">
-          <div className="w-20 h-20 rounded-2xl bg-accent/10 flex items-center justify-center mx-auto mb-lg">
-            <Zap size={40} className="text-accent" />
+        <div className="text-center py-12">
+          <div className="w-16 h-16 rounded-2xl bg-accent/10 flex items-center justify-center mx-auto mb-6">
+            <Zap size={32} className="text-accent" />
           </div>
-          <h1 className="text-title1 font-bold text-text-primary mb-md">Welcome to Maxx Next</h1>
-          <p className="text-body text-text-secondary max-w-md mx-auto mb-xl">
+          <h1 className="text-2xl font-bold text-text-primary mb-3">Welcome to Maxx Next</h1>
+          <p className="text-sm text-text-secondary max-w-md mx-auto mb-8">
             AI API Proxy Gateway - Route your AI requests through multiple providers with intelligent failover and load balancing.
           </p>
           <Link
             to="/providers"
-            className="inline-flex items-center gap-2 bg-accent text-white px-xl py-md rounded-lg hover:bg-accent-hover transition-colors"
+            className="inline-flex items-center gap-2 bg-accent text-white px-6 py-2.5 rounded-lg hover:bg-accent-hover transition-colors font-medium text-sm"
           >
             Get Started
             <ArrowRight className="h-4 w-4" />
@@ -58,19 +60,19 @@ export function OverviewPage() {
       )}
 
       {/* Stats Grid */}
-      <div className="grid gap-lg md:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
         {stats.map((stat) => {
           const Icon = stat.icon;
           return (
             <Link key={stat.label} to={stat.href}>
-              <Card className="hover:shadow-card-hover cursor-pointer">
-                <CardContent className="p-lg">
+              <Card className="hover:shadow-card-hover cursor-pointer border-border bg-surface-primary transition-all duration-200 hover:border-accent/50">
+                <CardContent className="p-6">
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-caption text-text-secondary uppercase tracking-wide">{stat.label}</p>
-                      <p className="text-title2 font-bold text-text-primary mt-xs">{stat.value}</p>
+                      <p className="text-xs font-medium text-text-secondary uppercase tracking-wider">{stat.label}</p>
+                      <p className="text-2xl font-bold text-text-primary mt-1">{stat.value}</p>
                     </div>
-                    <div className={`p-md rounded-lg bg-surface-secondary ${stat.color}`}>
+                    <div className={`p-3 rounded-lg bg-surface-secondary ${stat.color}`}>
                       <Icon className="h-5 w-5" />
                     </div>
                   </div>
@@ -82,71 +84,71 @@ export function OverviewPage() {
       </div>
 
       {/* Status Cards */}
-      <div className="grid gap-lg md:grid-cols-2">
-        <Card>
-          <CardHeader>
-            <CardTitle>Request Status</CardTitle>
+      <div className="grid gap-6 md:grid-cols-2">
+        <Card className="border-border bg-surface-primary">
+          <CardHeader className="border-b border-border py-4">
+            <CardTitle className="text-base font-medium">Request Status</CardTitle>
           </CardHeader>
-          <CardContent>
-            <div className="space-y-md">
-              <div className="flex items-center justify-between p-md rounded-lg bg-surface-secondary">
-                <div className="flex items-center gap-md">
-                  <CheckCircle className="h-5 w-5 text-success" />
-                  <span className="text-body text-text-secondary">Completed</span>
+          <CardContent className="p-6">
+            <div className="space-y-3">
+              <div className="flex items-center justify-between p-3 rounded-lg bg-surface-secondary/50 border border-border">
+                <div className="flex items-center gap-3">
+                  <CheckCircle className="h-4 w-4 text-success" />
+                  <span className="text-sm font-medium text-text-secondary">Completed</span>
                 </div>
-                <span className="text-headline font-semibold text-success">{completedRequests}</span>
+                <span className="text-lg font-bold text-success font-mono">{completedRequests}</span>
               </div>
-              <div className="flex items-center justify-between p-md rounded-lg bg-surface-secondary">
-                <div className="flex items-center gap-md">
-                  <XCircle className="h-5 w-5 text-error" />
-                  <span className="text-body text-text-secondary">Failed</span>
+              <div className="flex items-center justify-between p-3 rounded-lg bg-surface-secondary/50 border border-border">
+                <div className="flex items-center gap-3">
+                  <XCircle className="h-4 w-4 text-error" />
+                  <span className="text-sm font-medium text-text-secondary">Failed</span>
                 </div>
-                <span className="text-headline font-semibold text-error">{failedRequests}</span>
+                <span className="text-lg font-bold text-error font-mono">{failedRequests}</span>
               </div>
-              <div className="flex items-center justify-between p-md rounded-lg bg-surface-secondary">
-                <div className="flex items-center gap-md">
-                  <Ban className="h-5 w-5 text-warning" />
-                  <span className="text-body text-text-secondary">Cancelled</span>
+              <div className="flex items-center justify-between p-3 rounded-lg bg-surface-secondary/50 border border-border">
+                <div className="flex items-center gap-3">
+                  <Ban className="h-4 w-4 text-warning" />
+                  <span className="text-sm font-medium text-text-secondary">Cancelled</span>
                 </div>
-                <span className="text-headline font-semibold text-warning">{cancelledRequests}</span>
+                <span className="text-lg font-bold text-warning font-mono">{cancelledRequests}</span>
               </div>
             </div>
           </CardContent>
         </Card>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Quick Actions</CardTitle>
+        <Card className="border-border bg-surface-primary">
+          <CardHeader className="border-b border-border py-4">
+            <CardTitle className="text-base font-medium">Quick Actions</CardTitle>
           </CardHeader>
-          <CardContent>
-            <div className="space-y-md">
+          <CardContent className="p-6">
+            <div className="space-y-3">
               <Link
                 to="/providers"
-                className="flex items-center justify-between p-md rounded-lg bg-surface-secondary hover:bg-surface-hover transition-colors group"
+                className="flex items-center justify-between p-3 rounded-lg bg-surface-secondary/50 border border-border hover:bg-surface-hover hover:border-accent/30 transition-all group"
               >
-                <div className="flex items-center gap-md">
-                  <Server className="h-5 w-5 text-info" />
-                  <span className="text-body text-text-primary">Manage Providers</span>
+                <div className="flex items-center gap-3">
+                  <Server className="h-4 w-4 text-info" />
+                  <span className="text-sm font-medium text-text-primary">Manage Providers</span>
                 </div>
                 <ArrowRight className="h-4 w-4 text-text-muted group-hover:text-text-primary transition-colors" />
               </Link>
               <Link
                 to="/routes"
-                className="flex items-center justify-between p-md rounded-lg bg-surface-secondary hover:bg-surface-hover transition-colors group"
+                className="flex items-center justify-between p-3 rounded-lg bg-surface-secondary/50 border border-border hover:bg-surface-hover hover:border-accent/30 transition-all group"
               >
-                <div className="flex items-center gap-md">
-                  <Route className="h-5 w-5 text-accent" />
-                  <span className="text-body text-text-primary">Configure Routes</span>
+                <div className="flex items-center gap-3">
+                  <Route className="h-4 w-4 text-accent" />
+                  <span className="text-sm font-medium text-text-primary">Configure Routes</span>
                 </div>
                 <ArrowRight className="h-4 w-4 text-text-muted group-hover:text-text-primary transition-colors" />
               </Link>
               <Link
                 to="/requests"
-                className="flex items-center justify-between p-md rounded-lg bg-surface-secondary hover:bg-surface-hover transition-colors group"
+                className="flex items-center justify-between p-3 rounded-lg bg-surface-secondary/50 border border-border hover:bg-surface-hover hover:border-accent/30 transition-all group"
               >
-                <div className="flex items-center gap-md">
-                  <Activity className="h-5 w-5 text-success" />
-                  <span className="text-body text-text-primary">View Requests</span>
+                <div className="flex items-center gap-3">
+                  <Activity className="h-4 w-4 text-success" />
+                  <span className="text-sm font-medium text-text-primary">View Requests</span>
                 </div>
                 <ArrowRight className="h-4 w-4 text-text-muted group-hover:text-text-primary transition-colors" />
               </Link>
@@ -157,27 +159,27 @@ export function OverviewPage() {
 
       {/* Features */}
       {!hasProviders && (
-        <div className="grid grid-cols-3 gap-lg">
-          <div className="bg-surface-secondary/50 rounded-xl p-lg text-center">
-            <div className="w-10 h-10 rounded-lg bg-success/10 flex items-center justify-center mx-auto mb-md">
+        <div className="grid grid-cols-3 gap-6">
+          <div className="bg-surface-secondary/30 border border-border rounded-xl p-6 text-center">
+            <div className="w-10 h-10 rounded-lg bg-success/10 flex items-center justify-center mx-auto mb-4">
               <CheckCircle className="h-5 w-5 text-success" />
             </div>
-            <h3 className="text-headline font-semibold text-text-primary">Secure</h3>
-            <p className="text-caption text-text-secondary mt-xs">End-to-end encryption</p>
+            <h3 className="text-sm font-semibold text-text-primary">Secure</h3>
+            <p className="text-xs text-text-secondary mt-1">End-to-end encryption</p>
           </div>
-          <div className="bg-surface-secondary/50 rounded-xl p-lg text-center">
-            <div className="w-10 h-10 rounded-lg bg-accent/10 flex items-center justify-center mx-auto mb-md">
+          <div className="bg-surface-secondary/30 border border-border rounded-xl p-6 text-center">
+            <div className="w-10 h-10 rounded-lg bg-accent/10 flex items-center justify-center mx-auto mb-4">
               <Zap className="h-5 w-5 text-accent" />
             </div>
-            <h3 className="text-headline font-semibold text-text-primary">Fast</h3>
-            <p className="text-caption text-text-secondary mt-xs">Low latency routing</p>
+            <h3 className="text-sm font-semibold text-text-primary">Fast</h3>
+            <p className="text-xs text-text-secondary mt-1">Low latency routing</p>
           </div>
-          <div className="bg-surface-secondary/50 rounded-xl p-lg text-center">
-            <div className="w-10 h-10 rounded-lg bg-info/10 flex items-center justify-center mx-auto mb-md">
+          <div className="bg-surface-secondary/30 border border-border rounded-xl p-6 text-center">
+            <div className="w-10 h-10 rounded-lg bg-info/10 flex items-center justify-center mx-auto mb-4">
               <Activity className="h-5 w-5 text-info" />
             </div>
-            <h3 className="text-headline font-semibold text-text-primary">Insights</h3>
-            <p className="text-caption text-text-secondary mt-xs">Real-time analytics</p>
+            <h3 className="text-sm font-semibold text-text-primary">Insights</h3>
+            <p className="text-xs text-text-secondary mt-1">Real-time analytics</p>
           </div>
         </div>
       )}

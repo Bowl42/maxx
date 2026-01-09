@@ -1,31 +1,29 @@
 import { useState } from 'react';
-import { Settings, Plus, Save, Trash2, X, Moon, Sun, Monitor } from 'lucide-react';
+import { Settings, Plus, Save, Trash2, X, Moon, Sun, Monitor, Laptop } from 'lucide-react';
 import { useSettings, useUpdateSetting, useDeleteSetting } from '@/hooks/queries';
 import { useTheme, type Theme } from '@/hooks/use-theme';
+import { Card, CardContent, CardHeader, CardTitle, Button, Input } from '@/components/ui';
+import { cn } from '@/lib/utils';
 
 export function SettingsPage() {
   return (
-    <div className="flex flex-col h-full">
-      <Header />
-      <div className="flex-1 overflow-y-auto p-lg">
-        <div className="max-w-2xl mx-auto space-y-8">
+    <div className="flex flex-col h-full bg-background">
+      {/* Header */}
+      <div className="h-[73px] flex items-center gap-3 px-6 border-b border-border bg-surface-primary flex-shrink-0">
+        <div className="p-2 bg-accent/10 rounded-lg">
+          <Settings size={20} className="text-accent" />
+        </div>
+        <div>
+          <h1 className="text-lg font-semibold text-text-primary leading-tight">Settings</h1>
+          <p className="text-xs text-text-secondary">Configure your maxx-next instance</p>
+        </div>
+      </div>
+
+      <div className="flex-1 overflow-y-auto p-6">
+        <div className="max-w-4xl space-y-6">
           <AppearanceSection />
           <SystemSettingsSection />
         </div>
-      </div>
-    </div>
-  );
-}
-
-function Header() {
-  return (
-    <div className="h-[73px] flex items-center gap-md p-lg border-b border-border bg-surface-primary">
-      <div className="w-10 h-10 rounded-lg bg-accent/10 flex items-center justify-center">
-        <Settings size={20} className="text-accent" />
-      </div>
-      <div>
-        <h1 className="text-headline font-semibold text-text-primary">Settings</h1>
-        <p className="text-caption text-text-secondary">Configure your maxx-next instance</p>
       </div>
     </div>
   );
@@ -37,32 +35,40 @@ function AppearanceSection() {
   const themes: { value: Theme; label: string; icon: typeof Sun }[] = [
     { value: 'light', label: 'Light', icon: Sun },
     { value: 'dark', label: 'Dark', icon: Moon },
-    { value: 'system', label: 'System', icon: Monitor },
+    { value: 'system', label: 'System', icon: Laptop },
   ];
 
   return (
-    <section>
-      <h2 className="text-title3 font-semibold text-text-primary mb-4">Appearance</h2>
-      <div className="bg-surface-secondary rounded-lg p-4">
-        <label className="text-sm font-medium text-text-primary block mb-3">Theme</label>
-        <div className="flex gap-2">
-          {themes.map(({ value, label, icon: Icon }) => (
-            <button
-              key={value}
-              onClick={() => setTheme(value)}
-              className={`flex items-center gap-2 px-4 py-2 rounded-lg border transition-colors ${
-                theme === value
-                  ? 'border-accent bg-accent/10 text-accent'
-                  : 'border-border bg-surface-primary text-text-secondary hover:bg-surface-hover'
-              }`}
-            >
-              <Icon size={16} />
-              <span className="text-sm">{label}</span>
-            </button>
-          ))}
+    <Card className="border-border bg-surface-primary">
+      <CardHeader className="border-b border-border py-4">
+        <CardTitle className="text-base font-medium flex items-center gap-2">
+          <Monitor className="h-4 w-4 text-text-muted" />
+          Appearance
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="p-6">
+        <div className="space-y-3">
+          <label className="text-sm font-medium text-text-secondary block">Theme Preference</label>
+          <div className="flex flex-wrap gap-3">
+            {themes.map(({ value, label, icon: Icon }) => (
+              <button
+                key={value}
+                onClick={() => setTheme(value)}
+                className={cn(
+                  "flex items-center gap-2 px-4 py-2.5 rounded-lg border transition-all duration-200",
+                  theme === value
+                    ? "border-accent bg-accent/10 text-accent ring-1 ring-accent/20"
+                    : "border-border bg-surface-secondary text-text-secondary hover:bg-surface-hover hover:border-text-muted/50"
+                )}
+              >
+                <Icon size={16} />
+                <span className="text-sm font-medium">{label}</span>
+              </button>
+            ))}
+          </div>
         </div>
-      </div>
-    </section>
+      </CardContent>
+    </Card>
   );
 }
 
@@ -117,76 +123,94 @@ function SystemSettingsSection() {
   const settingsEntries = settings ? Object.entries(settings) : [];
 
   return (
-    <section>
-      <div className="flex items-center justify-between mb-4">
-        <h2 className="text-title3 font-semibold text-text-primary">System Settings</h2>
-        <button
+    <Card className="border-border bg-surface-primary">
+      <CardHeader className="border-b border-border py-4 flex flex-row items-center justify-between space-y-0">
+        <CardTitle className="text-base font-medium flex items-center gap-2">
+           <Settings className="h-4 w-4 text-text-muted" />
+           System Configuration
+        </CardTitle>
+        <Button
           onClick={() => setShowAddForm(true)}
-          className="btn btn-primary flex items-center gap-2"
+          size="sm"
+          className={cn("h-8 gap-1.5", showAddForm && "opacity-50 pointer-events-none")}
+          disabled={showAddForm}
         >
           <Plus size={14} />
           Add Setting
-        </button>
-      </div>
-
-      <div className="bg-surface-secondary rounded-lg overflow-hidden">
+        </Button>
+      </CardHeader>
+      
+      <CardContent className="p-0">
         {isLoading ? (
-          <div className="p-8 text-center text-text-muted">Loading settings...</div>
+          <div className="p-8 text-center text-text-muted flex items-center justify-center gap-2">
+            <div className="animate-spin h-4 w-4 border-2 border-text-muted border-t-transparent rounded-full" />
+            Loading settings...
+          </div>
         ) : settingsEntries.length === 0 && !showAddForm ? (
-          <div className="p-8 text-center text-text-muted">
-            <Settings size={32} className="mx-auto mb-2 opacity-30" />
-            <p>No custom settings configured</p>
+          <div className="p-12 text-center text-text-muted">
+            <div className="w-12 h-12 rounded-full bg-surface-secondary flex items-center justify-center mx-auto mb-3">
+               <Settings size={20} className="opacity-30" />
+            </div>
+            <p className="text-sm">No custom settings configured</p>
           </div>
         ) : (
           <div className="divide-y divide-border">
             {showAddForm && (
-              <div className="p-4 bg-accent/5">
-                <div className="flex gap-2">
-                  <input
-                    type="text"
-                    value={newKey}
-                    onChange={(e) => setNewKey(e.target.value)}
-                    placeholder="Key"
-                    className="form-input flex-1"
-                    autoFocus
-                  />
-                  <input
-                    type="text"
-                    value={newValue}
-                    onChange={(e) => setNewValue(e.target.value)}
-                    placeholder="Value"
-                    className="form-input flex-1"
-                  />
-                  <button
-                    onClick={handleAdd}
-                    disabled={!newKey.trim() || updateSetting.isPending}
-                    className="btn btn-primary"
-                  >
-                    <Save size={14} />
-                  </button>
-                  <button
-                    onClick={() => {
-                      setShowAddForm(false);
-                      setNewKey('');
-                      setNewValue('');
-                    }}
-                    className="btn bg-surface-hover text-text-secondary"
-                  >
-                    <X size={14} />
-                  </button>
+              <div className="p-4 bg-accent/5 animate-in slide-in-from-top-2 duration-200">
+                <div className="flex gap-3 items-start">
+                  <div className="flex-1 space-y-2">
+                    <Input
+                      type="text"
+                      value={newKey}
+                      onChange={(e) => setNewKey(e.target.value)}
+                      placeholder="Key (e.g., system.timeout)"
+                      className="bg-surface-primary border-accent/30 focus:border-accent"
+                      autoFocus
+                    />
+                    <Input
+                      type="text"
+                      value={newValue}
+                      onChange={(e) => setNewValue(e.target.value)}
+                      placeholder="Value"
+                      className="bg-surface-primary border-accent/30 focus:border-accent"
+                    />
+                  </div>
+                  <div className="flex flex-col gap-2 pt-0.5">
+                    <Button
+                      onClick={handleAdd}
+                      disabled={!newKey.trim() || updateSetting.isPending}
+                      size="sm"
+                      className="h-9 w-9 p-0 bg-accent text-white hover:bg-accent-hover"
+                    >
+                      <Save size={14} />
+                    </Button>
+                    <Button
+                      onClick={() => {
+                        setShowAddForm(false);
+                        setNewKey('');
+                        setNewValue('');
+                      }}
+                      size="sm"
+                      variant="ghost"
+                      className="h-9 w-9 p-0 hover:bg-error/10 hover:text-error"
+                    >
+                      <X size={14} />
+                    </Button>
+                  </div>
                 </div>
               </div>
             )}
+            
             {settingsEntries.map(([key, value]) => (
-              <div key={key} className="p-4 flex items-center gap-4">
+              <div key={key} className="p-4 flex items-center gap-4 group transition-colors hover:bg-surface-secondary/30">
                 <div className="flex-1 min-w-0">
-                  <div className="text-sm font-medium text-text-primary font-mono">{key}</div>
+                  <div className="text-xs font-mono font-medium text-text-secondary mb-1">{key}</div>
                   {editingKey === key ? (
-                    <input
+                    <Input
                       type="text"
                       value={editValue}
                       onChange={(e) => setEditValue(e.target.value)}
-                      className="form-input mt-1 w-full"
+                      className="h-8 text-sm font-mono bg-surface-primary"
                       autoFocus
                       onKeyDown={(e) => {
                         if (e.key === 'Enter') handleSave(key);
@@ -195,45 +219,61 @@ function SystemSettingsSection() {
                     />
                   ) : (
                     <div
-                      className="text-sm text-text-secondary font-mono truncate cursor-pointer hover:text-text-primary"
+                      className="text-sm text-text-primary font-mono truncate cursor-pointer hover:text-accent transition-colors py-1"
                       onClick={() => handleEdit(key)}
+                      title="Click to edit"
                     >
-                      {value || <span className="italic text-text-muted">(empty)</span>}
+                      {value || <span className="italic text-text-muted opacity-50">(empty)</span>}
                     </div>
                   )}
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity focus-within:opacity-100">
                   {editingKey === key ? (
                     <>
-                      <button
+                      <Button
                         onClick={() => handleSave(key)}
                         disabled={updateSetting.isPending}
-                        className="btn btn-primary"
+                        size="sm"
+                        className="h-8 w-8 p-0"
                       >
                         <Save size={14} />
-                      </button>
-                      <button
+                      </Button>
+                      <Button
                         onClick={() => setEditingKey(null)}
-                        className="btn bg-surface-hover text-text-secondary"
+                        size="sm"
+                        variant="ghost"
+                        className="h-8 w-8 p-0"
                       >
                         <X size={14} />
-                      </button>
+                      </Button>
                     </>
                   ) : (
-                    <button
-                      onClick={() => handleDelete(key)}
-                      className="btn bg-error/10 text-error hover:bg-error/20"
-                    >
-                      <Trash2 size={14} />
-                    </button>
+                    <>
+                       <Button
+                        onClick={() => handleEdit(key)}
+                        size="sm"
+                        variant="ghost"
+                        className="h-8 w-8 p-0 text-text-secondary hover:text-primary"
+                      >
+                        <Settings size={14} />
+                      </Button>
+                      <Button
+                        onClick={() => handleDelete(key)}
+                        size="sm"
+                        variant="ghost"
+                        className="h-8 w-8 p-0 text-text-secondary hover:text-error hover:bg-error/10"
+                      >
+                        <Trash2 size={14} />
+                      </Button>
+                    </>
                   )}
                 </div>
               </div>
             ))}
           </div>
         )}
-      </div>
-    </section>
+      </CardContent>
+    </Card>
   );
 }
 

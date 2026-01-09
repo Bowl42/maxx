@@ -2,9 +2,23 @@ import { useState, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Button, Card, CardContent, CardHeader, CardTitle, Badge } from '@/components/ui';
 import { useProxyRequest, useProxyUpstreamAttempts, useProxyRequestUpdates, useProviders } from '@/hooks/queries';
-import { ArrowLeft, Clock, Zap, AlertCircle, Server, CheckCircle, XCircle, Loader2, Ban } from 'lucide-react';
+import { 
+  ArrowLeft, 
+  Clock, 
+  Zap, 
+  AlertCircle, 
+  Server, 
+  CheckCircle, 
+  XCircle, 
+  Loader2, 
+  Ban, 
+  Code, 
+  Database,
+  Info
+} from 'lucide-react';
 import { statusVariant } from './index';
 import type { ProxyUpstreamAttempt } from '@/lib/transport';
+import { cn } from '@/lib/utils';
 
 export function RequestDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -13,11 +27,24 @@ export function RequestDetailPage() {
   const { data: attempts } = useProxyUpstreamAttempts(Number(id));
   const { data: providers } = useProviders();
   const [selectedAttemptId, setSelectedAttemptId] = useState<number | null>(null);
-  const [activeTab, setActiveTab] = useState<'request' | 'response'>('request');
+  const [activeTab, setActiveTab] = useState<'request' | 'response' | 'metadata'>('request');
 
   useProxyRequestUpdates();
 
-  const selectedAttempt = attempts?.find(a => a.id === selectedAttemptId) ?? attempts?.[0];
+  const selectedAttempt = useMemo(() => {
+    if (selectedAttemptId) {
+      return attempts?.find(a => a.id === selectedAttemptId);
+    }
+    return attempts?.[0];
+  }, [attempts, selectedAttemptId]);
+
+  // Select the first attempt by default if none selected
+  useMemo(() => {
+     if (!selectedAttemptId && attempts && attempts.length > 0) {
+        setSelectedAttemptId(attempts[0].id);
+     }
+  }, [attempts, selectedAttemptId]);
+
 
   // Create lookup map for provider names
   const providerMap = useMemo(() => {
@@ -34,7 +61,7 @@ export function RequestDetailPage() {
 
   const formatTime = (dateStr: string) => {
     if (!dateStr || dateStr === '0001-01-01T00:00:00Z') return '-';
-    return new Date(dateStr).toLocaleTimeString();
+    return new Date(dateStr).toLocaleString();
   };
 
   const formatJSON = (obj: unknown): string => {
@@ -49,332 +76,411 @@ export function RequestDetailPage() {
   const getStatusIcon = (status: string) => {
     switch (status) {
       case 'COMPLETED':
-        return <CheckCircle className="h-4 w-4 text-green-500" />;
+        return <CheckCircle className="h-4 w-4 text-success" />;
       case 'FAILED':
-        return <XCircle className="h-4 w-4 text-red-500" />;
+        return <XCircle className="h-4 w-4 text-error" />;
       case 'CANCELLED':
-        return <Ban className="h-4 w-4 text-yellow-500" />;
+        return <Ban className="h-4 w-4 text-warning" />;
       case 'IN_PROGRESS':
-        return <Loader2 className="h-4 w-4 text-blue-500 animate-spin" />;
+        return <Loader2 className="h-4 w-4 text-info animate-spin" />;
       default:
-        return <Clock className="h-4 w-4 text-gray-400" />;
+        return <Clock className="h-4 w-4 text-text-muted" />;
     }
   };
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center p-12">
-        <Loader2 className="h-8 w-8 animate-spin text-gray-400" />
+      <div className="flex h-full items-center justify-center bg-background">
+        <Loader2 className="h-8 w-8 animate-spin text-accent" />
       </div>
     );
   }
 
   if (error || !request) {
     return (
-      <div className="space-y-6">
+      <div className="flex flex-col items-center justify-center h-full space-y-4 bg-background">
+        <div className="p-4 bg-error/10 rounded-full">
+          <AlertCircle className="h-12 w-12 text-error" />
+        </div>
+        <h3 className="text-lg font-semibold text-text-primary">Request Not Found</h3>
+        <p className="text-text-secondary">The request doesn't exist or has been deleted.</p>
         <Button variant="outline" onClick={() => navigate('/requests')}>
           <ArrowLeft className="mr-2 h-4 w-4" />
-          Back
+          Back to Requests
         </Button>
-        <Card>
-          <CardContent className="p-12 text-center">
-            <AlertCircle className="mx-auto mb-4 h-12 w-12 text-red-500" />
-            <h3 className="text-lg font-semibold">Request Not Found</h3>
-            <p className="text-gray-500">The request doesn't exist or has been deleted.</p>
-          </CardContent>
-        </Card>
       </div>
     );
   }
 
   return (
-    <div className="space-y-4">
+    <div className="flex flex-col h-full overflow-hidden bg-background">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <Button variant="ghost" size="sm" onClick={() => navigate('/requests')}>
-            <ArrowLeft className="h-4 w-4" />
-          </Button>
-          <div>
-            <div className="flex items-center gap-2">
-              <h2 className="text-lg font-semibold">{request.requestModel || 'Unknown Model'}</h2>
-              <Badge variant={statusVariant[request.status]}>{request.status}</Badge>
-            </div>
-            <div className="flex items-center gap-3 text-sm text-gray-500">
-              <span className="font-mono">#{request.id}</span>
-              <span>{request.clientType}</span>
-              <span>{formatTime(request.startTime)}</span>
-              {attempts && attempts.length > 0 && (
-                <>
-                  <span>•</span>
-                  <span className="flex items-center gap-1">
-                    <Server className="h-3 w-3" />
-                    {providerMap.get(attempts[attempts.length - 1].providerID) || `Provider #${attempts[attempts.length - 1].providerID}`}
-                  </span>
-                </>
-              )}
-              {request.proxyUpstreamAttemptCount > 1 && (
-                <span className="text-amber-500">({request.proxyUpstreamAttemptCount} attempts)</span>
-              )}
+      <div className="border-b border-border bg-surface-primary px-4 py-3 flex-shrink-0">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <Button variant="ghost" size="icon" onClick={() => navigate('/requests')} className="h-8 w-8 -ml-2 text-text-secondary hover:text-text-primary">
+              <ArrowLeft className="h-5 w-5" />
+            </Button>
+            <div>
+              <div className="flex items-center gap-3">
+                <h2 className="text-lg font-semibold text-text-primary tracking-tight">{request.requestModel || 'Unknown Model'}</h2>
+                <Badge variant={statusVariant[request.status]} className="capitalize">
+                  {request.status.toLowerCase().replace('_', ' ')}
+                </Badge>
+              </div>
+              <div className="flex items-center gap-3 text-xs text-text-secondary mt-0.5">
+                <span className="font-mono text-text-muted">#{request.id}</span>
+                <span className="flex items-center gap-1"><span className="w-1 h-1 rounded-full bg-text-muted/50" />{request.clientType}</span>
+                <span className="flex items-center gap-1"><span className="w-1 h-1 rounded-full bg-text-muted/50" />{formatTime(request.startTime)}</span>
+              </div>
             </div>
           </div>
-        </div>
 
-        {/* Quick Stats */}
-        <div className="flex items-center gap-6 text-sm">
-          <div className="flex items-center gap-2">
-            <Clock className="h-4 w-4 text-gray-400" />
-            <span className="font-medium">{request.duration ? formatDuration(request.duration) : '-'}</span>
+          <div className="flex gap-3">
+            <StatCard icon={<Clock size={14} />} label="Duration" value={request.duration ? formatDuration(request.duration) : '-'} />
+            <StatCard icon={<Zap size={14} />} label="Tokens" value={request.inputTokenCount + request.outputTokenCount > 0 ? `${(request.inputTokenCount + request.outputTokenCount).toLocaleString()}` : '-'} subValue={`In: ${request.inputTokenCount} / Out: ${request.outputTokenCount}`} />
+            <StatCard icon={<CoinsIcon size={14} />} label="Cost" value={request.cost > 0 ? `$${request.cost.toFixed(4)}` : '-'} valueColor={request.cost > 0 ? 'text-success' : undefined} />
           </div>
-          <div className="flex items-center gap-2">
-            <Zap className="h-4 w-4 text-gray-400" />
-            <span className="font-medium">
-              {request.inputTokenCount + request.outputTokenCount > 0
-                ? `${request.inputTokenCount}/${request.outputTokenCount}`
-                : '-'}
-            </span>
-          </div>
-          {request.cost > 0 && (
-            <span className="font-medium text-green-600">${request.cost.toFixed(4)}</span>
-          )}
         </div>
       </div>
 
-      {/* Error Banner */}
-      {request.error && (
-        <div className="flex items-start gap-3 rounded-lg border border-red-200 bg-red-50 p-3 dark:border-red-900 dark:bg-red-950">
-          <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-red-500" />
-          <pre className="whitespace-pre-wrap break-words font-mono text-sm text-red-600 dark:text-red-400">
-            {request.error}
-          </pre>
+       {/* Error Banner */}
+       {request.error && (
+        <div className="flex-shrink-0 bg-error/10 border-b border-error/20 px-6 py-3 flex items-start gap-3">
+           <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-error" />
+           <div className="flex-1">
+             <h4 className="text-sm font-medium text-error mb-1">Request Failed</h4>
+             <pre className="whitespace-pre-wrap break-words font-mono text-xs text-error/90 max-h-24 overflow-auto">
+               {request.error}
+             </pre>
+           </div>
         </div>
       )}
 
-      {/* Main Content: Attempts */}
-      <Card className="overflow-hidden">
-        <CardHeader className="border-b bg-gray-50 py-3 dark:bg-gray-900">
-          <CardTitle className="flex items-center gap-2 text-base">
-            <Server className="h-4 w-4" />
-            Upstream Attempts
-            {attempts && attempts.length > 0 && (
-              <Badge variant="default" className="ml-1">{attempts.length}</Badge>
-            )}
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="p-0">
-          {attempts && attempts.length > 0 ? (
-            <div className="flex divide-x">
-              {/* Left: Attempts List */}
-              <div className="w-56 shrink-0 divide-y">
-                {attempts.map((attempt: ProxyUpstreamAttempt, index: number) => (
-                  <div
-                    key={attempt.id}
-                    onClick={() => setSelectedAttemptId(attempt.id)}
-                    className={`cursor-pointer p-3 transition-colors hover:bg-gray-50 dark:hover:bg-gray-800 ${
-                      selectedAttempt?.id === attempt.id ? 'bg-blue-50 dark:bg-blue-950' : ''
-                    }`}
-                  >
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        {getStatusIcon(attempt.status)}
-                        <span className="text-sm font-medium">Attempt {index + 1}</span>
-                      </div>
-                      {attempt.responseInfo && (
-                        <Badge
-                          variant={attempt.responseInfo.status >= 400 ? 'danger' : 'success'}
-                          className="text-xs"
-                        >
-                          {attempt.responseInfo.status}
-                        </Badge>
-                      )}
-                    </div>
-                    <div className="mt-1 flex items-center gap-1 text-xs text-gray-500">
-                      <Server className="h-3 w-3" />
-                      <span className="font-medium">{providerMap.get(attempt.providerID) || `Provider #${attempt.providerID}`}</span>
-                    </div>
-                    {(attempt.inputTokenCount > 0 || attempt.outputTokenCount > 0) && (
-                      <div className="mt-1 text-xs text-gray-400">
-                        {attempt.inputTokenCount}/{attempt.outputTokenCount} tokens
-                      </div>
-                    )}
-                  </div>
-                ))}
-              </div>
-
-              {/* Right: Detail Panel */}
-              <div className="min-w-0 flex-1">
-                {selectedAttempt ? (
-                  <>
-                    {/* Provider Info Header */}
-                    <div className="border-b bg-gray-50 px-4 py-3 dark:bg-gray-900">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                          <Server className="h-4 w-4 text-gray-400" />
-                          <span className="font-medium">
-                            {providerMap.get(selectedAttempt.providerID) || `Provider #${selectedAttempt.providerID}`}
+      {/* Main Content - Split View */}
+      <div className="flex-1 flex overflow-hidden">
+         {/* Sidebar: Attempts List */}
+         <div className="w-80 flex flex-col border-r border-border bg-surface-primary flex-shrink-0">
+            <div className="p-3 border-b border-border bg-surface-secondary/50 flex items-center justify-between">
+               <span className="text-xs font-semibold text-text-secondary uppercase tracking-wider flex items-center gap-2">
+                 <Server size={12} /> Attempts
+               </span>
+               <Badge variant="outline" className="text-[10px] h-5 px-1.5">{attempts?.length || 0}</Badge>
+            </div>
+            
+            <div className="flex-1 overflow-y-auto">
+               {attempts && attempts.length > 0 ? (
+                  <div className="divide-y divide-border">
+                    {attempts.map((attempt: ProxyUpstreamAttempt, index: number) => (
+                      <button
+                        key={attempt.id}
+                        onClick={() => setSelectedAttemptId(attempt.id)}
+                        className={cn(
+                          "w-full text-left p-3.5 transition-all outline-none border-l-[3px]",
+                          selectedAttempt?.id === attempt.id 
+                            ? "bg-accent/5 border-l-accent" 
+                            : "border-l-transparent hover:bg-surface-secondary/50"
+                        )}
+                      >
+                        <div className="flex items-center justify-between mb-1.5">
+                          <div className="flex items-center gap-2">
+                            {getStatusIcon(attempt.status)}
+                            <span className={cn("text-sm font-medium transition-colors", selectedAttempt?.id === attempt.id ? "text-text-primary" : "text-text-secondary group-hover:text-text-primary")}>
+                              Attempt {index + 1}
+                            </span>
+                          </div>
+                          {attempt.responseInfo && (
+                            <span className={cn(
+                              "text-[10px] font-mono px-1.5 py-0.5 rounded font-medium",
+                              attempt.responseInfo.status >= 400 ? "text-error bg-error/10" : "text-success bg-success/10"
+                            )}>
+                              {attempt.responseInfo.status}
+                            </span>
+                          )}
+                        </div>
+                        <div className="flex items-center justify-between text-xs text-text-muted">
+                          <span className="flex items-center gap-1.5 truncate max-w-[140px]" title={providerMap.get(attempt.providerID) || `Provider #${attempt.providerID}`}>
+                            {providerMap.get(attempt.providerID) || `Provider #${attempt.providerID}`}
+                          </span>
+                           <span className="font-mono opacity-70">
+                            {formatDuration((new Date(attempt.updatedAt).getTime() - new Date(attempt.createdAt).getTime()) * 1_000_000)}
                           </span>
                         </div>
-                        <div className="flex items-center gap-2 text-sm text-gray-500">
-                          {selectedAttempt.routeID > 0 && (
-                            <span>Route #{selectedAttempt.routeID}</span>
-                          )}
-                          {selectedAttempt.cost > 0 && (
-                            <span className="font-medium text-green-600">${selectedAttempt.cost.toFixed(4)}</span>
-                          )}
-                        </div>
+                      </button>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="flex flex-col items-center justify-center h-40 text-text-muted p-6 text-center">
+                    <Server className="h-8 w-8 mb-2 opacity-20" />
+                    <p className="text-xs">No attempts</p>
+                  </div>
+                )}
+            </div>
+         </div>
+
+         {/* Main Panel: Selected Attempt Detail */}
+         <div className="flex-1 flex flex-col bg-background min-w-0">
+            {selectedAttempt ? (
+               <>
+                 {/* Detail Header */}
+                 <div className="border-b border-border bg-surface-secondary/20 px-6 py-3 flex items-center justify-between flex-shrink-0 backdrop-blur-sm sticky top-0 z-10">
+                    <div className="flex items-center gap-4">
+                      <div className="w-10 h-10 rounded-lg bg-surface-primary flex items-center justify-center text-text-primary shadow-sm border border-border">
+                         <Server size={20} />
+                      </div>
+                      <div>
+                        <h3 className="text-sm font-medium text-text-primary">
+                          {providerMap.get(selectedAttempt.providerID) || `Provider #${selectedAttempt.providerID}`}
+                        </h3>
+                         <div className="flex items-center gap-3 text-xs text-text-secondary mt-0.5">
+                           {selectedAttempt.routeID > 0 && <span>Route ID: {selectedAttempt.routeID}</span>}
+                           {selectedAttempt.cost > 0 && <span className="text-success font-medium">Cost: ${selectedAttempt.cost.toFixed(6)}</span>}
+                         </div>
                       </div>
                     </div>
-
-                    {/* Tabs */}
-                    <div className="flex border-b">
+                    
+                    {/* Detail Tabs */}
+                     <div className="flex bg-surface-secondary/50 p-1 rounded-lg border border-border">
                       <button
                         onClick={() => setActiveTab('request')}
-                        className={`px-4 py-2 text-sm font-medium transition-colors ${
+                        className={cn(
+                          "px-4 py-1.5 text-xs font-medium rounded-md transition-all",
                           activeTab === 'request'
-                            ? 'border-b-2 border-blue-500 text-blue-600'
-                            : 'text-gray-500 hover:text-gray-700'
-                        }`}
+                            ? "bg-surface-primary text-text-primary shadow-sm ring-1 ring-border/50"
+                            : "text-text-secondary hover:text-text-primary hover:bg-surface-hover/50"
+                        )}
                       >
                         Request
                       </button>
                       <button
                         onClick={() => setActiveTab('response')}
-                        className={`px-4 py-2 text-sm font-medium transition-colors ${
+                        className={cn(
+                          "px-4 py-1.5 text-xs font-medium rounded-md transition-all",
                           activeTab === 'response'
-                            ? 'border-b-2 border-blue-500 text-blue-600'
-                            : 'text-gray-500 hover:text-gray-700'
-                        }`}
+                            ? "bg-surface-primary text-text-primary shadow-sm ring-1 ring-border/50"
+                            : "text-text-secondary hover:text-text-primary hover:bg-surface-hover/50"
+                        )}
                       >
                         Response
                       </button>
+                       <button
+                        onClick={() => setActiveTab('metadata')}
+                        className={cn(
+                          "px-4 py-1.5 text-xs font-medium rounded-md transition-all",
+                          activeTab === 'metadata'
+                            ? "bg-surface-primary text-text-primary shadow-sm ring-1 ring-border/50"
+                            : "text-text-secondary hover:text-text-primary hover:bg-surface-hover/50"
+                        )}
+                      >
+                        Metadata
+                      </button>
                     </div>
+                 </div>
 
-                    {/* Tab Content */}
-                    <div className="p-4">
-                      {activeTab === 'request' && selectedAttempt.requestInfo && (
-                        <div className="space-y-4">
-                          <div className="flex items-center gap-2">
-                            <Badge variant="info">{selectedAttempt.requestInfo.method}</Badge>
-                            <code className="flex-1 truncate rounded bg-gray-100 px-2 py-1 font-mono text-xs dark:bg-gray-800">
+                 {/* Detail Content */}
+                 <div className="flex-1 overflow-hidden flex flex-col bg-background relative">
+                    {activeTab === 'request' && (
+                      selectedAttempt.requestInfo ? (
+                        <div className="flex-1 flex flex-col overflow-hidden p-6 gap-6 animate-fade-in">
+                          <div className="flex items-center gap-3 p-3 bg-surface-secondary/30 rounded-lg border border-border flex-shrink-0">
+                            <Badge variant="info" className="font-mono text-xs">{selectedAttempt.requestInfo.method}</Badge>
+                            <code className="flex-1 font-mono text-xs text-text-primary break-all">
                               {selectedAttempt.requestInfo.url}
                             </code>
                           </div>
-                          <div>
-                            <h5 className="mb-2 text-xs font-medium uppercase text-gray-500">Headers</h5>
-                            <pre className="max-h-40 overflow-auto rounded-lg bg-gray-50 p-3 font-mono text-xs dark:bg-gray-900">
-                              {formatJSON(selectedAttempt.requestInfo.headers)}
-                            </pre>
-                          </div>
-                          {selectedAttempt.requestInfo.body && (
-                            <div>
-                              <h5 className="mb-2 text-xs font-medium uppercase text-gray-500">Body</h5>
-                              <pre className="max-h-80 overflow-auto rounded-lg bg-gray-50 p-3 font-mono text-xs dark:bg-gray-900">
-                                {(() => {
-                                  try {
-                                    return formatJSON(JSON.parse(selectedAttempt.requestInfo.body));
-                                  } catch {
-                                    return selectedAttempt.requestInfo.body;
-                                  }
-                                })()}
-                              </pre>
+                          
+                          <div className="flex flex-col min-h-0 flex-1 gap-6">
+                            <div className="flex flex-col flex-1 min-h-0 gap-3">
+                              <h5 className="text-xs font-semibold text-text-secondary uppercase tracking-wider flex items-center gap-2 flex-shrink-0">
+                                <Code size={14} /> Headers
+                              </h5>
+                              <div className="flex-1 rounded-lg border border-border bg-[#1a1a1a] p-4 overflow-auto shadow-inner relative group">
+                                <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                  <Badge variant="outline" className="text-[10px] bg-surface-primary/80 backdrop-blur-sm">JSON</Badge>
+                                </div>
+                                 <pre className="text-xs font-mono text-text-secondary leading-relaxed">
+                                  {formatJSON(selectedAttempt.requestInfo.headers)}
+                                </pre>
+                              </div>
                             </div>
-                          )}
-                        </div>
-                      )}
 
-                      {activeTab === 'request' && !selectedAttempt.requestInfo && (
-                        <div className="py-12 text-center text-gray-400">
-                          No request data available
+                            {selectedAttempt.requestInfo.body && (
+                              <div className="flex flex-col flex-[2] min-h-0 gap-3">
+                                <h5 className="text-xs font-semibold text-text-secondary uppercase tracking-wider flex items-center gap-2 flex-shrink-0">
+                                  <Database size={14} /> Body
+                                </h5>
+                                <div className="flex-1 rounded-lg border border-border bg-[#1a1a1a] p-4 overflow-auto shadow-inner relative group">
+                                  <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                    <Badge variant="outline" className="text-[10px] bg-surface-primary/80 backdrop-blur-sm">JSON</Badge>
+                                  </div>
+                                  <pre className="text-xs font-mono text-text-primary whitespace-pre-wrap leading-relaxed">
+                                    {(() => {
+                                      try {
+                                        return formatJSON(JSON.parse(selectedAttempt.requestInfo.body));
+                                      } catch {
+                                        return selectedAttempt.requestInfo.body;
+                                      }
+                                    })()}
+                                  </pre>
+                                </div>
+                              </div>
+                            )}
+                          </div>
                         </div>
-                      )}
+                      ) : (
+                         <EmptyState message="No request data available" />
+                      )
+                    )}
 
-                      {activeTab === 'response' && selectedAttempt.responseInfo && (
-                        <div className="space-y-4">
-                          <div>
-                            <Badge variant={selectedAttempt.responseInfo.status >= 400 ? 'danger' : 'success'}>
+                    {activeTab === 'response' && (
+                       selectedAttempt.responseInfo ? (
+                        <div className="flex-1 flex flex-col overflow-hidden p-6 gap-6 animate-fade-in">
+                           <div className="flex items-center gap-3 p-3 bg-surface-secondary/30 rounded-lg border border-border flex-shrink-0">
+                            <div className={cn(
+                              "px-2 py-1 rounded text-xs font-bold font-mono",
+                              selectedAttempt.responseInfo.status >= 400 ? "bg-error/10 text-error" : "bg-success/10 text-success"
+                            )}>
                               {selectedAttempt.responseInfo.status}
-                            </Badge>
-                          </div>
-                          <div>
-                            <h5 className="mb-2 text-xs font-medium uppercase text-gray-500">Headers</h5>
-                            <pre className="max-h-40 overflow-auto rounded-lg bg-gray-50 p-3 font-mono text-xs dark:bg-gray-900">
-                              {formatJSON(selectedAttempt.responseInfo.headers)}
-                            </pre>
-                          </div>
-                          {selectedAttempt.responseInfo.body && (
-                            <div>
-                              <h5 className="mb-2 text-xs font-medium uppercase text-gray-500">Body</h5>
-                              <pre className="max-h-80 overflow-auto rounded-lg bg-gray-50 p-3 font-mono text-xs dark:bg-gray-900">
-                                {(() => {
-                                  try {
-                                    return formatJSON(JSON.parse(selectedAttempt.responseInfo.body));
-                                  } catch {
-                                    return selectedAttempt.responseInfo.body;
-                                  }
-                                })()}
-                              </pre>
                             </div>
-                          )}
-                        </div>
-                      )}
+                            <span className="text-sm text-text-secondary font-medium">Response Status</span>
+                          </div>
 
-                      {activeTab === 'response' && !selectedAttempt.responseInfo && (
-                        <div className="py-12 text-center text-gray-400">
-                          No response data available
-                        </div>
-                      )}
-                    </div>
-                  </>
-                ) : (
-                  <div className="flex items-center justify-center py-12 text-gray-400">
-                    Select an attempt to view details
-                  </div>
-                )}
-              </div>
-            </div>
-          ) : (
-            <div className="py-12 text-center text-gray-400">
-              No upstream attempts recorded
-            </div>
-          )}
-        </CardContent>
-      </Card>
+                          <div className="flex flex-col min-h-0 flex-1 gap-6">
+                            <div className="flex flex-col flex-1 min-h-0 gap-3">
+                              <h5 className="text-xs font-semibold text-text-secondary uppercase tracking-wider flex items-center gap-2 flex-shrink-0">
+                                <Code size={14} /> Headers
+                              </h5>
+                              <div className="flex-1 rounded-lg border border-border bg-[#1a1a1a] p-4 overflow-auto shadow-inner relative group">
+                                <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                  <Badge variant="outline" className="text-[10px] bg-surface-primary/80 backdrop-blur-sm">JSON</Badge>
+                                </div>
+                                <pre className="text-xs font-mono text-text-secondary leading-relaxed">
+                                  {formatJSON(selectedAttempt.responseInfo.headers)}
+                                </pre>
+                              </div>
+                            </div>
 
-      {/* Session Info (Collapsible) */}
-      <details className="group">
-        <summary className="cursor-pointer list-none">
-          <div className="flex items-center gap-2 text-sm text-gray-500 hover:text-gray-700">
-            <span className="transition-transform group-open:rotate-90">▶</span>
-            <span>More Details</span>
-          </div>
-        </summary>
-        <Card className="mt-2">
-          <CardContent className="p-4">
-            <dl className="grid gap-3 text-sm sm:grid-cols-2 lg:grid-cols-4">
-              <div>
-                <dt className="text-gray-500">Request ID</dt>
-                <dd className="mt-0.5 font-mono text-xs break-all">{request.requestID || '-'}</dd>
-              </div>
-              <div>
-                <dt className="text-gray-500">Session ID</dt>
-                <dd className="mt-0.5 font-mono text-xs break-all">{request.sessionID || '-'}</dd>
-              </div>
-              <div>
-                <dt className="text-gray-500">Response Model</dt>
-                <dd className="mt-0.5 font-mono text-xs">{request.responseModel || '-'}</dd>
-              </div>
-              <div>
-                <dt className="text-gray-500">Cache</dt>
-                <dd className="mt-0.5">
-                  {request.cacheReadCount + request.cacheWriteCount > 0
-                    ? `${request.cacheReadCount} read / ${request.cacheWriteCount} write`
-                    : '-'}
-                </dd>
-              </div>
-            </dl>
-          </CardContent>
-        </Card>
-      </details>
+                            {selectedAttempt.responseInfo.body && (
+                              <div className="flex flex-col flex-[2] min-h-0 gap-3">
+                                <h5 className="text-xs font-semibold text-text-secondary uppercase tracking-wider flex items-center gap-2 flex-shrink-0">
+                                  <Database size={14} /> Body
+                                </h5>
+                                <div className="flex-1 rounded-lg border border-border bg-[#1a1a1a] p-4 overflow-auto shadow-inner relative group">
+                                  <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                    <Badge variant="outline" className="text-[10px] bg-surface-primary/80 backdrop-blur-sm">JSON</Badge>
+                                  </div>
+                                  <pre className="text-xs font-mono text-text-primary whitespace-pre-wrap leading-relaxed">
+                                    {(() => {
+                                      try {
+                                        return formatJSON(JSON.parse(selectedAttempt.responseInfo.body));
+                                      } catch {
+                                        return selectedAttempt.responseInfo.body;
+                                      }
+                                    })()}
+                                  </pre>
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                       ) : (
+                        <EmptyState message="No response data available" />
+                       )
+                    )}
+
+                    {activeTab === 'metadata' && (
+                        <div className="flex-1 overflow-y-auto p-6 animate-fade-in">
+                             <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+                                <Card className="bg-surface-primary border-border">
+                                   <CardHeader className="pb-2 border-b border-border/50">
+                                      <CardTitle className="text-sm font-medium flex items-center gap-2">
+                                         <Info size={16} className="text-info"/> Request Metadata
+                                      </CardTitle>
+                                   </CardHeader>
+                                   <CardContent className="pt-4 space-y-4">
+                                       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 items-center">
+                                          <dt className="text-xs font-medium text-text-secondary uppercase tracking-wider">Request ID</dt>
+                                          <dd className="sm:col-span-2 font-mono text-xs text-text-primary bg-surface-secondary px-2 py-1 rounded select-all break-all">{request.requestID || '-'}</dd>
+                                       </div>
+                                       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 items-center">
+                                          <dt className="text-xs font-medium text-text-secondary uppercase tracking-wider">Session ID</dt>
+                                          <dd className="sm:col-span-2 font-mono text-xs text-text-primary bg-surface-secondary px-2 py-1 rounded select-all break-all">{request.sessionID || '-'}</dd>
+                                       </div>
+                                       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 items-center">
+                                          <dt className="text-xs font-medium text-text-secondary uppercase tracking-wider">Instance ID</dt>
+                                          <dd className="sm:col-span-2 font-mono text-xs text-text-primary bg-surface-secondary px-2 py-1 rounded select-all break-all">{request.instanceID || '-'}</dd>
+                                       </div>
+                                   </CardContent>
+                                </Card>
+                                
+                                <Card className="bg-surface-primary border-border">
+                                   <CardHeader className="pb-2 border-b border-border/50">
+                                      <CardTitle className="text-sm font-medium flex items-center gap-2">
+                                         <Zap size={16} className="text-warning"/> Usage & Cache
+                                      </CardTitle>
+                                   </CardHeader>
+                                   <CardContent className="pt-4 space-y-4">
+                                       <div className="flex justify-between items-center border-b border-border/30 pb-2">
+                                          <dt className="text-xs font-medium text-text-secondary uppercase tracking-wider">Final Model</dt>
+                                          <dd className="text-sm text-text-primary font-medium">{request.responseModel || '-'}</dd>
+                                       </div>
+                                        <div className="flex justify-between items-center border-b border-border/30 pb-2">
+                                          <dt className="text-xs font-medium text-text-secondary uppercase tracking-wider">Cache Read</dt>
+                                          <dd className="text-sm text-violet-400 font-mono font-medium">{request.cacheReadCount}</dd>
+                                       </div>
+                                       <div className="flex justify-between items-center border-b border-border/30 pb-2">
+                                          <dt className="text-xs font-medium text-text-secondary uppercase tracking-wider">Cache Write</dt>
+                                          <dd className="text-sm text-amber-400 font-mono font-medium">{request.cacheWriteCount}</dd>
+                                       </div>
+                                       <div className="flex justify-between items-center">
+                                          <dt className="text-xs font-medium text-text-secondary uppercase tracking-wider">Total Tokens</dt>
+                                          <dd className="text-sm text-text-primary font-mono font-medium">{(request.inputTokenCount + request.outputTokenCount).toLocaleString()}</dd>
+                                       </div>
+                                   </CardContent>
+                                </Card>
+                             </div>
+                        </div>
+                    )}
+                 </div>
+               </>
+            ) : (
+               <EmptyState message="Select an attempt to view details" icon={<Server className="h-12 w-12 mb-4 opacity-10" />} />
+            )}
+         </div>
+      </div>
     </div>
   );
+}
+
+function StatCard({ icon, label, value, subValue, valueColor = "text-text-primary" }: { icon: React.ReactNode, label: string, value: string, subValue?: string, valueColor?: string }) {
+  return (
+    <div className="flex items-center gap-2.5 px-3 py-1.5 rounded-lg bg-surface-secondary/30 border border-border min-w-[120px]">
+      <div className="text-text-secondary">{icon}</div>
+      <div>
+        <div className="text-[9px] uppercase tracking-wider text-text-secondary font-medium leading-none mb-0.5">{label}</div>
+        <div className={cn("text-xs font-mono font-semibold leading-tight", valueColor)}>{value}</div>
+        {subValue && <div className="text-[9px] text-text-muted leading-tight">{subValue}</div>}
+      </div>
+    </div>
+  );
+}
+
+function EmptyState({ message, icon }: { message: string, icon?: React.ReactNode }) {
+  return (
+    <div className="flex flex-col items-center justify-center h-full text-text-muted p-12 text-center select-none">
+      {icon || <Server className="h-12 w-12 mb-3 opacity-10" />}
+      <p className="text-sm font-medium">{message}</p>
+    </div>
+  );
+}
+
+function CoinsIcon({ size, className }: { size?: number, className?: string }) {
+    return (
+        <svg xmlns="http://www.w3.org/2000/svg" width={size || 24} height={size || 24} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+            <circle cx="8" cy="8" r="6" />
+            <path d="M18.09 10.37A6 6 0 1 1 10.34 18" />
+            <path d="M7 6h1v4" />
+            <path d="m16.71 13.88.7.71-2.82 2.82" />
+        </svg>
+    )
 }
