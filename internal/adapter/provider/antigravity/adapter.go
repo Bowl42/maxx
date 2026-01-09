@@ -1,7 +1,6 @@
 package antigravity
 
 import (
-	"bufio"
 	"bytes"
 	"context"
 	"encoding/json"
@@ -357,14 +356,11 @@ func (a *AntigravityAdapter) handleStreamResponse(ctx context.Context, w http.Re
 		}
 	}
 
-	// Create a channel for read results
-	type readResult struct {
-		line []byte
-		err  error
-	}
-	readCh := make(chan readResult, 1)
+	// Use buffer-based approach like Antigravity-Manager
+	// Read chunks and accumulate until we have complete lines
+	var lineBuffer bytes.Buffer
+	buf := make([]byte, 4096)
 
-	reader := bufio.NewReader(resp.Body)
 	for {
 		// Check context before reading
 		select {
@@ -374,59 +370,64 @@ func (a *AntigravityAdapter) handleStreamResponse(ctx context.Context, w http.Re
 		default:
 		}
 
-		// Read in goroutine to allow context checking
-		go func() {
-			line, err := reader.ReadBytes('\n')
-			readCh <- readResult{line: line, err: err}
-		}()
+		n, err := resp.Body.Read(buf)
+		if n > 0 {
+			lineBuffer.Write(buf[:n])
 
-		// Wait for read or context cancellation
-		select {
-		case <-ctx.Done():
-			extractTokens()
-			return domain.NewProxyErrorWithMessage(ctx.Err(), false, "client disconnected")
-		case result := <-readCh:
-			if result.err != nil {
-				if result.err == io.EOF {
-					extractTokens() // Extract tokens at normal completion
-					return nil
+			// Process complete lines (lines ending with \n)
+			for {
+				line, readErr := lineBuffer.ReadString('\n')
+				if readErr != nil {
+					// No complete line yet, put partial data back
+					lineBuffer.WriteString(line)
+					break
 				}
-				// Upstream connection closed - check if client is still connected
-				if ctx.Err() != nil {
-					extractTokens()
-					return domain.NewProxyErrorWithMessage(ctx.Err(), false, "client disconnected")
+
+				// Collect for token extraction
+				sseBuffer.WriteString(line)
+
+				// Process the complete line
+				lineBytes := []byte(line)
+
+				// Unwrap v1internal SSE chunk before processing
+				unwrappedLine := unwrapV1InternalSSEChunk(lineBytes)
+
+				var output []byte
+				if needsConversion {
+					// Transform the chunk
+					transformed, transformErr := a.converter.TransformStreamChunk(targetType, clientType, unwrappedLine, state)
+					if transformErr != nil {
+						continue // Skip malformed chunks
+					}
+					output = transformed
+				} else {
+					output = unwrappedLine
 				}
+
+				if len(output) > 0 {
+					_, writeErr := w.Write(output)
+					if writeErr != nil {
+						// Client disconnected
+						extractTokens()
+						return domain.NewProxyErrorWithMessage(writeErr, false, "client disconnected")
+					}
+					flusher.Flush()
+				}
+			}
+		}
+
+		if err != nil {
+			if err == io.EOF {
 				extractTokens()
-				return nil // Upstream closed normally
+				return nil
 			}
-
-			// Collect all SSE content (preserve complete format including newlines)
-			sseBuffer.Write(result.line)
-
-			// Unwrap v1internal SSE chunk before processing
-			unwrappedLine := unwrapV1InternalSSEChunk(result.line)
-
-			var output []byte
-			if needsConversion {
-				// Transform the chunk
-				transformed, err := a.converter.TransformStreamChunk(targetType, clientType, unwrappedLine, state)
-				if err != nil {
-					continue // Skip malformed chunks
-				}
-				output = transformed
-			} else {
-				output = unwrappedLine
+			// Upstream connection closed - check if client is still connected
+			if ctx.Err() != nil {
+				extractTokens()
+				return domain.NewProxyErrorWithMessage(ctx.Err(), false, "client disconnected")
 			}
-
-			if len(output) > 0 {
-				_, writeErr := w.Write(output)
-				if writeErr != nil {
-					// Client disconnected
-					extractTokens()
-					return domain.NewProxyErrorWithMessage(writeErr, false, "client disconnected")
-				}
-				flusher.Flush()
-			}
+			extractTokens()
+			return nil
 		}
 	}
 }

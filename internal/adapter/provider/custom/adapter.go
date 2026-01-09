@@ -1,7 +1,6 @@
 package custom
 
 import (
-	"bufio"
 	"bytes"
 	"context"
 	"encoding/json"
@@ -329,14 +328,10 @@ func (a *CustomAdapter) handleStreamResponse(ctx context.Context, w http.Respons
 		return nil
 	}
 
-	// Create a channel for read results
-	type readResult struct {
-		line []byte
-		err  error
-	}
-	readCh := make(chan readResult, 1)
+	// Use buffer-based approach to handle incomplete lines properly
+	var lineBuffer bytes.Buffer
+	buf := make([]byte, 4096)
 
-	reader := bufio.NewReader(resp.Body)
 	for {
 		// Check context before reading
 		select {
@@ -346,73 +341,75 @@ func (a *CustomAdapter) handleStreamResponse(ctx context.Context, w http.Respons
 		default:
 		}
 
-		// Read in goroutine to allow context checking
-		go func() {
-			line, err := reader.ReadBytes('\n')
-			readCh <- readResult{line: line, err: err}
-		}()
+		n, err := resp.Body.Read(buf)
+		if n > 0 {
+			lineBuffer.Write(buf[:n])
 
-		// Wait for read or context cancellation
-		select {
-		case <-ctx.Done():
-			extractTokens()
-			return domain.NewProxyErrorWithMessage(ctx.Err(), false, "client disconnected")
-		case result := <-readCh:
-			if result.err != nil {
-				if result.err == io.EOF {
-					extractTokens() // Extract tokens at normal completion
-					// Return SSE error if one was detected during streaming
-					if sseError != nil {
-						return sseError
+			// Process complete lines (lines ending with \n)
+			for {
+				line, readErr := lineBuffer.ReadString('\n')
+				if readErr != nil {
+					// No complete line yet, put partial data back
+					lineBuffer.WriteString(line)
+					break
+				}
+
+				// Collect all SSE content (preserve complete format including newlines)
+				sseBuffer.WriteString(line)
+
+				// Check for SSE error events in data lines
+				lineStr := line
+				if strings.HasPrefix(strings.TrimSpace(lineStr), "data:") {
+					if parseErr := parseSSEError(lineStr); parseErr != nil {
+						sseError = parseErr
+						// Continue to forward the error to client, but track it
 					}
-					return nil
 				}
-				// Upstream connection closed - check if client is still connected
-				if ctx.Err() != nil {
-					extractTokens()
-					return domain.NewProxyErrorWithMessage(ctx.Err(), false, "client disconnected")
+
+				var output []byte
+				if needsConversion {
+					// Transform the chunk
+					transformed, transformErr := a.converter.TransformStreamChunk(targetType, clientType, []byte(line), state)
+					if transformErr != nil {
+						continue // Skip malformed chunks
+					}
+					output = transformed
+				} else {
+					output = []byte(line)
 				}
-				extractTokens()
+
+				if len(output) > 0 {
+					_, writeErr := w.Write(output)
+					if writeErr != nil {
+						// Client disconnected
+						extractTokens()
+						return domain.NewProxyErrorWithMessage(writeErr, false, "client disconnected")
+					}
+					flusher.Flush()
+				}
+			}
+		}
+
+		if err != nil {
+			if err == io.EOF {
+				extractTokens() // Extract tokens at normal completion
 				// Return SSE error if one was detected during streaming
 				if sseError != nil {
 					return sseError
 				}
-				return nil // Upstream closed normally
+				return nil
 			}
-
-			// Collect all SSE content (preserve complete format including newlines)
-			sseBuffer.Write(result.line)
-
-			// Check for SSE error events in data lines
-			lineStr := string(result.line)
-			if strings.HasPrefix(strings.TrimSpace(lineStr), "data:") {
-				if err := parseSSEError(lineStr); err != nil {
-					sseError = err
-					// Continue to forward the error to client, but track it
-				}
+			// Upstream connection closed - check if client is still connected
+			if ctx.Err() != nil {
+				extractTokens()
+				return domain.NewProxyErrorWithMessage(ctx.Err(), false, "client disconnected")
 			}
-
-			var output []byte
-			if needsConversion {
-				// Transform the chunk
-				transformed, err := a.converter.TransformStreamChunk(targetType, clientType, result.line, state)
-				if err != nil {
-					continue // Skip malformed chunks
-				}
-				output = transformed
-			} else {
-				output = result.line
+			extractTokens()
+			// Return SSE error if one was detected during streaming
+			if sseError != nil {
+				return sseError
 			}
-
-			if len(output) > 0 {
-				_, writeErr := w.Write(output)
-				if writeErr != nil {
-					// Client disconnected
-					extractTokens()
-					return domain.NewProxyErrorWithMessage(writeErr, false, "client disconnected")
-				}
-				flusher.Flush()
-			}
+			return nil // Upstream closed normally
 		}
 	}
 }
