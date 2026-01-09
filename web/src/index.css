@@ -478,6 +478,10 @@ body {
   animation: marquee 1s linear infinite;
 }
 
+.animate-marquee-row:hover {
+  background-color: rgba(0, 120, 212, 0.16);
+}
+
 /* Provider Colors */
 .provider-anthropic { color: #D4A574; }
 .provider-openai { color: #10A37F; }
