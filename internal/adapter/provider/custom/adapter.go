@@ -308,9 +308,13 @@ func (a *CustomAdapter) handleStreamResponse(ctx context.Context, w http.Respons
 				if c, ok := errObj["code"].(float64); ok {
 					code = int(c)
 				}
+				errType := ""
+				if t, ok := errObj["type"].(string); ok {
+					errType = t
+				}
 				return domain.NewProxyErrorWithMessage(
 					fmt.Errorf("SSE error (code=%d): %s", code, msg),
-					isRetryableStatusCode(code),
+					isRetryableSSEError(code, errType, msg),
 					msg,
 				)
 			}
@@ -465,6 +469,31 @@ func isRetryableStatusCode(code int) bool {
 	default:
 		return false
 	}
+}
+
+// isRetryableSSEError checks if an SSE error should trigger a retry
+func isRetryableSSEError(code int, errType, msg string) bool {
+	// HTTP-like status codes that are retryable
+	if isRetryableStatusCode(code) {
+		return true
+	}
+
+	// Server errors are generally retryable
+	if errType == "server_error" {
+		return true
+	}
+
+	// Specific messages that indicate transient failures
+	lowerMsg := strings.ToLower(msg)
+	if strings.Contains(lowerMsg, "upstream") ||
+		strings.Contains(lowerMsg, "timeout") ||
+		strings.Contains(lowerMsg, "overloaded") ||
+		strings.Contains(lowerMsg, "temporarily") ||
+		strings.Contains(lowerMsg, "rate limit") {
+		return true
+	}
+
+	return false
 }
 
 func flattenHeaders(h http.Header) map[string]string {

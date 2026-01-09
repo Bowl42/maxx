@@ -2,17 +2,30 @@ package sqlite
 
 import (
 	"database/sql"
+	"sync/atomic"
 	"time"
 
 	"github.com/Bowl42/maxx-next/internal/domain"
 )
 
 type ProxyRequestRepository struct {
-	db *DB
+	db    *DB
+	count int64 // 缓存的请求总数，使用原子操作
 }
 
 func NewProxyRequestRepository(db *DB) *ProxyRequestRepository {
-	return &ProxyRequestRepository{db: db}
+	r := &ProxyRequestRepository{db: db}
+	// 初始化时从数据库加载计数
+	r.initCount()
+	return r
+}
+
+// initCount 从数据库初始化计数缓存
+func (r *ProxyRequestRepository) initCount() {
+	var count int64
+	if err := r.db.db.QueryRow(`SELECT COUNT(*) FROM proxy_requests`).Scan(&count); err == nil {
+		atomic.StoreInt64(&r.count, count)
+	}
 }
 
 func (r *ProxyRequestRepository) Create(p *domain.ProxyRequest) error {
@@ -37,6 +50,10 @@ func (r *ProxyRequestRepository) Create(p *domain.ProxyRequest) error {
 		return err
 	}
 	p.ID = uint64(id)
+
+	// 创建成功后增加计数缓存
+	atomic.AddInt64(&r.count, 1)
+
 	return nil
 }
 
@@ -77,9 +94,7 @@ func (r *ProxyRequestRepository) List(limit, offset int) ([]*domain.ProxyRequest
 }
 
 func (r *ProxyRequestRepository) Count() (int64, error) {
-	var count int64
-	err := r.db.db.QueryRow(`SELECT COUNT(*) FROM proxy_requests`).Scan(&count)
-	return count, err
+	return atomic.LoadInt64(&r.count), nil
 }
 
 // MarkStaleAsFailed marks all IN_PROGRESS/PENDING requests from other instances as FAILED

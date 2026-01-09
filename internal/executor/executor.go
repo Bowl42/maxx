@@ -220,8 +220,8 @@ func (e *Executor) Execute(ctx context.Context, w http.ResponseWriter, req *http
 				proxyReq.Cache1hWriteCount = attemptRecord.Cache1hWriteCount
 				proxyReq.Cost = attemptRecord.Cost
 
-				// Copy response info if not already set
-				if proxyReq.ResponseInfo == nil && attemptRecord.ResponseInfo != nil {
+				// Always copy response info from successful attempt
+				if attemptRecord.ResponseInfo != nil {
 					proxyReq.ResponseInfo = attemptRecord.ResponseInfo
 				}
 

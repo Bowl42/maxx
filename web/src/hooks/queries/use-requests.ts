@@ -64,6 +64,10 @@ export function useProxyRequestUpdates() {
     const unsubscribeRequest = transport.subscribe<ProxyRequest>(
       'proxy_request_update',
       (updatedRequest) => {
+        // 检查是否是新请求（通过详情缓存判断）
+        const existingDetail = queryClient.getQueryData(requestKeys.detail(updatedRequest.id));
+        const isNewRequest = !existingDetail;
+
         // 更新单个请求的缓存
         queryClient.setQueryData(
           requestKeys.detail(updatedRequest.id),
@@ -86,6 +90,11 @@ export function useProxyRequestUpdates() {
             return [updatedRequest, ...old];
           }
         );
+
+        // 新请求时乐观更新 count
+        if (isNewRequest) {
+          queryClient.setQueryData<number>(['requestsCount'], (old) => (old ?? 0) + 1);
+        }
       }
     );
 
