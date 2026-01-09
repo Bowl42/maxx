@@ -90,19 +90,19 @@ export function RequestsPage() {
           <div className="flex-1 overflow-auto">
             <Table>
               <TableHeader className="bg-surface-primary/80 backdrop-blur-md sticky top-0 z-10 shadow-sm border-b border-border">
-                <TableRow className="hover:bg-transparent border-none">
-                  <TableHead className="w-[90px] font-medium">Time</TableHead>
+                <TableRow className="hover:bg-transparent border-none text-sm">
+                  <TableHead className="w-[180px] font-medium">Time</TableHead>
+                  <TableHead className="w-[120px] font-medium">Client</TableHead>
+                  <TableHead className="w-[180px] font-medium">Model</TableHead>
                   <TableHead className="w-[100px] font-medium">Status</TableHead>
-                  <TableHead className="w-[50px] font-medium">Code</TableHead>
-                  <TableHead className="w-[100px] font-medium">Client</TableHead>
-                  <TableHead className="w-[160px] font-medium">Model</TableHead>
-                  <TableHead className="w-[70px] text-right font-medium">Duration</TableHead>
-                  <TableHead className="w-[70px] text-right font-medium">Cost</TableHead>
-                  <TableHead className="w-[40px] text-center font-medium" title="Attempts">Att.</TableHead>
-                  <TableHead className="w-[55px] text-right font-medium" title="Input Tokens">In</TableHead>
-                  <TableHead className="w-[55px] text-right font-medium" title="Output Tokens">Out</TableHead>
-                  <TableHead className="w-[55px] text-right font-medium" title="Cache Read">CacheR</TableHead>
-                  <TableHead className="w-[55px] text-right font-medium" title="Cache Write">CacheW</TableHead>
+                  <TableHead className="w-[60px] font-medium">Code</TableHead>
+                  <TableHead className="w-[80px] text-right font-medium">Duration</TableHead>
+                  <TableHead className="w-[80px] text-right font-medium">Cost</TableHead>
+                  <TableHead className="w-[45px] text-center font-medium" title="Attempts">Att.</TableHead>
+                  <TableHead className="w-[65px] text-right font-medium" title="Input Tokens">In</TableHead>
+                  <TableHead className="w-[65px] text-right font-medium" title="Output Tokens">Out</TableHead>
+                  <TableHead className="w-[65px] text-right font-medium" title="Cache Read">CacheR</TableHead>
+                  <TableHead className="w-[65px] text-right font-medium" title="Cache Write">CacheW</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -120,7 +120,7 @@ export function RequestsPage() {
       </div>
 
       {/* Pagination */}
-      <div className="flex items-center justify-between px-6 py-3 border-t border-border bg-surface-primary flex-shrink-0">
+      <div className="h-[53px] flex items-center justify-between px-6 border-t border-border bg-surface-primary flex-shrink-0">
         <span className="text-xs text-text-secondary">
           {total > 0 ? (
             <>
@@ -166,9 +166,9 @@ function RequestStatusBadge({ status }: { status: ProxyRequestStatus }) {
           variant: 'info' as const,
           label: status === 'IN_PROGRESS' ? 'Streaming' : 'Pending',
           icon: (
-            <span className="relative flex h-2 w-2 mr-1.5">
+            <span className="relative flex h-1.5 w-1.5 mr-1">
               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-info opacity-75"></span>
-              <span className="relative inline-flex rounded-full h-2 w-2 bg-info"></span>
+              <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-info"></span>
             </span>
           ),
         };
@@ -176,19 +176,19 @@ function RequestStatusBadge({ status }: { status: ProxyRequestStatus }) {
         return {
           variant: 'success' as const,
           label: 'Completed',
-          icon: <CheckCircle size={12} className="mr-1.5" />,
+          icon: <CheckCircle size={10} className="mr-1" />,
         };
       case 'FAILED':
         return {
           variant: 'danger' as const,
           label: 'Failed',
-          icon: <AlertTriangle size={12} className="mr-1.5" />,
+          icon: <AlertTriangle size={10} className="mr-1" />,
         };
       case 'CANCELLED':
         return {
           variant: 'warning' as const,
           label: 'Cancelled',
-          icon: <Ban size={12} className="mr-1.5" />,
+          icon: <Ban size={10} className="mr-1" />,
         };
     }
   };
@@ -196,7 +196,7 @@ function RequestStatusBadge({ status }: { status: ProxyRequestStatus }) {
   const config = getStatusConfig();
 
   return (
-    <Badge variant={config.variant} className="pl-1.5 pr-2 py-0.5 font-medium">
+    <Badge variant={config.variant} className="pl-1 pr-1.5 py-0 text-[10px] font-medium leading-normal h-4">
       {config.icon}
       {config.label}
     </Badge>
@@ -250,9 +250,20 @@ function LogRow({
 }) {
   const isPending = request.status === 'PENDING' || request.status === 'IN_PROGRESS';
   const isFailed = request.status === 'FAILED';
+  const [isRecent, setIsRecent] = useState(false);
 
   // Live duration calculation for pending requests
   const [liveDuration, setLiveDuration] = useState<number | null>(null);
+
+  useEffect(() => {
+    // Check if request is new (less than 5 seconds old)
+    const startTime = new Date(request.startTime).getTime();
+    if (Date.now() - startTime < 5000) {
+      setIsRecent(true);
+      const timer = setTimeout(() => setIsRecent(false), 2000);
+      return () => clearTimeout(timer);
+    }
+  }, [request.startTime]);
 
   useEffect(() => {
     if (!isPending) {
@@ -286,7 +297,13 @@ function LogRow({
 
   const formatTime = (dateStr: string) => {
     const date = new Date(dateStr);
-    return date.toLocaleTimeString([], { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' });
+    const yyyy = date.getFullYear();
+    const mm = String(date.getMonth() + 1).padStart(2, '0');
+    const dd = String(date.getDate()).padStart(2, '0');
+    const HH = String(date.getHours()).padStart(2, '0');
+    const MM = String(date.getMinutes()).padStart(2, '0');
+    const SS = String(date.getSeconds()).padStart(2, '0');
+    return `${yyyy}-${mm}-${dd} ${HH}:${MM}:${SS}`;
   };
 
   // Display duration
@@ -306,50 +323,46 @@ function LogRow({
     <TableRow
       onClick={onClick}
       className={cn(
-        "cursor-pointer group border-b border-border/40 transition-colors",
-        !isPending && "hover:bg-surface-secondary/40",
-        isPending && "bg-accent/5 hover:bg-accent/10",
-        isFailed && "bg-error/5 hover:bg-error/10"
+        "cursor-pointer group border-none transition-all duration-300 relative overflow-hidden",
+        // Base styles
+        !isPending && !isRecent && "hover:bg-surface-hover/50 border-l-2 border-l-transparent",
+        
+        // Failed state
+        isFailed && "bg-error/5 hover:bg-error/10 border-l-2 border-l-transparent",
+        
+        // Active/Pending state - Pulse Effect
+        isPending && "bg-accent/5 hover:bg-accent/10 border-l-2 border-l-accent",
+
+        // New Item Flash Animation
+        isRecent && "animate-in fade-in zoom-in-95 duration-500 bg-accent/20 border-l-2 border-l-accent"
       )}
     >
+      {/* Pulse Background for Pending */}
+      {isPending && (
+        <div className="absolute inset-0 animate-marquee pointer-events-none opacity-30 bg-accent/10" />
+      )}
+
       {/* Time */}
-      <TableCell className="font-mono text-xs text-text-muted whitespace-nowrap">
+      <TableCell className="py-1 font-mono text-sm text-text-primary font-medium whitespace-nowrap">
         {formatTime(request.startTime || request.createdAt)}
       </TableCell>
       
-      {/* Status */}
-      <TableCell>
-        <RequestStatusBadge status={request.status} />
-      </TableCell>
-      
-      {/* Code */}
-      <TableCell>
-        <span className={cn(
-          "font-mono text-xs font-medium px-1.5 py-0.5 rounded",
-          isFailed ? "bg-error/10 text-error" : 
-          statusCode && statusCode >= 200 && statusCode < 300 ? "bg-success/10 text-success" : 
-          "bg-surface-secondary text-text-muted"
-        )}>
-          {statusCode && statusCode > 0 ? statusCode : '-'}
-        </span>
-      </TableCell>
-      
       {/* Client */}
-      <TableCell>
+      <TableCell className="py-1">
         <div className="flex items-center gap-2">
           <div className="p-1 rounded bg-surface-secondary text-text-secondary">
-            <ClientIcon type={request.clientType} size={14} />
+            <ClientIcon type={request.clientType} size={16} />
           </div>
-          <span className="text-xs text-text-primary capitalize font-medium truncate max-w-[100px]">
+          <span className="text-sm text-text-primary capitalize font-medium truncate max-w-[100px]">
             {request.clientType}
           </span>
         </div>
       </TableCell>
       
       {/* Model */}
-      <TableCell>
+      <TableCell className="py-1">
         <div className="flex flex-col max-w-[200px]">
-          <span className="text-xs text-text-primary truncate font-medium" title={request.requestModel}>
+          <span className="text-sm text-text-primary truncate font-medium" title={request.requestModel}>
             {request.requestModel || '-'}
           </span>
           {request.responseModel && request.responseModel !== request.requestModel && (
@@ -359,47 +372,64 @@ function LogRow({
           )}
         </div>
       </TableCell>
+
+      {/* Status */}
+      <TableCell className="py-1">
+        <RequestStatusBadge status={request.status} />
+      </TableCell>
+
+      {/* Code */}
+      <TableCell className="py-1">
+        <span className={cn(
+          "font-mono text-xs font-medium px-1.5 py-0.5 rounded",
+          isFailed ? "bg-red-400/10 text-red-400" : 
+          statusCode && statusCode >= 200 && statusCode < 300 ? "bg-blue-400/10 text-blue-400" : 
+          "bg-surface-secondary text-text-muted"
+        )}>
+          {statusCode && statusCode > 0 ? statusCode : '-'}
+        </span>
+      </TableCell>
       
       {/* Duration */}
-      <TableCell className="text-right">
-        <span className={`text-xs font-mono ${durationColor}`}>
+      <TableCell className="py-1 text-right">
+        <span className={`text-sm font-mono ${durationColor}`}>
           {formatDuration(displayDuration)}
         </span>
       </TableCell>
       
       {/* Cost */}
-      <TableCell className="text-right">
+      <TableCell className="py-1 text-right">
         <CostCell cost={request.cost} />
       </TableCell>
       
       {/* Attempts */}
-      <TableCell className="text-center">
+      <TableCell className="py-1 text-center">
         {request.proxyUpstreamAttemptCount > 1 ? (
            <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-warning/10 text-warning text-[10px] font-bold">
              {request.proxyUpstreamAttemptCount}
            </span>
         ) : (
-          <span className="text-xs text-text-muted opacity-30">1</span>
+          <span className="text-sm text-text-muted opacity-30">1</span>
         )}
       </TableCell>
 
       {/* Input Tokens - sky blue */}
-      <TableCell className="text-right">
+      <TableCell className="py-1 text-right">
         <TokenCell count={request.inputTokenCount} color="text-sky-400" />
       </TableCell>
 
       {/* Output Tokens - emerald green */}
-      <TableCell className="text-right">
+      <TableCell className="py-1 text-right">
         <TokenCell count={request.outputTokenCount} color="text-emerald-400" />
       </TableCell>
 
       {/* Cache Read - violet */}
-      <TableCell className="text-right">
+      <TableCell className="py-1 text-right">
         <TokenCell count={request.cacheReadCount} color="text-violet-400" />
       </TableCell>
 
       {/* Cache Write - amber */}
-      <TableCell className="text-right">
+      <TableCell className="py-1 text-right">
         <TokenCell count={request.cacheWriteCount} color="text-amber-400" />
       </TableCell>
     </TableRow>

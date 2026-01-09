@@ -44,10 +44,28 @@ func (r *RoutingStrategyRepository) Create(s *domain.RoutingStrategy) error {
 }
 
 func (r *RoutingStrategyRepository) Update(s *domain.RoutingStrategy) error {
+	// 先找到旧的 projectID（如果有的话）
+	r.mu.RLock()
+	var oldProjectID uint64
+	var found bool
+	for pid, cached := range r.cache {
+		if cached.ID == s.ID {
+			oldProjectID = pid
+			found = true
+			break
+		}
+	}
+	r.mu.RUnlock()
+
 	if err := r.repo.Update(s); err != nil {
 		return err
 	}
+
 	r.mu.Lock()
+	// 如果 projectID 改变了，删除旧的缓存条目
+	if found && oldProjectID != s.ProjectID {
+		delete(r.cache, oldProjectID)
+	}
 	r.cache[s.ProjectID] = s
 	r.mu.Unlock()
 	return nil

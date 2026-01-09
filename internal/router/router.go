@@ -150,7 +150,14 @@ func (r *Router) Match(clientType domain.ClientType, projectID uint64) ([]*Match
 	r.sortRoutes(filtered, strategy)
 
 	// Get default retry config
-	defaultRetry, _ := r.retryConfigRepo.GetDefault()
+	defaultRetry, err := r.retryConfigRepo.GetDefault()
+	if err != nil {
+		log.Printf("[Router] Failed to get default retry config: %v", err)
+	} else if defaultRetry != nil {
+		log.Printf("[Router] Default retry config: ID=%d, MaxRetries=%d", defaultRetry.ID, defaultRetry.MaxRetries)
+	} else {
+		log.Printf("[Router] No default retry config found")
+	}
 
 	// Build matched routes
 	r.mu.RLock()

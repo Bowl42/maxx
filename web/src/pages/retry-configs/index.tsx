@@ -1,196 +1,256 @@
-import { useState } from 'react';
-import { Button, Card, CardContent, CardHeader, CardTitle, Table, TableBody, TableCell, TableHead, TableHeader, TableRow, Badge, Input } from '@/components/ui';
-import { useRetryConfigs, useCreateRetryConfig, useUpdateRetryConfig, useDeleteRetryConfig } from '@/hooks/queries';
-import { Plus, Trash2, Pencil } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { Button, Card, CardContent, CardHeader, CardTitle, Input, Badge } from '@/components/ui';
+import { useRetryConfigs, useUpdateRetryConfig, useCreateRetryConfig } from '@/hooks/queries';
+import { Save, RefreshCw, AlertTriangle, ShieldCheck } from 'lucide-react';
 import type { RetryConfig } from '@/lib/transport';
 
 export function RetryConfigsPage() {
-  const { data: configs, isLoading } = useRetryConfigs();
-  const createConfig = useCreateRetryConfig();
+  const { data: configs, isLoading, refetch } = useRetryConfigs();
   const updateConfig = useUpdateRetryConfig();
-  const deleteConfig = useDeleteRetryConfig();
-  const [showForm, setShowForm] = useState(false);
-  const [editingConfig, setEditingConfig] = useState<RetryConfig | undefined>();
+  const createConfig = useCreateRetryConfig();
+  
+  const [defaultConfig, setDefaultConfig] = useState<RetryConfig | undefined>();
+  const [hasChanges, setHasChanges] = useState(false);
 
-  const [name, setName] = useState('');
-  const [isDefault, setIsDefault] = useState(false);
+  // Form state
   const [maxRetries, setMaxRetries] = useState('3');
   const [initialInterval, setInitialInterval] = useState('1000');
   const [backoffRate, setBackoffRate] = useState('2');
   const [maxInterval, setMaxInterval] = useState('30000');
 
-  const resetForm = () => {
-    setName('');
-    setIsDefault(false);
-    setMaxRetries('3');
-    setInitialInterval('1000');
-    setBackoffRate('2');
-    setMaxInterval('30000');
+  useEffect(() => {
+    if (configs) {
+      const def = configs.find(c => c.isDefault);
+      if (def) {
+        setDefaultConfig(def);
+        // Only update form if not already edited or if it's the first load
+        if (!hasChanges) {
+          setMaxRetries(String(def.maxRetries));
+          setInitialInterval(String(def.initialInterval / 1_000_000));
+          setBackoffRate(String(def.backoffRate));
+          setMaxInterval(String(def.maxInterval / 1_000_000));
+        }
+      }
+    }
+  }, [configs]);
+
+  const handleInputChange = (setter: (val: string) => void, value: string) => {
+    setter(value);
+    setHasChanges(true);
   };
 
-  const handleEdit = (config: RetryConfig) => {
-    setEditingConfig(config);
-    setName(config.name);
-    setIsDefault(config.isDefault);
-    setMaxRetries(String(config.maxRetries));
-    setInitialInterval(String(config.initialInterval / 1_000_000));
-    setBackoffRate(String(config.backoffRate));
-    setMaxInterval(String(config.maxInterval / 1_000_000));
-    setShowForm(true);
-  };
-
-  const handleCloseForm = () => {
-    setShowForm(false);
-    setEditingConfig(undefined);
-    resetForm();
-  };
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSave = () => {
     const data = {
-      name,
-      isDefault,
+      name: defaultConfig?.name || 'Default Config',
+      isDefault: true,
       maxRetries: Number(maxRetries),
       initialInterval: Number(initialInterval) * 1_000_000,
       backoffRate: Number(backoffRate),
       maxInterval: Number(maxInterval) * 1_000_000,
     };
 
-    if (editingConfig) {
+    if (defaultConfig) {
       updateConfig.mutate(
-        { id: editingConfig.id, data },
-        { onSuccess: handleCloseForm }
+        { id: defaultConfig.id, data },
+        { 
+          onSuccess: () => {
+            setHasChanges(false);
+            refetch();
+          } 
+        }
       );
     } else {
-      createConfig.mutate(data, { onSuccess: handleCloseForm });
+      // Create if doesn't exist
+      createConfig.mutate(data, {
+         onSuccess: () => {
+            setHasChanges(false);
+            refetch();
+         }
+      });
     }
   };
 
-  const handleDelete = (id: number) => {
-    if (confirm('Are you sure you want to delete this retry config?')) {
-      deleteConfig.mutate(id);
+  const handleReset = () => {
+    if (defaultConfig) {
+      setMaxRetries(String(defaultConfig.maxRetries));
+      setInitialInterval(String(defaultConfig.initialInterval / 1_000_000));
+      setBackoffRate(String(defaultConfig.backoffRate));
+      setMaxInterval(String(defaultConfig.maxInterval / 1_000_000));
+      setHasChanges(false);
     }
   };
 
-  const formatInterval = (ns: number) => `${(ns / 1_000_000).toFixed(0)}ms`;
-  const isPending = createConfig.isPending || updateConfig.isPending;
+  const isSaving = updateConfig.isPending || createConfig.isPending;
+
+  if (isLoading) {
+    return (
+       <div className="flex h-full items-center justify-center">
+         <div className="flex flex-col items-center gap-2">
+            <RefreshCw className="h-8 w-8 animate-spin text-accent" />
+            <p className="text-sm text-text-secondary">Loading configuration...</p>
+         </div>
+       </div>
+    );
+  }
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h2 className="text-2xl font-bold">Retry Configs</h2>
-        <Button onClick={() => setShowForm(true)}>
-          <Plus className="mr-2 h-4 w-4" />
-          Add Config
-        </Button>
+    <div className="flex flex-col h-full bg-background">
+      {/* Header */}
+      <div className="h-[73px] flex items-center justify-between px-6 border-b border-border bg-surface-primary flex-shrink-0">
+        <div className="flex items-center gap-3">
+          <div className="p-2 bg-accent/10 rounded-lg">
+            <ShieldCheck size={20} className="text-accent" />
+          </div>
+          <div>
+            <h2 className="text-lg font-semibold text-text-primary leading-tight">Retry Policy</h2>
+            <p className="text-xs text-text-secondary">Configure global retry behavior for failed requests</p>
+          </div>
+        </div>
+        <div className="flex items-center gap-2">
+           {hasChanges && (
+             <Button variant="ghost" onClick={handleReset} disabled={isSaving}>
+               Discard Changes
+             </Button>
+           )}
+           <Button onClick={handleSave} disabled={!hasChanges || isSaving} className="gap-2">
+             {isSaving ? <RefreshCw className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+             Save Changes
+           </Button>
+        </div>
       </div>
 
-      {showForm && (
-        <Card>
-          <CardHeader>
-            <CardTitle>{editingConfig ? 'Edit Retry Config' : 'New Retry Config'}</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div className="grid gap-4 md:grid-cols-2">
-                <div>
-                  <label className="mb-1 block text-sm font-medium">Name</label>
-                  <Input value={name} onChange={(e) => setName(e.target.value)} required />
-                </div>
-                <div>
-                  <label className="mb-1 block text-sm font-medium">Max Retries</label>
-                  <Input type="number" value={maxRetries} onChange={(e) => setMaxRetries(e.target.value)} min="0" required />
-                </div>
+      {/* Content */}
+      <div className="flex-1 overflow-y-auto p-6">
+        <div className="space-y-6">
+           
+           {!defaultConfig && !isLoading && (
+              <div className="bg-warning/10 border border-warning/20 rounded-lg p-4 flex items-start gap-3">
+                 <AlertTriangle className="h-5 w-5 text-warning shrink-0 mt-0.5" />
+                 <div>
+                    <h3 className="text-sm font-medium text-warning">No Default Policy Found</h3>
+                    <p className="text-xs text-warning/80 mt-1">
+                       There is currently no default retry policy configured. Saving the settings below will create a new global default policy.
+                    </p>
+                 </div>
               </div>
-              <div className="grid gap-4 md:grid-cols-3">
-                <div>
-                  <label className="mb-1 block text-sm font-medium">Initial Interval (ms)</label>
-                  <Input type="number" value={initialInterval} onChange={(e) => setInitialInterval(e.target.value)} min="0" required />
-                </div>
-                <div>
-                  <label className="mb-1 block text-sm font-medium">Backoff Rate</label>
-                  <Input type="number" value={backoffRate} onChange={(e) => setBackoffRate(e.target.value)} min="1" step="0.1" required />
-                </div>
-                <div>
-                  <label className="mb-1 block text-sm font-medium">Max Interval (ms)</label>
-                  <Input type="number" value={maxInterval} onChange={(e) => setMaxInterval(e.target.value)} min="0" required />
-                </div>
-              </div>
-              <div className="flex items-center gap-2">
-                <input
-                  type="checkbox"
-                  id="isDefault"
-                  checked={isDefault}
-                  onChange={(e) => setIsDefault(e.target.checked)}
-                  className="h-4 w-4 rounded border-gray-300"
-                />
-                <label htmlFor="isDefault" className="text-sm font-medium">Set as default</label>
-              </div>
-              <div className="flex justify-end gap-2">
-                <Button type="button" variant="outline" onClick={handleCloseForm}>Cancel</Button>
-                <Button type="submit" disabled={isPending}>
-                  {isPending ? 'Saving...' : editingConfig ? 'Update' : 'Create'}
-                </Button>
-              </div>
-            </form>
-          </CardContent>
-        </Card>
-      )}
+           )}
 
-      <Card>
-        <CardHeader>
-          <CardTitle>All Retry Configs</CardTitle>
-        </CardHeader>
-        <CardContent>
-          {isLoading ? (
-            <p className="text-gray-500">Loading...</p>
-          ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>ID</TableHead>
-                  <TableHead>Name</TableHead>
-                  <TableHead>Max Retries</TableHead>
-                  <TableHead>Initial</TableHead>
-                  <TableHead>Backoff</TableHead>
-                  <TableHead>Max</TableHead>
-                  <TableHead>Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {configs?.map((config) => (
-                  <TableRow key={config.id}>
-                    <TableCell className="font-mono">{config.id}</TableCell>
-                    <TableCell className="font-medium">
-                      {config.name}
-                      {config.isDefault && <Badge variant="info" className="ml-2">Default</Badge>}
-                    </TableCell>
-                    <TableCell>{config.maxRetries}</TableCell>
-                    <TableCell className="font-mono text-xs">{formatInterval(config.initialInterval)}</TableCell>
-                    <TableCell>{config.backoffRate}x</TableCell>
-                    <TableCell className="font-mono text-xs">{formatInterval(config.maxInterval)}</TableCell>
-                    <TableCell>
-                      <div className="flex gap-1">
-                        <Button variant="ghost" size="sm" onClick={() => handleEdit(config)}>
-                          <Pencil className="h-4 w-4" />
-                        </Button>
-                        <Button variant="ghost" size="sm" onClick={() => handleDelete(config.id)} disabled={deleteConfig.isPending}>
-                          <Trash2 className="h-4 w-4 text-red-500" />
-                        </Button>
+           <Card className="border-border bg-surface-primary shadow-sm">
+             <CardHeader className="border-b border-border pb-4">
+                <div className="flex items-center justify-between">
+                   <CardTitle className="text-base font-medium">Global Settings</CardTitle>
+                   <Badge variant="info">Default</Badge>
+                </div>
+             </CardHeader>
+             <CardContent className="pt-6 space-y-8">
+                
+                {/* Max Retries */}
+                <div className="grid gap-2">
+                   <label className="text-sm font-medium text-text-primary">Max Retries</label>
+                   <p className="text-xs text-text-secondary mb-2">
+                      Maximum number of retry attempts to make before giving up.
+                   </p>
+                   <div className="flex items-center gap-4">
+                      <Input 
+                        type="number" 
+                        value={maxRetries} 
+                        onChange={(e) => handleInputChange(setMaxRetries, e.target.value)} 
+                        min="0" 
+                        max="10"
+                        className="max-w-[120px] font-mono"
+                      />
+                      <span className="text-xs text-text-muted">attempts</span>
+                   </div>
+                </div>
+
+                <div className="h-px bg-border/50" />
+
+                {/* Timing Settings */}
+                <div className="grid md:grid-cols-3 gap-6">
+                   <div className="space-y-2">
+                      <label className="text-sm font-medium text-text-primary">Initial Interval</label>
+                      <p className="text-xs text-text-secondary min-h-[32px]">
+                         Delay before the first retry attempt.
+                      </p>
+                      <div className="relative">
+                         <Input 
+                           type="number" 
+                           value={initialInterval} 
+                           onChange={(e) => handleInputChange(setInitialInterval, e.target.value)} 
+                           min="0" 
+                           className="font-mono pr-12"
+                         />
+                         <span className="absolute right-3 top-2.5 text-xs text-text-muted">ms</span>
                       </div>
-                    </TableCell>
-                  </TableRow>
-                ))}
-                {(!configs || configs.length === 0) && (
-                  <TableRow>
-                    <TableCell colSpan={7} className="text-center text-gray-500">No retry configs</TableCell>
-                  </TableRow>
-                )}
-              </TableBody>
-            </Table>
-          )}
-        </CardContent>
-      </Card>
+                   </div>
+
+                   <div className="space-y-2">
+                      <label className="text-sm font-medium text-text-primary">Backoff Rate</label>
+                      <p className="text-xs text-text-secondary min-h-[32px]">
+                         Multiplier applied to the interval after each retry.
+                      </p>
+                      <div className="relative">
+                         <Input 
+                           type="number" 
+                           value={backoffRate} 
+                           onChange={(e) => handleInputChange(setBackoffRate, e.target.value)} 
+                           min="1" 
+                           step="0.1"
+                           className="font-mono pr-8"
+                         />
+                         <span className="absolute right-3 top-2.5 text-xs text-text-muted">x</span>
+                      </div>
+                   </div>
+
+                   <div className="space-y-2">
+                      <label className="text-sm font-medium text-text-primary">Max Interval</label>
+                      <p className="text-xs text-text-secondary min-h-[32px]">
+                         Maximum delay between retry attempts.
+                      </p>
+                      <div className="relative">
+                         <Input 
+                           type="number" 
+                           value={maxInterval} 
+                           onChange={(e) => handleInputChange(setMaxInterval, e.target.value)} 
+                           min="0" 
+                           className="font-mono pr-12"
+                         />
+                         <span className="absolute right-3 top-2.5 text-xs text-text-muted">ms</span>
+                      </div>
+                   </div>
+                </div>
+
+                <div className="bg-surface-secondary/30 rounded-lg p-4 text-xs border border-border/50">
+                   <div className="text-text-muted mb-3">
+                      Total attempts: <span className="text-text-primary font-semibold">{Number(maxRetries) + 1}</span> (1 initial + {maxRetries} retries)
+                   </div>
+                   <div className="space-y-1 font-mono text-text-secondary">
+                      <div className="flex justify-between">
+                         <span>Initial request</span>
+                         <span className="text-text-primary">Execute immediately</span>
+                      </div>
+                      {Array.from({ length: Math.min(Number(maxRetries), 5) }, (_, i) => {
+                         const delay = Math.min(
+                            Number(maxInterval),
+                            Number(initialInterval) * Math.pow(Number(backoffRate), i)
+                         );
+                         return (
+                            <div key={i} className="flex justify-between">
+                               <span>Retry {i + 1}</span>
+                               <span className="text-text-primary">Wait {delay.toFixed(0)}ms</span>
+                            </div>
+                         );
+                      })}
+                      {Number(maxRetries) > 5 && (
+                         <div className="text-text-muted">... and {Number(maxRetries) - 5} more retries</div>
+                      )}
+                   </div>
+                </div>
+
+             </CardContent>
+           </Card>
+        </div>
+      </div>
     </div>
   );
 }

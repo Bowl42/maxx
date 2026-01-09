@@ -204,7 +204,7 @@ export function SidebarNav() {
       </nav>
 
       {/* Footer */}
-      <div className="px-lg py-md border-t border-border">
+      <div className="h-[53px] px-lg border-t border-border flex items-center">
         <p className="text-caption text-text-muted">v0.1.0</p>
       </div>
     </aside>

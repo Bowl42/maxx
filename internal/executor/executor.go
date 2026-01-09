@@ -326,15 +326,18 @@ func (e *Executor) mapModel(requestModel string, route *domain.Route, provider *
 
 func (e *Executor) getRetryConfig(config *domain.RetryConfig) *domain.RetryConfig {
 	if config != nil {
+		log.Printf("[Executor] Using provided retry config: MaxRetries=%d", config.MaxRetries)
 		return config
 	}
 
 	// Get default config
 	defaultConfig, err := e.retryConfigRepo.GetDefault()
 	if err == nil && defaultConfig != nil {
+		log.Printf("[Executor] Using default retry config: MaxRetries=%d", defaultConfig.MaxRetries)
 		return defaultConfig
 	}
 
+	log.Printf("[Executor] No retry config found (err=%v), using MaxRetries=0", err)
 	// No default config means no retry
 	return &domain.RetryConfig{
 		MaxRetries:      0,

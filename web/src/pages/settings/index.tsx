@@ -20,7 +20,7 @@ export function SettingsPage() {
       </div>
 
       <div className="flex-1 overflow-y-auto p-6">
-        <div className="max-w-4xl space-y-6">
+        <div className="space-y-6">
           <AppearanceSection />
           <SystemSettingsSection />
         </div>
@@ -47,15 +47,15 @@ function AppearanceSection() {
         </CardTitle>
       </CardHeader>
       <CardContent className="p-6">
-        <div className="space-y-3">
-          <label className="text-sm font-medium text-text-secondary block">Theme Preference</label>
+        <div className="flex items-center gap-6">
+          <label className="text-sm font-medium text-text-secondary w-40 flex-shrink-0">Theme Preference</label>
           <div className="flex flex-wrap gap-3">
             {themes.map(({ value, label, icon: Icon }) => (
               <button
                 key={value}
                 onClick={() => setTheme(value)}
                 className={cn(
-                  "flex items-center gap-2 px-4 py-2.5 rounded-lg border transition-all duration-200",
+                  "flex items-center gap-2 px-4 py-2 rounded-lg border transition-all duration-200 min-w-[100px] justify-center",
                   theme === value
                     ? "border-accent bg-accent/10 text-accent ring-1 ring-accent/20"
                     : "border-border bg-surface-secondary text-text-secondary hover:bg-surface-hover hover:border-text-muted/50"
@@ -155,32 +155,41 @@ function SystemSettingsSection() {
           </div>
         ) : (
           <div className="divide-y divide-border">
+             {/* Header Row for large screens */}
+             <div className="hidden md:flex bg-surface-secondary/30 px-6 py-2 text-xs font-medium text-text-secondary uppercase tracking-wider">
+                <div className="w-1/3">Key</div>
+                <div className="flex-1">Value</div>
+                <div className="w-20 text-right">Actions</div>
+             </div>
+
             {showAddForm && (
               <div className="p-4 bg-accent/5 animate-in slide-in-from-top-2 duration-200">
-                <div className="flex gap-3 items-start">
-                  <div className="flex-1 space-y-2">
-                    <Input
-                      type="text"
-                      value={newKey}
-                      onChange={(e) => setNewKey(e.target.value)}
-                      placeholder="Key (e.g., system.timeout)"
-                      className="bg-surface-primary border-accent/30 focus:border-accent"
-                      autoFocus
-                    />
-                    <Input
-                      type="text"
-                      value={newValue}
-                      onChange={(e) => setNewValue(e.target.value)}
-                      placeholder="Value"
-                      className="bg-surface-primary border-accent/30 focus:border-accent"
-                    />
-                  </div>
-                  <div className="flex flex-col gap-2 pt-0.5">
+                <div className="flex flex-col md:flex-row gap-3 items-start md:items-center">
+                   <div className="w-full md:w-1/3">
+                      <Input
+                        type="text"
+                        value={newKey}
+                        onChange={(e) => setNewKey(e.target.value)}
+                        placeholder="Key (e.g., system.timeout)"
+                        className="bg-surface-primary border-accent/30 focus:border-accent font-mono text-sm"
+                        autoFocus
+                      />
+                   </div>
+                   <div className="w-full md:flex-1">
+                      <Input
+                        type="text"
+                        value={newValue}
+                        onChange={(e) => setNewValue(e.target.value)}
+                        placeholder="Value"
+                        className="bg-surface-primary border-accent/30 focus:border-accent font-mono text-sm"
+                      />
+                   </div>
+                  <div className="flex items-center gap-2 md:w-20 md:justify-end">
                     <Button
                       onClick={handleAdd}
                       disabled={!newKey.trim() || updateSetting.isPending}
                       size="sm"
-                      className="h-9 w-9 p-0 bg-accent text-white hover:bg-accent-hover"
+                      className="h-8 w-8 p-0 bg-accent text-white hover:bg-accent-hover"
                     >
                       <Save size={14} />
                     </Button>
@@ -192,7 +201,7 @@ function SystemSettingsSection() {
                       }}
                       size="sm"
                       variant="ghost"
-                      className="h-9 w-9 p-0 hover:bg-error/10 hover:text-error"
+                      className="h-8 w-8 p-0 hover:bg-error/10 hover:text-error"
                     >
                       <X size={14} />
                     </Button>
@@ -202,15 +211,20 @@ function SystemSettingsSection() {
             )}
             
             {settingsEntries.map(([key, value]) => (
-              <div key={key} className="p-4 flex items-center gap-4 group transition-colors hover:bg-surface-secondary/30">
-                <div className="flex-1 min-w-0">
-                  <div className="text-xs font-mono font-medium text-text-secondary mb-1">{key}</div>
+              <div key={key} className="p-4 md:px-6 flex flex-col md:flex-row md:items-center gap-2 md:gap-4 group transition-colors hover:bg-surface-secondary/30">
+                {/* Key Column */}
+                <div className="w-full md:w-1/3 min-w-0">
+                  <div className="text-xs md:text-sm font-mono font-medium text-text-secondary md:text-text-primary break-all" title={key}>{key}</div>
+                </div>
+
+                {/* Value Column */}
+                <div className="w-full md:flex-1 min-w-0">
                   {editingKey === key ? (
                     <Input
                       type="text"
                       value={editValue}
                       onChange={(e) => setEditValue(e.target.value)}
-                      className="h-8 text-sm font-mono bg-surface-primary"
+                      className="h-8 text-sm font-mono bg-surface-primary w-full"
                       autoFocus
                       onKeyDown={(e) => {
                         if (e.key === 'Enter') handleSave(key);
@@ -219,7 +233,7 @@ function SystemSettingsSection() {
                     />
                   ) : (
                     <div
-                      className="text-sm text-text-primary font-mono truncate cursor-pointer hover:text-accent transition-colors py-1"
+                      className="text-sm text-text-primary font-mono break-all cursor-pointer hover:text-accent transition-colors py-1"
                       onClick={() => handleEdit(key)}
                       title="Click to edit"
                     >
@@ -227,7 +241,9 @@ function SystemSettingsSection() {
                     </div>
                   )}
                 </div>
-                <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity focus-within:opacity-100">
+
+                {/* Actions Column */}
+                <div className="flex items-center justify-end gap-2 md:w-20 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
                   {editingKey === key ? (
                     <>
                       <Button

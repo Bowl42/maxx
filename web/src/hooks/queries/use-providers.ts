@@ -86,3 +86,13 @@ export function useProviderStats(clientType?: string) {
     enabled: !!clientType, // 只在有 clientType 时才查询
   });
 }
+
+// 获取全局 Provider 统计信息（不区分 clientType）
+export function useAllProviderStats() {
+  return useQuery({
+    queryKey: [...providerKeys.stats(), 'all'],
+    queryFn: () => transport.getProviderStats(),
+    // 每 30 秒刷新一次
+    refetchInterval: 30000,
+  });
+}
