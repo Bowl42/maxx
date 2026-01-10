@@ -5,7 +5,9 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
+	"time"
 
+	"github.com/Bowl42/maxx-next/internal/cooldown"
 	"github.com/Bowl42/maxx-next/internal/domain"
 	"github.com/Bowl42/maxx-next/internal/service"
 )
@@ -59,6 +61,8 @@ func (h *AdminHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		h.handleProxyStatus(w, r)
 	case "provider-stats":
 		h.handleProviderStats(w, r)
+	case "cooldowns":
+		h.handleCooldowns(w, r, id)
 	case "logs":
 		h.handleLogs(w, r)
 	default:
@@ -705,6 +709,54 @@ func (h *AdminHandler) handleLogs(w http.ResponseWriter, r *http.Request) {
 		"lines": lines,
 		"count": len(lines),
 	})
+}
+
+// Cooldowns handler
+// GET /admin/cooldowns - list all active cooldowns
+// DELETE /admin/cooldowns/{id} - clear cooldown for a provider
+func (h *AdminHandler) handleCooldowns(w http.ResponseWriter, r *http.Request, providerID uint64) {
+	cm := cooldown.Default()
+
+	switch r.Method {
+	case http.MethodGet:
+		// Get all active cooldowns
+		cooldowns := cm.GetAllCooldowns()
+		providers, _ := h.svc.GetProviders()
+
+		// Build provider name map
+		providerNames := make(map[uint64]string)
+		for _, p := range providers {
+			providerNames[p.ID] = p.Name
+		}
+
+		// Build response
+		var result []map[string]interface{}
+		for id, until := range cooldowns {
+			remaining := time.Until(until)
+			if remaining < 0 {
+				continue
+			}
+			result = append(result, map[string]interface{}{
+				"providerID":   id,
+				"providerName": providerNames[id],
+				"until":        until,
+				"remaining":    remaining.Round(time.Second).String(),
+			})
+		}
+
+		writeJSON(w, http.StatusOK, result)
+
+	case http.MethodDelete:
+		if providerID == 0 {
+			writeJSON(w, http.StatusBadRequest, map[string]string{"error": "provider id required"})
+			return
+		}
+		cm.ClearCooldown(providerID)
+		writeJSON(w, http.StatusOK, map[string]string{"message": "cooldown cleared"})
+
+	default:
+		writeJSON(w, http.StatusMethodNotAllowed, map[string]string{"error": "method not allowed"})
+	}
 }
 
 func writeJSON(w http.ResponseWriter, status int, data interface{}) {

@@ -15,6 +15,7 @@ import (
 	"github.com/Bowl42/maxx-next/internal/adapter/provider"
 	"github.com/Bowl42/maxx-next/internal/converter"
 	ctxutil "github.com/Bowl42/maxx-next/internal/context"
+	"github.com/Bowl42/maxx-next/internal/cooldown"
 	"github.com/Bowl42/maxx-next/internal/domain"
 	"github.com/Bowl42/maxx-next/internal/usage"
 	"github.com/google/uuid"
@@ -184,6 +185,11 @@ func (a *AntigravityAdapter) Execute(ctx context.Context, w http.ResponseWriter,
 				Headers: flattenHeaders(resp.Header),
 				Body:    string(body),
 			}
+		}
+
+		// Check for RESOURCE_EXHAUSTED (429) and handle cooldown
+		if resp.StatusCode == http.StatusTooManyRequests {
+			a.handleResourceExhausted(ctx, body, provider)
 		}
 
 		// Parse retry info for 429/5xx responses (like Antigravity-Manager)
@@ -1008,4 +1014,98 @@ func convertGeminiToClaudeResponse(geminiBody []byte, requestModel string) ([]by
 	claudeResp["content"] = content
 
 	return json.Marshal(claudeResp)
+}
+
+// handleResourceExhausted handles 429 RESOURCE_EXHAUSTED errors with QUOTA_EXHAUSTED reason
+// Only triggers cooldown when the error contains quotaResetTimeStamp in details
+func (a *AntigravityAdapter) handleResourceExhausted(ctx context.Context, body []byte, provider *domain.Provider) {
+	// Parse error response to check if it's QUOTA_EXHAUSTED with reset timestamp
+	var errResp struct {
+		Error struct {
+			Code    int    `json:"code"`
+			Message string `json:"message"`
+			Status  string `json:"status"`
+			Details []struct {
+				Type     string `json:"@type"`
+				Reason   string `json:"reason,omitempty"`
+				Metadata struct {
+					Model               string `json:"model,omitempty"`
+					QuotaResetDelay     string `json:"quotaResetDelay,omitempty"`
+					QuotaResetTimeStamp string `json:"quotaResetTimeStamp,omitempty"`
+				} `json:"metadata,omitempty"`
+			} `json:"details,omitempty"`
+		} `json:"error"`
+	}
+
+	if err := json.Unmarshal(body, &errResp); err != nil {
+		// Can't parse error, don't set cooldown
+		return
+	}
+
+	// Check if it's RESOURCE_EXHAUSTED
+	if errResp.Error.Status != "RESOURCE_EXHAUSTED" {
+		return
+	}
+
+	// Look for QUOTA_EXHAUSTED with quotaResetTimeStamp in details
+	var resetTime time.Time
+	for _, detail := range errResp.Error.Details {
+		if detail.Reason == "QUOTA_EXHAUSTED" && detail.Metadata.QuotaResetTimeStamp != "" {
+			parsed, err := time.Parse(time.RFC3339, detail.Metadata.QuotaResetTimeStamp)
+			if err == nil {
+				resetTime = parsed
+				break
+			}
+		}
+	}
+
+	if resetTime.IsZero() {
+		// No quota reset timestamp found, query quota API
+		config := provider.Config.Antigravity
+		if config == nil {
+			return
+		}
+
+		// Fetch quota in background to not block the response
+		go func() {
+			quotaCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+			defer cancel()
+
+			quota, err := FetchQuotaForProvider(quotaCtx, config.RefreshToken, config.ProjectID)
+			if err != nil {
+				// Failed to fetch quota, apply short cooldown
+				cooldown.Default().SetCooldownDuration(provider.ID, time.Minute)
+				return
+			}
+
+			// Check if any model has 0% quota
+			var earliestReset time.Time
+			hasZeroQuota := false
+
+			for _, model := range quota.Models {
+				if model.Percentage == 0 && model.ResetTime != "" {
+					hasZeroQuota = true
+					rt, err := time.Parse(time.RFC3339, model.ResetTime)
+					if err != nil {
+						continue
+					}
+					if earliestReset.IsZero() || rt.Before(earliestReset) {
+						earliestReset = rt
+					}
+				}
+			}
+
+			if hasZeroQuota && !earliestReset.IsZero() {
+				// Quota is 0, cooldown until reset time
+				cooldown.Default().SetCooldown(provider.ID, earliestReset)
+			} else {
+				// Quota is not 0, apply short cooldown (1 minute)
+				cooldown.Default().SetCooldownDuration(provider.ID, time.Minute)
+			}
+		}()
+		return
+	}
+
+	// Found quota reset timestamp, set cooldown until that time
+	cooldown.Default().SetCooldown(provider.ID, resetTime)
 }

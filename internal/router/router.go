@@ -7,6 +7,7 @@ import (
 	"sync"
 
 	"github.com/Bowl42/maxx-next/internal/adapter/provider"
+	"github.com/Bowl42/maxx-next/internal/cooldown"
 	"github.com/Bowl42/maxx-next/internal/domain"
 	"github.com/Bowl42/maxx-next/internal/repository/cached"
 )
@@ -29,6 +30,9 @@ type Router struct {
 	// Adapter cache
 	adapters map[uint64]provider.ProviderAdapter
 	mu       sync.RWMutex
+
+	// Cooldown manager
+	cooldownManager *cooldown.Manager
 }
 
 // NewRouter creates a new router
@@ -44,6 +48,7 @@ func NewRouter(
 		routingStrategyRepo: routingStrategyRepo,
 		retryConfigRepo:     retryConfigRepo,
 		adapters:            make(map[uint64]provider.ProviderAdapter),
+		cooldownManager:     cooldown.Default(),
 	}
 }
 
@@ -172,6 +177,14 @@ func (r *Router) Match(clientType domain.ClientType, projectID uint64) ([]*Match
 		provider, ok := providers[route.ProviderID]
 		if !ok {
 			log.Printf("[Router] Provider not found for route %d (providerID=%d)", route.ID, route.ProviderID)
+			continue
+		}
+
+		// Skip providers in cooldown
+		if r.cooldownManager.IsInCooldown(route.ProviderID) {
+			until := r.cooldownManager.GetCooldownUntil(route.ProviderID)
+			log.Printf("[Router] Provider %d (%s) is in cooldown until %s, skipping",
+				route.ProviderID, provider.Name, until.Format("15:04:05"))
 			continue
 		}
 
