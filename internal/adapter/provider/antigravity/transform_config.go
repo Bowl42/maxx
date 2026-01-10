@@ -17,7 +17,16 @@ func buildGenerationConfig(
 	// 1. Thinking Configuration
 	// Check if thinking is requested AND the target model supports it
 	// Reference: Antigravity-Manager's target model support check
+
+	// Check explicit thinking config first
 	thinkingRequested := claudeReq.Thinking != nil && claudeReq.Thinking.Type == "enabled"
+
+	// If no explicit config, check if model should enable thinking by default (Opus 4.5)
+	// Reference: Antigravity-Manager's should_enable_thinking_by_default (line 380-398)
+	if !thinkingRequested && shouldEnableThinkingByDefault(claudeReq.Model) {
+		thinkingRequested = true
+	}
+
 	modelSupportsThinking := TargetModelSupportsThinking(mappedModel)
 
 	if thinkingRequested && modelSupportsThinking {

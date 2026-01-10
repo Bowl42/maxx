@@ -5,6 +5,25 @@ import (
 	"strings"
 )
 
+// shouldEnableThinkingByDefault checks if thinking should be enabled by default for a model
+// Reference: Antigravity-Manager's should_enable_thinking_by_default (line 380-398)
+// Claude Code v2.0.67+ enables thinking by default for Opus 4.5 models
+func shouldEnableThinkingByDefault(model string) bool {
+	modelLower := strings.ToLower(model)
+
+	// Enable thinking by default for Opus 4.5 variants
+	if strings.Contains(modelLower, "opus-4-5") || strings.Contains(modelLower, "opus-4.5") {
+		return true
+	}
+
+	// Also enable for explicit thinking model variants
+	if strings.Contains(modelLower, "-thinking") {
+		return true
+	}
+
+	return false
+}
+
 // HasThinkingEnabledWithModel checks if thinking is enabled, considering model defaults
 // Claude Code v2.0.67+ enables thinking by default for Opus 4.5 models
 func HasThinkingEnabledWithModel(requestBody []byte, model string) bool {
@@ -13,16 +32,8 @@ func HasThinkingEnabledWithModel(requestBody []byte, model string) bool {
 		return true
 	}
 
-	// Check model defaults (Opus 4.5 has thinking enabled by default)
-	modelLower := strings.ToLower(model)
-	if strings.Contains(modelLower, "opus-4-5") || strings.Contains(modelLower, "opus-4.5") {
-		return true
-	}
-	if strings.Contains(modelLower, "-thinking") {
-		return true
-	}
-
-	return false
+	// Check model defaults using shouldEnableThinkingByDefault
+	return shouldEnableThinkingByDefault(model)
 }
 
 // TargetModelSupportsThinking checks if the target model supports thinking mode
