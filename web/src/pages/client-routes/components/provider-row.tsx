@@ -1,4 +1,5 @@
 import { GripVertical, Zap, RefreshCw, Activity, Snowflake, Info } from 'lucide-react';
+import { Switch } from '@/components/ui';
 import { StreamingBadge } from '@/components/ui/streaming-badge';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
@@ -100,6 +101,8 @@ export function SortableProviderRow({
           clientType={clientType}
           streamingCount={streamingCount}
           stats={stats}
+          isToggling={isToggling}
+          onToggle={onToggle}
           onRowClick={handleRowClick}
           isInCooldown={!!cooldown}
         />
@@ -131,7 +134,9 @@ type ProviderRowContentProps = {
   clientType: ClientType;
   streamingCount: number;
   stats?: ProviderStats;
+  isToggling: boolean;
   isOverlay?: boolean;
+  onToggle: () => void;
   onRowClick?: (e: React.MouseEvent) => void;
   isInCooldown?: boolean;
 };
@@ -175,6 +180,9 @@ export function ProviderRowContent({
   clientType,
   streamingCount,
   stats,
+  isToggling,
+  isOverlay: _isOverlay,
+  onToggle,
   onRowClick,
   isInCooldown: isInCooldownProp,
 }: ProviderRowContentProps) {
@@ -423,6 +431,20 @@ export function ProviderRowContent({
             )}
           </div>
         )}
+      </div>
+
+      {/* Control Area - Switch */}
+      <div className="relative z-10 flex items-center flex-shrink-0 ml-auto pl-2">
+        <Switch
+          checked={enabled}
+          onCheckedChange={() => {
+            if (!isInCooldown) {
+              onToggle();
+            }
+          }}
+          onClick={(e) => e.stopPropagation()}
+          disabled={isToggling || isInCooldown}
+        />
       </div>
 
       {/* Streaming Indicator - Top Right */}

@@ -210,13 +210,14 @@ export function ClientRoutesPage() {
 
       {/* Provider List */}
       <div className="flex-1 overflow-y-auto p-lg">
-        {sortedItems.length === 0 && availableForConversion.length === 0 ? (
-          <div className="flex flex-col items-center justify-center h-full text-text-muted">
-            <p className="text-body">No providers available</p>
-            <p className="text-caption mt-sm">Add a provider first to configure routes</p>
-          </div>
-        ) : (
-          <>
+        <div className="mx-auto max-w-[1400px]">
+          {sortedItems.length === 0 && availableForConversion.length === 0 ? (
+            <div className="flex flex-col items-center justify-center h-full text-text-muted">
+              <p className="text-body">No providers available</p>
+              <p className="text-caption mt-sm">Add a provider first to configure routes</p>
+            </div>
+          ) : (
+            <>
             <DndContext
               sensors={sensors}
               collisionDetection={closestCenter}
@@ -249,7 +250,9 @@ export function ClientRoutesPage() {
                     clientType={clientType as ClientType}
                     streamingCount={countsByProviderAndClient.get(`${activeItem.provider.id}:${clientType}`) || 0}
                     stats={providerStats[activeItem.provider.id]}
+                    isToggling={false}
                     isOverlay
+                    onToggle={() => {}}
                   />
                 )}
               </DragOverlay>
@@ -291,6 +294,7 @@ export function ClientRoutesPage() {
             )}
           </>
         )}
+        </div>
       </div>
     </div>
   );

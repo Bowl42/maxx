@@ -135,11 +135,12 @@ export function ProvidersPage() {
       </div>
 
       <div className="flex-1 overflow-y-auto p-6">
-        {isLoading ? (
-          <div className="flex items-center justify-center h-full">
-            <div className="text-text-muted">Loading...</div>
-          </div>
-        ) : providers?.length === 0 ? (
+        <div className="mx-auto max-w-[1400px]">
+          {isLoading ? (
+            <div className="flex items-center justify-center h-full">
+              <div className="text-text-muted">Loading...</div>
+            </div>
+          ) : providers?.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-full text-text-muted">
             <Layers size={48} className="mb-4 opacity-50" />
             <p className="text-body">No providers configured</p>
@@ -196,6 +197,7 @@ export function ProvidersPage() {
              )}
           </div>
         )}
+        </div>
       </div>
 
       {/* Import Status Toast */}
