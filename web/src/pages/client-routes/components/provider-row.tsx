@@ -97,6 +97,13 @@ export function SortableProviderRow({
     setShowCooldownDialog(false);
   };
 
+  const handleDisableRoute = () => {
+    if (item.enabled) {
+      onToggle(); // 禁用 Route
+    }
+    setShowCooldownDialog(false);
+  };
+
   return (
     <>
       <div
@@ -127,6 +134,8 @@ export function SortableProviderRow({
         onOpenChange={setShowCooldownDialog}
         onClear={handleClearCooldown}
         isClearing={isClearingCooldown}
+        onDisable={handleDisableRoute}
+        isDisabling={isToggling}
       />
     </>
   );
@@ -225,10 +234,10 @@ export function ProviderRowContent({
     <div
       onClick={handleContentClick}
       className={`
-        flex items-center gap-md p-md rounded-lg border transition-all duration-200 relative overflow-hidden
+        flex items-center gap-md p-md rounded-lg border transition-all duration-300 relative overflow-hidden group
         ${
           isInCooldown
-            ? 'bg-cyan-500/5 border-cyan-400/40 shadow-[0_0_15px_rgba(6,182,212,0.2)] cursor-pointer'
+            ? 'bg-gradient-to-r from-[#e0f7fa] to-[#e1f5fe] dark:from-[#083344] dark:to-[#0c4a6e] border-cyan-200/50 dark:border-cyan-700/50 shadow-[0_0_20px_rgba(6,182,212,0.15)] cursor-pointer'
             : enabled
             ? streamingCount > 0
               ? 'bg-surface-primary'
@@ -239,7 +248,7 @@ export function ProviderRowContent({
       `}
       style={{
         borderColor: isInCooldown
-          ? 'rgba(6, 182, 212, 0.4)'
+          ? undefined // Handle via class
           : enabled && streamingCount > 0 ? `${color}80` : undefined,
         boxShadow: enabled && streamingCount > 0 ? `0 0 15px ${color}20` : undefined,
       }}
@@ -252,9 +261,44 @@ export function ProviderRowContent({
         />
       )}
 
-      {/* Cooldown 冰冻效果 */}
+      {/* Cooldown 冰冻效果 - 增强版 */}
       {isInCooldown && (
-        <div className="absolute inset-0 bg-gradient-to-br from-cyan-500/10 via-cyan-400/5 to-blue-500/10 pointer-events-none animate-pulse" />
+        <>
+          {/* 动态光效 (放在底层) */}
+          <div className="absolute inset-0 bg-gradient-to-br from-cyan-400/10 via-transparent to-blue-500/10 pointer-events-none animate-pulse duration-[4000ms]" />
+          {/* 顶部高光 (放在底层) */}
+          <div className="absolute inset-x-0 top-0 h-[1px] bg-gradient-to-r from-transparent via-cyan-200/40 to-transparent opacity-40" />
+
+          {/* 动态飘落雪花 (放在上层) */}
+          <div className="absolute inset-0 overflow-hidden pointer-events-none z-[5]">
+            {[
+              { left: '5%', delay: '0s', duration: '6s', size: 14 },
+              { left: '15%', delay: '1s', duration: '8s', size: 20 },
+              { left: '25%', delay: '4s', duration: '7s', size: 12 },
+              { left: '35%', delay: '2s', duration: '9s', size: 24 },
+              { left: '45%', delay: '5s', duration: '6s', size: 16 },
+              { left: '55%', delay: '0.5s', duration: '8.5s', size: 18 },
+              { left: '65%', delay: '3s', duration: '7.5s', size: 22 },
+              { left: '75%', delay: '1.5s', duration: '6.5s', size: 14 },
+              { left: '85%', delay: '4.5s', duration: '9.5s', size: 20 },
+              { left: '95%', delay: '2.5s', duration: '7s', size: 12 },
+              { left: '10%', delay: '3.5s', duration: '8s', size: 16 },
+              { left: '80%', delay: '0.8s', duration: '6.8s', size: 18 },
+            ].map((flake, i) => (
+              <div
+                key={i}
+                className="absolute -top-6 animate-snowfall text-cyan-400/70 dark:text-cyan-200/70"
+                style={{
+                  left: flake.left,
+                  animationDelay: flake.delay,
+                  animationDuration: flake.duration,
+                }}
+              >
+                <Snowflake size={flake.size} />
+              </div>
+            ))}
+          </div>
+        </>
       )}
 
       {/* Streaming Badge - 右上角 */}
@@ -266,13 +310,13 @@ export function ProviderRowContent({
 
       {/* Cooldown Badge - 右上角 */}
       {isInCooldown && cooldown && (
-        <div className="absolute -top-1 -right-1 z-20 flex items-center gap-1 bg-cyan-500/90 text-white text-xs font-bold px-2 py-1 rounded-lg shadow-lg backdrop-blur-sm border border-cyan-400/30">
-          <Snowflake size={12} className="animate-pulse" />
-          <span className="font-mono">{formatRemaining(cooldown)}</span>
+        <div className="absolute -top-1 -right-1 z-20 flex items-center gap-1 bg-white/95 dark:bg-cyan-900/95 text-cyan-600 dark:text-cyan-300 text-xs font-bold px-2 py-1 rounded-bl-xl shadow-sm border-l border-b border-cyan-100 dark:border-cyan-800/50 backdrop-blur-md">
+          <Snowflake size={12} className="animate-spin-slow" />
+          <span className="font-mono tracking-tighter">{formatRemaining(cooldown)}</span>
           <button
             onClick={handleClearCooldown}
             disabled={isClearingCooldown}
-            className="ml-0.5 p-0.5 rounded hover:bg-cyan-400/30 transition-colors disabled:opacity-50"
+            className="ml-1 p-0.5 rounded-full hover:bg-cyan-100 dark:hover:bg-cyan-800/50 transition-colors disabled:opacity-50"
             title="清除 cooldown"
           >
             <X size={10} />
@@ -290,19 +334,22 @@ export function ProviderRowContent({
 
       {/* Provider Icon */}
       <div
-        className={`relative z-10 w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0 transition-opacity ${
+        className={`relative z-10 w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0 transition-all duration-300 ${
           isInCooldown
-            ? 'opacity-50 grayscale'
+            ? 'bg-white/60 dark:bg-cyan-900/40 shadow-inner'
             : enabled
             ? ''
             : 'opacity-30 grayscale'
         }`}
-        style={{ backgroundColor: `${color}15`, color }}
+        style={!isInCooldown ? { backgroundColor: `${color}15`, color } : {}}
       >
-        <span className="text-lg font-bold">{provider.name.charAt(0).toUpperCase()}</span>
+        <span className={`text-lg font-bold ${isInCooldown ? 'text-cyan-600 dark:text-cyan-300 opacity-40' : ''}`}>
+          {provider.name.charAt(0).toUpperCase()}
+        </span>
         {isInCooldown && (
-          <div className="absolute inset-0 flex items-center justify-center bg-cyan-500/20 rounded-lg backdrop-blur-[1px]">
-            <Snowflake size={16} className="text-cyan-400 animate-pulse" />
+          <div className="absolute inset-0 flex items-center justify-center rounded-lg overflow-hidden">
+             <div className="absolute inset-0 bg-cyan-400/5 backdrop-blur-[1px]" />
+             <Snowflake size={20} className="text-cyan-500 dark:text-cyan-300 relative z-10 animate-pulse drop-shadow-[0_0_5px_rgba(6,182,212,0.3)]" />
           </div>
         )}
       </div>
@@ -312,7 +359,7 @@ export function ProviderRowContent({
         <div className="flex items-center gap-2">
           <span className={`text-body font-medium transition-colors ${
             isInCooldown
-              ? 'text-cyan-400'
+              ? 'text-cyan-700 dark:text-cyan-200'
               : enabled
               ? 'text-text-primary'
               : 'text-text-muted'
@@ -321,9 +368,9 @@ export function ProviderRowContent({
           </span>
           {/* Cooldown indicator */}
           {isInCooldown && (
-            <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium bg-cyan-500/20 text-cyan-400 border border-cyan-400/30">
-              <Snowflake size={10} className="animate-pulse" />
-              冷却中
+            <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium bg-cyan-100 dark:bg-cyan-900/50 text-cyan-700 dark:text-cyan-300 border border-cyan-200 dark:border-cyan-700/50">
+              <Snowflake size={10} />
+              已冻结
             </span>
           )}
           {/* Native/Converted badge */}
@@ -345,7 +392,10 @@ export function ProviderRowContent({
             </span>
           )}
         </div>
-        <div className={`text-caption truncate transition-colors ${enabled ? 'text-text-muted' : 'text-text-muted/50'}`}>
+        <div className={`text-caption truncate transition-colors ${
+          isInCooldown ? 'text-cyan-600/70 dark:text-cyan-300/70' :
+          enabled ? 'text-text-muted' : 'text-text-muted/50'
+        }`}>
           {provider.config?.custom?.clientBaseURL?.[clientType] ||
             provider.config?.custom?.baseURL ||
             provider.config?.antigravity?.endpoint ||

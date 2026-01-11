@@ -51,6 +51,17 @@ export default {
         'card': '0 2px 8px rgba(0, 0, 0, 0.3)',
         'card-hover': '0 4px 12px rgba(0, 0, 0, 0.4)',
       },
+      animation: {
+        'snowfall': 'snowfall 8s linear infinite',
+        'spin-slow': 'spin 3s linear infinite',
+      },
+      keyframes: {
+        snowfall: {
+          '0%': { transform: 'translateY(-10px) translateX(-10px) rotate(0deg)', opacity: '0' },
+          '20%': { opacity: '1' },
+          '100%': { transform: 'translateY(8rem) translateX(10px) rotate(180deg)', opacity: '0' },
+        },
+      },
     },
   },
 } satisfies Config;

@@ -1,3 +1,5 @@
+import { useEffect, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import { Snowflake, Clock, AlertCircle, Server, Wifi, Zap, Ban, HelpCircle, X } from 'lucide-react';
 import type { Cooldown, CooldownReason } from '@/lib/transport/types';
 
@@ -7,6 +9,8 @@ interface CooldownDetailsDialogProps {
   onOpenChange: (open: boolean) => void;
   onClear: () => void;
   isClearing: boolean;
+  onDisable: () => void;
+  isDisabling: boolean;
 }
 
 // Reason 中文说明和图标
@@ -49,7 +53,27 @@ export function CooldownDetailsDialog({
   onOpenChange,
   onClear,
   isClearing,
+  onDisable,
+  isDisabling,
 }: CooldownDetailsDialogProps) {
+  // Handle ESC key
+  const handleKeyDown = useCallback((e: KeyboardEvent) => {
+    if (e.key === 'Escape') {
+      onOpenChange(false);
+    }
+  }, [onOpenChange]);
+
+  useEffect(() => {
+    if (open) {
+      document.addEventListener('keydown', handleKeyDown);
+      document.body.style.overflow = 'hidden';
+      return () => {
+        document.removeEventListener('keydown', handleKeyDown);
+        document.body.style.overflow = '';
+      };
+    }
+  }, [open, handleKeyDown]);
+
   if (!open || !cooldown) return null;
 
   const reasonInfo = REASON_INFO[cooldown.reason] || REASON_INFO.unknown;
@@ -68,93 +92,172 @@ export function CooldownDetailsDialog({
     });
   };
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center">
-      {/* Backdrop */}
+  // 使用项目已有的 dialog-overlay 和 dialog-content 全局样式
+  return createPortal(
+    <>
+      {/* Overlay - 使用全局 .dialog-overlay 类 */}
       <div
-        className="absolute inset-0 bg-black/50 backdrop-blur-sm"
+        className="dialog-overlay"
         onClick={() => onOpenChange(false)}
+        style={{ zIndex: 99998 }}
       />
 
-      {/* Dialog */}
-      <div className="relative bg-surface-primary border border-border rounded-xl shadow-2xl max-w-md w-full mx-4 overflow-hidden">
+      {/* Content - 使用全局 .dialog-content 类 */}
+      <div
+        className="dialog-content"
+        style={{
+          zIndex: 99999,
+          width: '100%',
+          maxWidth: '28rem',
+          padding: 0,
+          background: 'var(--color-surface-primary)',
+        }}
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* Decorative top gradient */}
+        <div
+          className="h-1 rounded-t-lg"
+          style={{ background: 'linear-gradient(to right, #22d3ee, #3b82f6, #22d3ee)' }}
+        />
+
         {/* Header */}
-        <div className="px-6 py-4 border-b border-border flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <Snowflake className="text-cyan-400" size={20} />
-            <h2 className="text-lg font-semibold text-text-primary">Provider 冷却详情</h2>
+        <div className="px-6 py-5 flex items-center justify-between border-b border-border">
+          <div className="flex items-center gap-3">
+            <div className="p-2 rounded-xl bg-cyan-900/40 text-cyan-400 border border-cyan-800">
+              <Snowflake size={22} className="animate-spin-slow" />
+            </div>
+            <div>
+              <h2 className="text-lg font-bold text-text-primary">冷却详情</h2>
+              <p className="text-xs text-text-muted">Provider Cooldown Status</p>
+            </div>
           </div>
           <button
             onClick={() => onOpenChange(false)}
-            className="p-1 rounded-md hover:bg-surface-hover transition-colors"
+            className="p-2 rounded-full hover:bg-surface-hover text-text-muted hover:text-text-primary transition-colors"
           >
-            <X size={18} className="text-text-muted" />
+            <X size={20} />
           </button>
         </div>
 
         {/* Content */}
-        <div className="p-6 space-y-4">
-          {/* Provider 信息 */}
-          <div className="flex items-center justify-between p-3 rounded-lg bg-surface-secondary/50 border border-border">
-            <div>
-              <div className="text-xs text-text-muted mb-1">Provider</div>
-              <div className="font-medium text-text-primary">{cooldown.providerName || `Provider #${cooldown.providerID}`}</div>
+        <div className="p-6 space-y-5">
+          {/* Provider Info Card */}
+          <div className="flex items-center gap-4 p-4 rounded-xl bg-surface-secondary border border-border">
+            <div className="flex-1 min-w-0">
+              <div className="text-xs font-medium text-text-muted uppercase tracking-wider mb-0.5">Provider</div>
+              <div className="text-base font-semibold text-text-primary truncate">
+                {cooldown.providerName || `Provider #${cooldown.providerID}`}
+              </div>
             </div>
-            {cooldown.clientType && cooldown.clientType !== '' && (
-              <div className="text-right">
-                <div className="text-xs text-text-muted mb-1">Client Type</div>
-                <div className="text-sm font-mono text-text-secondary">{cooldown.clientType}</div>
+            {cooldown.clientType && (
+              <div className="text-right flex-shrink-0">
+                <div className="text-xs font-medium text-text-muted uppercase tracking-wider mb-0.5">Client</div>
+                <div className="px-2 py-1 rounded text-xs font-mono font-medium bg-surface-hover text-text-secondary">
+                  {cooldown.clientType}
+                </div>
               </div>
             )}
           </div>
 
-          {/* 冷却原因 */}
-          <div className="p-4 rounded-lg bg-cyan-500/5 border border-cyan-400/30">
-            <div className="flex items-start gap-3">
-              <div className="p-2 rounded-lg bg-cyan-500/10">
-                <Icon className="text-cyan-400" size={20} />
+          {/* Reason Section */}
+          <div className="relative overflow-hidden rounded-xl border border-cyan-800 bg-cyan-900/30">
+            <div className="absolute top-0 left-0 w-1.5 h-full bg-cyan-400" />
+            <div className="p-4 pl-5 flex gap-4">
+              <div className="mt-0.5 flex-shrink-0 text-cyan-400">
+                <Icon size={24} />
               </div>
-              <div className="flex-1">
-                <div className="font-medium text-cyan-400 mb-1">{reasonInfo.label}</div>
-                <div className="text-sm text-text-muted">{reasonInfo.description}</div>
+              <div>
+                <h3 className="font-semibold text-cyan-100 mb-1">{reasonInfo.label}</h3>
+                <p className="text-sm text-cyan-300/80 leading-relaxed">
+                  {reasonInfo.description}
+                </p>
               </div>
             </div>
           </div>
 
-          {/* 时间信息 */}
-          <div className="space-y-3">
-            <div className="flex items-center justify-between p-3 rounded-lg bg-surface-secondary/30">
-              <div className="flex items-center gap-2 text-text-muted">
-                <Clock size={16} />
-                <span className="text-sm">恢复时间</span>
+          {/* Timing Grid */}
+          <div className="grid grid-cols-2 gap-4">
+            <div className="p-4 rounded-xl bg-surface-secondary border border-border">
+              <div className="flex items-center gap-2 text-text-muted mb-2">
+                <Clock size={14} />
+                <span className="text-xs font-medium uppercase tracking-wider">恢复时间</span>
               </div>
-              <div className="text-sm font-mono text-text-primary">{formatUntilTime(cooldown.until)}</div>
+              <div className="font-mono text-sm font-semibold text-text-secondary">
+                {formatUntilTime(cooldown.until).split(' ')[0]}
+                <br />
+                {formatUntilTime(cooldown.until).split(' ')[1]}
+              </div>
             </div>
 
-            <div className="flex items-center justify-between p-3 rounded-lg bg-surface-secondary/30">
-              <div className="flex items-center gap-2 text-text-muted">
-                <Snowflake size={16} />
-                <span className="text-sm">剩余时间</span>
+            <div className="p-4 rounded-xl bg-cyan-900/30 border border-cyan-800">
+              <div className="flex items-center gap-2 text-cyan-400 mb-2">
+                <Snowflake size={14} className="animate-pulse" />
+                <span className="text-xs font-medium uppercase tracking-wider">剩余冻结</span>
               </div>
-              <div className="text-sm font-mono font-bold text-cyan-400">{cooldown.remaining}</div>
+              <div className="font-mono text-xl font-bold text-cyan-400">
+                {cooldown.remaining}
+              </div>
             </div>
           </div>
 
-          {/* 解冻按钮 */}
-          <div className="pt-2">
+          {/* Action Buttons */}
+          <div className="pt-2 space-y-3">
             <button
               onClick={onClear}
-              disabled={isClearing}
-              className="w-full px-4 py-2.5 bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-600 hover:to-blue-600 text-white font-medium rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+              disabled={isClearing || isDisabling}
+              className="w-full rounded-xl px-4 py-3 text-white font-semibold shadow-lg transition-all hover:brightness-110 disabled:opacity-50 disabled:cursor-not-allowed"
+              style={{
+                background: 'linear-gradient(to right, #06b6d4, #2563eb)',
+                boxShadow: '0 10px 15px -3px rgba(6, 182, 212, 0.25)',
+              }}
             >
-              {isClearing ? '解冻中...' : '立即解冻'}
+              <div className="flex items-center justify-center gap-2">
+                {isClearing ? (
+                  <>
+                    <div className="h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white" />
+                    <span>正在解冻...</span>
+                  </>
+                ) : (
+                  <>
+                    <Zap size={18} />
+                    <span>立即解冻</span>
+                  </>
+                )}
+              </div>
             </button>
-            <p className="text-xs text-text-muted text-center mt-2">
-              解冻后将立即恢复该 Provider 的使用
+
+            <button
+              onClick={onDisable}
+              disabled={isDisabling || isClearing}
+              className="w-full rounded-xl px-4 py-3 font-semibold shadow transition-all hover:brightness-95 disabled:opacity-50 disabled:cursor-not-allowed"
+              style={{
+                background: 'var(--color-surface-secondary)',
+                color: 'var(--color-warning)',
+                border: '1px solid var(--color-border)',
+              }}
+            >
+              <div className="flex items-center justify-center gap-2">
+                {isDisabling ? (
+                  <>
+                    <div className="h-4 w-4 animate-spin rounded-full border-2 border-current/30 border-t-current" />
+                    <span>正在禁用...</span>
+                  </>
+                ) : (
+                  <>
+                    <Ban size={18} />
+                    <span>禁用此路由</span>
+                  </>
+                )}
+              </div>
+            </button>
+
+            <p className="text-center text-xs text-text-muted">
+              强制解冻可能会导致请求再次失败，禁用路由可避免持续失败
             </p>
           </div>
         </div>
       </div>
-    </div>
+    </>,
+    document.body
   );
 }
