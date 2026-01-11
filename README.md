@@ -8,10 +8,35 @@ Multi-provider AI proxy with a built-in admin UI, routing, and usage tracking.
 - Provider routing, retries, and quotas
 - SQLite-backed storage
 
-## Quick Start (Docker)
+## Docker Compose (recommended)
+The service stores its data under `/data` in the container. The compose file
+already mounts a named volume so the SQLite DB is persisted.
+
 ```
-docker pull ghcr.io/bowl42/maxx:latest
-docker run --rm -p 9880:9880 ghcr.io/bowl42/maxx:latest
+docker compose up -d
+```
+
+Full example:
+```
+services:
+  maxx:
+    image: ghcr.io/bowl42/maxx:latest
+    container_name: maxx-next
+    restart: unless-stopped
+    ports:
+      - "9880:9880"
+    volumes:
+      - maxx-data:/data
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:9880/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+volumes:
+  maxx-data:
+    driver: local
 ```
 
 ## Local Development
@@ -37,5 +62,5 @@ npm run dev
 - Gemini: http://localhost:9880/v1beta/models/{model}:generateContent
 
 ## Data
-Default database path: `~/.config/maxx/maxx.db`
-
+Default database path (non-Docker): `~/.config/maxx/maxx.db`  
+Docker data directory: `/data` (mounted via `docker-compose.yml`)
