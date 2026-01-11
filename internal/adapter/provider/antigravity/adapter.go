@@ -673,7 +673,7 @@ func (a *AntigravityAdapter) handleCollectedStreamResponse(ctx context.Context, 
 	}
 
 	var sseBuffer strings.Builder
-	var lastData string
+	var lastPayload []byte
 
 	reader := bufio.NewReader(resp.Body)
 	for {
@@ -714,7 +714,7 @@ func (a *AntigravityAdapter) handleCollectedStreamResponse(ctx context.Context, 
 				continue
 			}
 
-			lastData = dataStr
+			lastPayload = []byte(dataStr)
 		}
 
 		if err != nil {
@@ -743,7 +743,7 @@ func (a *AntigravityAdapter) handleCollectedStreamResponse(ctx context.Context, 
 		}
 	}
 
-	if lastData == "" {
+	if len(lastPayload) == 0 {
 		return domain.NewProxyErrorWithMessage(domain.ErrUpstreamError, true, "empty upstream stream response")
 	}
 
@@ -752,16 +752,16 @@ func (a *AntigravityAdapter) handleCollectedStreamResponse(ctx context.Context, 
 
 	switch clientType {
 	case domain.ClientTypeClaude:
-		responseBody, err = convertGeminiToClaudeResponse([]byte(lastData), requestModel)
+		responseBody, err = convertGeminiToClaudeResponse(lastPayload, requestModel)
 		if err != nil {
 			return domain.NewProxyErrorWithMessage(domain.ErrFormatConversion, false, "failed to transform streamed response")
 		}
 	case domain.ClientTypeGemini:
-		responseBody = []byte(lastData)
+		responseBody = lastPayload
 	case domain.ClientTypeOpenAI:
 		return domain.NewProxyErrorWithMessage(domain.ErrFormatConversion, false, "OpenAI response transformation not yet implemented")
 	default:
-		responseBody = []byte(lastData)
+		responseBody = lastPayload
 	}
 
 	copyResponseHeaders(w.Header(), resp.Header)
