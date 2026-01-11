@@ -1,4 +1,4 @@
-import { GripVertical, Settings, Zap, RefreshCw, Trash2, Activity } from 'lucide-react';
+import { GripVertical, Settings, Zap, RefreshCw, Trash2, Activity, Snowflake, X } from 'lucide-react';
 import { Switch } from '@/components/ui';
 import { StreamingBadge } from '@/components/ui/streaming-badge';
 import { useSortable } from '@dnd-kit/sortable';
@@ -8,6 +8,7 @@ import { cn } from '@/lib/utils';
 import type { ClientType, ProviderStats, AntigravityQuotaData } from '@/lib/transport';
 import type { ProviderConfigItem } from '../types';
 import { useAntigravityQuota } from '@/hooks/queries';
+import { useCooldowns } from '@/hooks/use-cooldowns';
 
 // 格式化 Token 数量
 function formatTokens(count: number): string {
@@ -165,12 +166,24 @@ export function ProviderRowContent({
   const { data: quota } = useAntigravityQuota(provider.id, isAntigravity);
   const claudeInfo = isAntigravity ? getClaudeQuotaInfo(quota) : null;
 
+  // 获取 cooldown 状态
+  const { getCooldownForProvider, formatRemaining, clearCooldown, isClearingCooldown } = useCooldowns();
+  const cooldown = getCooldownForProvider(provider.id, clientType);
+  const isInCooldown = !!cooldown;
+
+  const handleClearCooldown = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    clearCooldown(provider.id);
+  };
+
   return (
     <div
       className={`
         flex items-center gap-md p-md rounded-lg border transition-all duration-200 relative overflow-hidden
         ${
-          enabled
+          isInCooldown
+            ? 'bg-cyan-500/5 border-cyan-400/40 shadow-[0_0_15px_rgba(6,182,212,0.2)]'
+            : enabled
             ? streamingCount > 0
               ? 'bg-surface-primary'
               : 'bg-emerald-400/[0.03] border-emerald-400/30 shadow-sm'
@@ -179,22 +192,45 @@ export function ProviderRowContent({
         ${isOverlay ? 'shadow-xl ring-2 ring-accent opacity-100' : ''}
       `}
       style={{
-        borderColor: enabled && streamingCount > 0 ? `${color}80` : undefined,
+        borderColor: isInCooldown
+          ? 'rgba(6, 182, 212, 0.4)'
+          : enabled && streamingCount > 0 ? `${color}80` : undefined,
         boxShadow: enabled && streamingCount > 0 ? `0 0 15px ${color}20` : undefined,
       }}
     >
       {/* Marquee 背景动画 (仅在有 streaming 请求时显示) */}
-      {streamingCount > 0 && enabled && (
+      {streamingCount > 0 && enabled && !isInCooldown && (
         <div
           className="absolute inset-0 animate-marquee pointer-events-none opacity-60"
           style={{ backgroundColor: `${color}25` }}
         />
       )}
 
+      {/* Cooldown 冰冻效果 */}
+      {isInCooldown && (
+        <div className="absolute inset-0 bg-gradient-to-br from-cyan-500/10 via-cyan-400/5 to-blue-500/10 pointer-events-none animate-pulse" />
+      )}
+
       {/* Streaming Badge - 右上角 */}
-      {enabled && streamingCount > 0 && (
+      {enabled && streamingCount > 0 && !isInCooldown && (
         <div className="absolute -top-1 -right-1 z-20">
           <StreamingBadge count={streamingCount} color={color} />
+        </div>
+      )}
+
+      {/* Cooldown Badge - 右上角 */}
+      {isInCooldown && cooldown && (
+        <div className="absolute -top-1 -right-1 z-20 flex items-center gap-1 bg-cyan-500/90 text-white text-xs font-bold px-2 py-1 rounded-lg shadow-lg backdrop-blur-sm border border-cyan-400/30">
+          <Snowflake size={12} className="animate-pulse" />
+          <span className="font-mono">{formatRemaining(cooldown)}</span>
+          <button
+            onClick={handleClearCooldown}
+            disabled={isClearingCooldown}
+            className="ml-0.5 p-0.5 rounded hover:bg-cyan-400/30 transition-colors disabled:opacity-50"
+            title="清除 cooldown"
+          >
+            <X size={10} />
+          </button>
         </div>
       )}
 
@@ -209,21 +245,43 @@ export function ProviderRowContent({
       {/* Provider Icon */}
       <div
         className={`relative z-10 w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0 transition-opacity ${
-          enabled ? '' : 'opacity-30 grayscale'
+          isInCooldown
+            ? 'opacity-50 grayscale'
+            : enabled
+            ? ''
+            : 'opacity-30 grayscale'
         }`}
         style={{ backgroundColor: `${color}15`, color }}
       >
         <span className="text-lg font-bold">{provider.name.charAt(0).toUpperCase()}</span>
+        {isInCooldown && (
+          <div className="absolute inset-0 flex items-center justify-center bg-cyan-500/20 rounded-lg backdrop-blur-[1px]">
+            <Snowflake size={16} className="text-cyan-400 animate-pulse" />
+          </div>
+        )}
       </div>
 
       {/* Provider Info */}
       <div className="relative z-10 flex-1 min-w-0">
         <div className="flex items-center gap-2">
-          <span className={`text-body font-medium transition-colors ${enabled ? 'text-text-primary' : 'text-text-muted'}`}>
+          <span className={`text-body font-medium transition-colors ${
+            isInCooldown
+              ? 'text-cyan-400'
+              : enabled
+              ? 'text-text-primary'
+              : 'text-text-muted'
+          }`}>
             {provider.name}
           </span>
+          {/* Cooldown indicator */}
+          {isInCooldown && (
+            <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium bg-cyan-500/20 text-cyan-400 border border-cyan-400/30">
+              <Snowflake size={10} className="animate-pulse" />
+              冷却中
+            </span>
+          )}
           {/* Native/Converted badge */}
-          {isNative ? (
+          {!isInCooldown && isNative ? (
             <span
               className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium bg-emerald-400/10 text-emerald-400"
               title="原生支持"
@@ -393,12 +451,20 @@ export function ProviderRowContent({
       <div className="relative z-10 flex items-center gap-3">
         <span
           className={`text-[10px] font-mono font-bold tracking-wider transition-colors w-6 text-right ${
-            enabled ? 'text-emerald-400' : 'text-text-muted/40'
+            isInCooldown
+              ? 'text-cyan-400'
+              : enabled
+              ? 'text-emerald-400'
+              : 'text-text-muted/40'
           }`}
         >
-          {enabled ? 'ON' : 'OFF'}
+          {isInCooldown ? '冻结' : enabled ? 'ON' : 'OFF'}
         </span>
-        <Switch checked={enabled} onCheckedChange={() => onToggle()} disabled={isToggling} />
+        <Switch
+          checked={enabled}
+          onCheckedChange={() => !isInCooldown && onToggle()}
+          disabled={isToggling || isInCooldown}
+        />
       </div>
     </div>
   );
