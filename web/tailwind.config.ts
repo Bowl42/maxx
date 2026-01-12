@@ -5,6 +5,7 @@ export default {
     './index.html',
     './src/**/*.{js,ts,jsx,tsx}',
   ],
+  darkMode: 'class',
   theme: {
     extend: {
       spacing: {
@@ -30,14 +31,14 @@ export default {
         'large-title': ['28px', { lineHeight: '1.1' }],
       },
       colors: {
-        background: '#1E1E1E',
-        'surface-primary': '#252526',
-        'surface-secondary': '#2D2D30',
-        'surface-hover': '#3C3C3C',
-        border: '#3C3C3C',
-        'text-primary': '#CCCCCC',
-        'text-secondary': '#8C8C8C',
-        'text-muted': '#5A5A5A',
+        background: '#f8f4f0',
+        'surface-primary': '#ffffff',
+        'surface-secondary': '#ebe7e3',
+        'surface-hover': '#e0dbd6',
+        border: '#d4cfc9',
+        'text-primary': '#3d3d3d',
+        'text-secondary': '#6b6b6b',
+        'text-muted': '#9a9a9a',
         accent: {
           DEFAULT: '#0078D4',
           hover: '#1084D9',
@@ -48,8 +49,8 @@ export default {
         info: '#4FC1FF',
       },
       boxShadow: {
-        'card': '0 2px 8px rgba(0, 0, 0, 0.3)',
-        'card-hover': '0 4px 12px rgba(0, 0, 0, 0.4)',
+        'card': '0 2px 8px rgba(0, 0, 0, 0.08)',
+        'card-hover': '0 4px 12px rgba(0, 0, 0, 0.12)',
       },
       animation: {
         'snowfall': 'snowfall 8s linear infinite',

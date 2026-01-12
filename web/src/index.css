@@ -2,26 +2,6 @@
 
 /* ===== Theme Configuration ===== */
 @theme {
-  /* Colors */
-  --color-background: #1e1e1e;
-  --color-surface-primary: #252526;
-  --color-surface-secondary: #2d2d30;
-  --color-surface-hover: #3c3c3c;
-
-  --color-text-primary: #cccccc;
-  --color-text-secondary: #8c8c8c;
-  --color-text-muted: #5a5a5a;
-
-  --color-border: #3c3c3c;
-
-  --color-accent: #0078d4;
-  --color-accent-hover: #1084d9;
-
-  --color-success: #4ec9b0;
-  --color-warning: #ddb359;
-  --color-error: #f14c4c;
-  --color-info: #4fc1ff;
-
   /* Spacing - use --spacing-* namespace for utilities */
   --spacing-xs: 4px;
   --spacing-sm: 8px;
@@ -44,15 +24,65 @@
   --font-size-title1: 24px;
   --font-size-large-title: 28px;
 
-  /* Shadows */
-  --shadow-card: 0 2px 8px rgba(0, 0, 0, 0.3);
-  --shadow-card-hover: 0 4px 12px rgba(0, 0, 0, 0.4);
-
   /* Animations */
   --animate-fade-in: fadeIn 0.15s ease-in-out;
   --animate-slide-up: slideUp 0.2s ease-out;
   --animate-pulse-soft: pulseSoft 1.5s ease-in-out infinite;
   --animate-marquee: marquee 1s linear infinite;
+}
+
+/* ===== Light Theme (Default - Creamy White) ===== */
+:root {
+  /* Colors - Creamy White Theme */
+  --color-background: #f8f4f0;
+  --color-surface-primary: #ffffff;
+  --color-surface-secondary: #ebe7e3;
+  --color-surface-hover: #e0dbd6;
+
+  --color-text-primary: #3d3d3d;
+  --color-text-secondary: #6b6b6b;
+  --color-text-muted: #9a9a9a;
+
+  --color-border: #d4cfc9;
+
+  --color-accent: #0078d4;
+  --color-accent-hover: #1084d9;
+
+  --color-success: #4ec9b0;
+  --color-warning: #ddb359;
+  --color-error: #f14c4c;
+  --color-info: #4fc1ff;
+
+  /* Shadows */
+  --shadow-card: 0 2px 8px rgba(0, 0, 0, 0.08);
+  --shadow-card-hover: 0 4px 12px rgba(0, 0, 0, 0.12);
+}
+
+/* ===== Dark Theme ===== */
+:root.dark {
+  /* Colors - Dark Theme */
+  --color-background: #1e1e1e;
+  --color-surface-primary: #252526;
+  --color-surface-secondary: #2d2d30;
+  --color-surface-hover: #3c3c3c;
+
+  --color-text-primary: #cccccc;
+  --color-text-secondary: #8c8c8c;
+  --color-text-muted: #5a5a5a;
+
+  --color-border: #3c3c3c;
+
+  --color-accent: #0078d4;
+  --color-accent-hover: #1084d9;
+
+  --color-success: #4ec9b0;
+  --color-warning: #ddb359;
+  --color-error: #f14c4c;
+  --color-info: #4fc1ff;
+
+  /* Shadows */
+  --shadow-card: 0 2px 8px rgba(0, 0, 0, 0.3);
+  --shadow-card-hover: 0 4px 12px rgba(0, 0, 0, 0.4);
 }
 
 /* ===== Base Styles ===== */
@@ -83,11 +113,20 @@ body {
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #3c3c3c;
+  background: #d4cfc9;
   border-radius: 4px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
+  background: #b8b3ae;
+}
+
+/* Dark theme scrollbar */
+:root.dark ::-webkit-scrollbar-thumb {
+  background: #3c3c3c;
+}
+
+:root.dark ::-webkit-scrollbar-thumb:hover {
   background: #5a5a5a;
 }
 
