@@ -27,6 +27,7 @@ import type {
   AntigravityTokenValidationResult,
   AntigravityBatchValidationResult,
   AntigravityQuotaData,
+  AntigravityOAuthResult,
   ImportResult,
   Cooldown,
 } from './types';
@@ -103,6 +104,7 @@ export interface Transport {
   validateAntigravityTokens(tokens: string[]): Promise<AntigravityBatchValidationResult>;
   validateAntigravityTokenText(tokenText: string): Promise<AntigravityBatchValidationResult>;
   getAntigravityProviderQuota(providerId: number, forceRefresh?: boolean): Promise<AntigravityQuotaData>;
+  startAntigravityOAuth(): Promise<{ authURL: string; state: string }>;
 
   // ===== Cooldown API =====
   getCooldowns(): Promise<Cooldown[]>;

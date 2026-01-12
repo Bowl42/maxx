@@ -322,6 +322,13 @@ export class HttpTransport implements Transport {
     return data;
   }
 
+  async startAntigravityOAuth(): Promise<{ authURL: string; state: string }> {
+    const { data } = await axios.post<{ authURL: string; state: string }>(
+      '/antigravity/oauth/start'
+    );
+    return data;
+  }
+
   // ===== Cooldown API =====
 
   async getCooldowns(): Promise<Cooldown[]> {

@@ -228,7 +228,12 @@ export interface CursorPaginationResult<T> {
 
 // ===== WebSocket 消息 =====
 
-export type WSMessageType = 'proxy_request_update' | 'proxy_upstream_attempt_update' | 'stats_update' | 'log_message';
+export type WSMessageType =
+  | 'proxy_request_update'
+  | 'proxy_upstream_attempt_update'
+  | 'stats_update'
+  | 'log_message'
+  | 'antigravity_oauth_result';
 
 export interface WSMessage<T = unknown> {
   type: WSMessageType;
@@ -291,6 +296,18 @@ export interface AntigravityTokenValidationResult {
 export interface AntigravityBatchValidationResult {
   results: AntigravityTokenValidationResult[];
   total: number;
+}
+
+export interface AntigravityOAuthResult {
+  state: string;        // 用于前端匹配会话
+  success: boolean;
+  accessToken?: string;
+  refreshToken?: string;
+  email?: string;
+  projectID?: string;
+  userInfo?: AntigravityUserInfo;
+  quota?: AntigravityQuotaData;
+  error?: string;
 }
 
 // ===== 回调类型 =====

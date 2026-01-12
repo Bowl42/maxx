@@ -178,7 +178,7 @@ func main() {
 	// Create handlers
 	proxyHandler := handler.NewProxyHandler(clientAdapter, exec, cachedSessionRepo)
 	adminHandler := handler.NewAdminHandler(adminService, logPath)
-	antigravityHandler := handler.NewAntigravityHandler(adminService, antigravityQuotaRepo)
+	antigravityHandler := handler.NewAntigravityHandler(adminService, antigravityQuotaRepo, wsHub)
 
 	// Use already-created cached project repository for project proxy handler
 	projectProxyHandler := handler.NewProjectProxyHandler(proxyHandler, cachedProjectRepo)
