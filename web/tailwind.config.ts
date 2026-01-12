@@ -16,6 +16,13 @@ export default {
         'xl': '24px',
         'xxl': '32px',
       },
+      width: {
+        'sm': '640px',
+        'md': '768px',
+        'lg': '1024px',
+        'xl': '1280px',
+        '2xl': '1536px',
+      },
       borderRadius: {
         'sm': '4px',
         'md': '8px',
