@@ -96,21 +96,21 @@ export function ProjectDetailPage() {
 
       {/* Tabs */}
       <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as TabId)} className="flex-1 flex flex-col overflow-hidden">
-        <div className="px-6 pt-4 pb-0 bg-background border-b border-border">
-          <TabsList className="bg-transparent border-b-0 w-full justify-start p-0 h-auto gap-4">
-            <TabsTrigger value="overview" className="data-[state=active]:bg-surface-secondary data-[state=active]:shadow-sm border border-transparent rounded-md px-4 py-2">
+        <div className="px-6 py-4 border-b border-border bg-surface-primary/50">
+          <TabsList>
+            <TabsTrigger value="overview">
               <LayoutGrid className="h-4 w-4 mr-2" />
               Overview
             </TabsTrigger>
-            <TabsTrigger value="routes" className="data-[state=active]:bg-surface-secondary data-[state=active]:shadow-sm border border-transparent rounded-md px-4 py-2">
+            <TabsTrigger value="routes">
               <Route className="h-4 w-4 mr-2" />
               Routes
             </TabsTrigger>
-            <TabsTrigger value="sessions" className="data-[state=active]:bg-surface-secondary data-[state=active]:shadow-sm border border-transparent rounded-md px-4 py-2">
+            <TabsTrigger value="sessions">
               <Users className="h-4 w-4 mr-2" />
               Sessions
             </TabsTrigger>
-            <TabsTrigger value="requests" className="data-[state=active]:bg-surface-secondary data-[state=active]:shadow-sm border border-transparent rounded-md px-4 py-2">
+            <TabsTrigger value="requests">
               <FileText className="h-4 w-4 mr-2" />
               Requests
             </TabsTrigger>
@@ -118,16 +118,16 @@ export function ProjectDetailPage() {
         </div>
 
         <div className="flex-1 overflow-hidden bg-background">
-          <TabsContent value="overview" className="h-full overflow-auto animate-in fade-in-50 duration-200">
+          <TabsContent value="overview" className="h-full overflow-auto mt-0 animate-in fade-in-50 duration-200">
             <OverviewTab project={project} />
           </TabsContent>
-          <TabsContent value="routes" className="h-full overflow-auto animate-in fade-in-50 duration-200">
+          <TabsContent value="routes" className="h-full overflow-hidden mt-0 animate-in fade-in-50 duration-200">
             <RoutesTab project={project} />
           </TabsContent>
-          <TabsContent value="sessions" className="h-full overflow-auto animate-in fade-in-50 duration-200">
+          <TabsContent value="sessions" className="h-full overflow-auto mt-0 animate-in fade-in-50 duration-200">
             <SessionsTab project={project} />
           </TabsContent>
-          <TabsContent value="requests" className="h-full overflow-auto animate-in fade-in-50 duration-200">
+          <TabsContent value="requests" className="h-full overflow-auto mt-0 animate-in fade-in-50 duration-200">
             <RequestsTab project={project} />
           </TabsContent>
         </div>
