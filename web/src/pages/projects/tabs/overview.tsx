@@ -16,7 +16,7 @@ export function OverviewTab({ project }: OverviewTabProps) {
   const updateProject = useUpdateProject();
   const [name, setName] = useState(project.name);
   const [slug, setSlug] = useState(project.slug);
-  const [copied, setCopied] = useState(false);
+  const [copied, setCopied] = useState<string | null>(null);
 
   const hasChanges = name !== project.name || slug !== project.slug;
 
@@ -37,19 +37,15 @@ export function OverviewTab({ project }: OverviewTabProps) {
     );
   };
 
-  const copyToClipboard = (text: string) => {
+  const copyToClipboard = (key: string, text: string) => {
     navigator.clipboard.writeText(text);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
+    setCopied(key);
+    setTimeout(() => setCopied(null), 2000);
   };
 
-  // Generate example proxy URLs
+  // Generate project base URL
   const baseUrl = window.location.origin;
-  const proxyUrls = [
-    { label: 'Claude API', url: `${baseUrl}/${project.slug}/v1/messages` },
-    { label: 'OpenAI API', url: `${baseUrl}/${project.slug}/v1/chat/completions` },
-    { label: 'Gemini API', url: `${baseUrl}/${project.slug}/v1beta/models/{model}:generateContent` },
-  ];
+  const projectBaseUrl = `${baseUrl}/${project.slug}/`;
 
   return (
     <div className="p-6 space-y-6">
@@ -121,38 +117,27 @@ export function OverviewTab({ project }: OverviewTabProps) {
         </CardHeader>
         <CardContent className="space-y-4">
           <p className="text-sm text-text-secondary">
-            Use these endpoints to route requests through this project's configuration.
-            Requests to these URLs will only use routes configured for this project.
+            Use this base URL to route requests through this project's configuration.
+            The protocol (Claude, OpenAI, Gemini) is automatically detected.
           </p>
 
-          <div className="space-y-3">
-            {proxyUrls.map(({ label, url }) => (
-              <div key={label} className="flex items-center gap-3">
-                <span className="text-sm text-text-secondary w-24">{label}:</span>
-                <code className="flex-1 text-xs bg-surface-secondary px-3 py-2 rounded border border-border text-text-primary font-mono">
-                  {url}
-                </code>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="h-8 w-8 p-0"
-                  onClick={() => copyToClipboard(url)}
-                >
-                  {copied ? (
-                    <Check className="h-4 w-4 text-success" />
-                  ) : (
-                    <Copy className="h-4 w-4" />
-                  )}
-                </Button>
-              </div>
-            ))}
-          </div>
-
-          <div className="bg-surface-secondary rounded-lg p-4 border border-border">
-            <p className="text-xs text-text-muted">
-              <strong>Note:</strong> Project-specific proxy routing will be available after configuration.
-              Currently, all requests go through the global route configuration.
-            </p>
+          <div className="flex items-center gap-3">
+            <span className="text-sm font-medium text-text-primary w-20">Base URL:</span>
+            <code className="flex-1 text-xs bg-surface-secondary px-3 py-2 rounded border border-border text-text-primary font-mono">
+              {projectBaseUrl}
+            </code>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-8 w-8 p-0"
+              onClick={() => copyToClipboard('base', projectBaseUrl)}
+            >
+              {copied === 'base' ? (
+                <Check className="h-4 w-4 text-success" />
+              ) : (
+                <Copy className="h-4 w-4" />
+              )}
+            </Button>
           </div>
         </CardContent>
       </Card>
