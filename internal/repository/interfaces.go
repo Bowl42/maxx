@@ -65,6 +65,8 @@ type ProxyRequestRepository interface {
 	Count() (int64, error)
 	// UpdateProjectIDBySessionID 批量更新指定 sessionID 的所有请求的 projectID
 	UpdateProjectIDBySessionID(sessionID string, projectID uint64) (int64, error)
+	// MarkStaleAsFailed marks all IN_PROGRESS/PENDING requests from other instances as FAILED
+	MarkStaleAsFailed(currentInstanceID string) (int64, error)
 }
 
 type ProxyUpstreamAttemptRepository interface {

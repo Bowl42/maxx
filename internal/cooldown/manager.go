@@ -446,3 +446,15 @@ func formatWithUnits(val1 int, unit1 string, val2 int, unit2 string, val3 int, u
 func formatInt(i int) string {
 	return string(rune('0' + i/10)) + string(rune('0' + i%10))
 }
+
+// GetAllCooldownsFromDB returns all active cooldowns from the repository
+func (m *Manager) GetAllCooldownsFromDB() ([]*domain.Cooldown, error) {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+	
+	if m.repository == nil {
+		return nil, nil
+	}
+	
+	return m.repository.GetAll()
+}

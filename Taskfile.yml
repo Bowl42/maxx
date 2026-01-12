@@ -16,16 +16,27 @@ tasks:
     cmds:
       - npm run dev
 
+  dev:desktop:
+    desc: Run Wails desktop application in development mode
+    cmds:
+      - wails dev
+
   install:
     desc: Install all dependencies
     cmds:
       - task: install:frontend
+      - task: install:wails
 
   install:frontend:
     desc: Install frontend dependencies
     dir: web
     cmds:
       - npm install
+
+  install:wails:
+    desc: Install Wails CLI
+    cmds:
+      - go install github.com/wailsapp/wails/v2/cmd/wails@latest
 
   build:
     desc: Build complete application (frontend + backend)
@@ -40,6 +51,25 @@ tasks:
       - npm run build
 
   build:backend:
-    desc: Build backend
+    desc: Build backend binary
     cmds:
       - go build -o maxx cmd/maxx/main.go
+
+  build:desktop:
+    desc: Build Wails desktop application
+    deps: [build:frontend]
+    cmds:
+      - wails build
+
+  build:desktop:windows:
+    desc: Build Wails desktop application for Windows
+    deps: [build:frontend]
+    cmds:
+      - wails build -platform windows/amd64
+
+  clean:
+    desc: Clean build artifacts
+    cmds:
+      - rm -rf web/dist
+      - rm -rf build
+      - rm -f maxx

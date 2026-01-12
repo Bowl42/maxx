@@ -44,6 +44,8 @@ volumes:
 ```
 
 ## Local Development
+
+### Server Mode (Browser)
 Backend:
 ```
 go run cmd/maxx/main.go
@@ -56,6 +58,23 @@ npm install
 npm run dev
 ```
 
+### Desktop Mode (Wails)
+See `WAILS_README.md` for detailed desktop app documentation.
+
+Quick start:
+```bash
+# Install Wails CLI
+go install github.com/wailsapp/wails/v2/cmd/wails@latest
+
+# Run desktop app
+wails dev
+
+# Build desktop app
+wails build
+# or
+build-desktop.bat
+```
+
 ## Endpoints
 - Admin API: http://localhost:9880/admin/
 - Web UI: http://localhost:9880/
@@ -64,7 +83,9 @@ npm run dev
 - OpenAI: http://localhost:9880/v1/chat/completions
 - Codex: http://localhost:9880/v1/responses
 - Gemini: http://localhost:9880/v1beta/models/{model}:generateContent
+- Project proxy: http://localhost:9880/{project-slug}/v1/messages (etc.)
 
 ## Data
-Default database path (non-Docker): `~/.config/maxx/maxx.db`  
-Docker data directory: `/data` (mounted via `docker-compose.yml`)
+- Desktop mode (Windows): `%APPDATA%\maxx`
+- Server mode (non-Docker): `~/.config/maxx/maxx.db`
+- Docker data directory: `/data` (mounted via `docker-compose.yml`)
