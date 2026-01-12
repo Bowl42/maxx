@@ -103,30 +103,36 @@ export function RequestDetailPage() {
   // Create lookup map for provider names
   const providerMap = useMemo(() => {
     const map = new Map<number, string>()
-    providers?.forEach(p => map.set(p.id, p.name))
+    providers?.forEach(p => {
+      map.set(p.id, p.name)
+    })
     return map
   }, [providers])
 
   // Create lookup map for project names
   const projectMap = useMemo(() => {
     const map = new Map<number, string>()
-    projects?.forEach(p => map.set(p.id, p.name))
+    projects?.forEach(p => {
+      map.set(p.id, p.name)
+    })
     return map
   }, [projects])
 
   // Create lookup map for sessions by sessionID
   const sessionMap = useMemo(() => {
     const map = new Map<string, { clientType: string; projectID: number }>()
-    sessions?.forEach(s =>
+    sessions?.forEach(s => {
       map.set(s.sessionID, { clientType: s.clientType, projectID: s.projectID })
-    )
+    })
     return map
   }, [sessions])
 
   // Create lookup map for routes by routeID
   const routeMap = useMemo(() => {
     const map = new Map<number, { projectID: number }>()
-    routes?.forEach(r => map.set(r.id, { projectID: r.projectID }))
+    routes?.forEach(r => {
+      map.set(r.id, { projectID: r.projectID })
+    })
     return map
   }, [routes])
 
@@ -196,7 +202,7 @@ export function RequestDetailPage() {
   return (
     <div className="flex flex-col h-full overflow-hidden bg-background">
       {/* Header */}
-      <div className="h-[73px] border-b border-border bg-surface-primary flex-shrink-0 px-6 flex items-center">
+      <div className="h-[73px] border-b border-border bg-surface-primary shrink-0 px-6 flex items-center">
         <div className="flex items-center justify-between gap-6 w-full">
           {/* Left: Back + Main Info */}
           <div className="flex items-center gap-3 min-w-0">
@@ -204,15 +210,17 @@ export function RequestDetailPage() {
               variant="ghost"
               size="icon"
               onClick={() => navigate('/requests')}
-              className="h-8 w-8 -ml-2 text-text-secondary hover:text-text-primary flex-shrink-0"
+              className="h-8 w-8 -ml-2 text-text-secondary hover:text-text-primary shrink-0"
             >
               <ArrowLeft className="h-5 w-5" />
             </Button>
             <div
-              className="w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0"
-              style={{
-                backgroundColor: `${getClientColor(request.clientType as ClientType)}15`,
-              }}
+              className="w-10 h-10 rounded-lg flex items-center justify-center shrink-0"
+              style={
+                {
+                  backgroundColor: `${getClientColor(request.clientType as ClientType)}15`,
+                } as React.CSSProperties
+              }
             >
               <ClientIcon type={request.clientType as ClientType} size={24} />
             </div>
@@ -252,7 +260,7 @@ export function RequestDetailPage() {
           </div>
 
           {/* Right: Stats Grid */}
-          <div className="flex items-center gap-4 flex-shrink-0">
+          <div className="flex items-center gap-4 shrink-0">
             <div className="text-center px-3">
               <div className="text-[10px] uppercase tracking-wider text-text-muted mb-0.5">
                 Duration
@@ -320,13 +328,13 @@ export function RequestDetailPage() {
 
       {/* Error Banner */}
       {request.error && (
-        <div className="flex-shrink-0 bg-red-400/10 border-b border-red-400/20 px-6 py-3 flex items-start gap-3">
+        <div className="shrink-0 bg-red-400/10 border-b border-red-400/20 px-6 py-3 flex items-start gap-3">
           <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-red-400" />
           <div className="flex-1">
             <h4 className="text-sm font-medium text-red-400 mb-1">
               Request Failed
             </h4>
-            <pre className="whitespace-pre-wrap break-words font-mono text-xs text-red-400/90 max-h-24 overflow-auto">
+            <pre className="whitespace-pre-wrap wrap-break-word font-mono text-xs text-red-400/90 max-h-24 overflow-auto">
               {request.error}
             </pre>
           </div>
@@ -336,15 +344,16 @@ export function RequestDetailPage() {
       {/* Main Content - Split View */}
       <div className="flex-1 flex overflow-hidden">
         {/* Sidebar: Request & Attempts List */}
-        <div className="w-80 flex flex-col border-r border-border bg-surface-primary flex-shrink-0">
+        <div className="w-80 flex flex-col border-r border-border bg-surface-primary shrink-0">
           {/* Request Section */}
-          <div className="flex-shrink-0">
+          <div className="shrink-0">
             <div className="h-10 px-4 border-b border-border bg-surface-secondary/50 flex items-center">
               <span className="text-xs font-semibold text-text-secondary uppercase tracking-wider flex items-center gap-2">
                 <FileInput size={12} /> Client Request
               </span>
             </div>
             <button
+              type="button"
               onClick={() => setSelection({ type: 'request' })}
               className={cn(
                 'w-full text-left p-3.5 transition-all outline-none border-l-[3px] border-b border-border',
@@ -392,7 +401,7 @@ export function RequestDetailPage() {
           </div>
 
           {/* Attempts Section */}
-          <div className="h-10 px-4 border-b border-border bg-surface-secondary/50 flex items-center justify-between flex-shrink-0">
+          <div className="h-10 px-4 border-b border-border bg-surface-secondary/50 flex items-center justify-between shrink-0">
             <span className="text-xs font-semibold text-text-secondary uppercase tracking-wider flex items-center gap-2">
               <Server size={12} /> Upstream Attempts
             </span>
@@ -407,6 +416,7 @@ export function RequestDetailPage() {
                 {attempts.map(
                   (attempt: ProxyUpstreamAttempt, index: number) => (
                     <button
+                      type="button"
                       key={attempt.id}
                       onClick={() =>
                         setSelection({ type: 'attempt', attemptId: attempt.id })
@@ -515,7 +525,7 @@ export function RequestDetailPage() {
           ) : selectedAttempt ? (
             <>
               {/* Detail Header */}
-              <div className="h-16 border-b border-border bg-surface-secondary/20 px-6 flex items-center justify-between flex-shrink-0 backdrop-blur-sm sticky top-0 z-10">
+              <div className="h-16 border-b border-border bg-surface-secondary/20 px-6 flex items-center justify-between shrink-0 backdrop-blur-sm sticky top-0 z-10">
                 <div className="flex items-center gap-4">
                   <div className="w-10 h-10 rounded-lg bg-surface-primary flex items-center justify-center text-text-primary shadow-sm border border-border">
                     <Server size={20} />
@@ -539,6 +549,7 @@ export function RequestDetailPage() {
                 {/* Detail Tabs */}
                 <div className="flex bg-surface-secondary/50 p-1 rounded-lg border border-border">
                   <button
+                    type="button"
                     onClick={() => setActiveTab('request')}
                     className={cn(
                       'px-4 py-1.5 text-xs font-medium rounded-md transition-all',
@@ -550,6 +561,7 @@ export function RequestDetailPage() {
                     Request
                   </button>
                   <button
+                    type="button"
                     onClick={() => setActiveTab('response')}
                     className={cn(
                       'px-4 py-1.5 text-xs font-medium rounded-md transition-all',
@@ -561,6 +573,7 @@ export function RequestDetailPage() {
                     Response
                   </button>
                   <button
+                    type="button"
                     onClick={() => setActiveTab('metadata')}
                     className={cn(
                       'px-4 py-1.5 text-xs font-medium rounded-md transition-all',
@@ -579,7 +592,7 @@ export function RequestDetailPage() {
                 {activeTab === 'request' &&
                   (selectedAttempt.requestInfo ? (
                     <div className="flex-1 flex flex-col overflow-hidden p-6 gap-6 animate-fade-in">
-                      <div className="flex items-center gap-3 p-3 bg-surface-secondary/30 rounded-lg border border-border flex-shrink-0">
+                      <div className="flex items-center gap-3 p-3 bg-surface-secondary/30 rounded-lg border border-border shrink-0">
                         <Badge variant="info" className="font-mono text-xs">
                           {selectedAttempt.requestInfo.method}
                         </Badge>
@@ -590,7 +603,7 @@ export function RequestDetailPage() {
 
                       <div className="flex flex-col min-h-0 flex-1 gap-6">
                         <div className="flex flex-col flex-1 min-h-0 gap-3">
-                          <h5 className="text-xs font-semibold text-text-secondary uppercase tracking-wider flex items-center gap-2 flex-shrink-0">
+                          <h5 className="text-xs font-semibold text-text-secondary uppercase tracking-wider flex items-center gap-2 shrink-0">
                             <Code size={14} /> Headers
                           </h5>
                           <div className="flex-1 rounded-lg border border-border bg-[#1a1a1a] p-4 overflow-auto shadow-inner relative group">
@@ -609,8 +622,8 @@ export function RequestDetailPage() {
                         </div>
 
                         {selectedAttempt.requestInfo.body && (
-                          <div className="flex flex-col flex-[2] min-h-0 gap-3">
-                            <h5 className="text-xs font-semibold text-text-secondary uppercase tracking-wider flex items-center gap-2 flex-shrink-0">
+                          <div className="flex flex-col flex-2 min-h-0 gap-3">
+                            <h5 className="text-xs font-semibold text-text-secondary uppercase tracking-wider flex items-center gap-2 shrink-0">
                               <Database size={14} /> Body
                             </h5>
                             <div className="flex-1 rounded-lg border border-border bg-[#1a1a1a] p-4 overflow-auto shadow-inner relative group">
@@ -647,7 +660,7 @@ export function RequestDetailPage() {
                 {activeTab === 'response' &&
                   (selectedAttempt.responseInfo ? (
                     <div className="flex-1 flex flex-col overflow-hidden p-6 gap-6 animate-fade-in">
-                      <div className="flex items-center gap-3 p-3 bg-surface-secondary/30 rounded-lg border border-border flex-shrink-0">
+                      <div className="flex items-center gap-3 p-3 bg-surface-secondary/30 rounded-lg border border-border shrink-0">
                         <div
                           className={cn(
                             'px-2 py-1 rounded text-xs font-bold font-mono',
@@ -665,7 +678,7 @@ export function RequestDetailPage() {
 
                       <div className="flex flex-col min-h-0 flex-1 gap-6">
                         <div className="flex flex-col flex-1 min-h-0 gap-3">
-                          <h5 className="text-xs font-semibold text-text-secondary uppercase tracking-wider flex items-center gap-2 flex-shrink-0">
+                          <h5 className="text-xs font-semibold text-text-secondary uppercase tracking-wider flex items-center gap-2 shrink-0">
                             <Code size={14} /> Headers
                           </h5>
                           <div className="flex-1 rounded-lg border border-border bg-[#1a1a1a] p-4 overflow-auto shadow-inner relative group">
@@ -684,8 +697,8 @@ export function RequestDetailPage() {
                         </div>
 
                         {selectedAttempt.responseInfo.body && (
-                          <div className="flex flex-col flex-[2] min-h-0 gap-3">
-                            <h5 className="text-xs font-semibold text-text-secondary uppercase tracking-wider flex items-center gap-2 flex-shrink-0">
+                          <div className="flex flex-col flex-2 min-h-0 gap-3">
+                            <h5 className="text-xs font-semibold text-text-secondary uppercase tracking-wider flex items-center gap-2 shrink-0">
                               <Database size={14} /> Body
                             </h5>
                             <div className="flex-1 rounded-lg border border-border bg-[#1a1a1a] p-4 overflow-auto shadow-inner relative group">
@@ -729,47 +742,49 @@ export function RequestDetailPage() {
                             Request Info
                           </CardTitle>
                         </CardHeader>
-                        <CardContent className="pt-4 space-y-4">
-                          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 items-center">
-                            <dt className="text-xs font-medium text-text-secondary uppercase tracking-wider">
-                              Request ID
-                            </dt>
-                            <dd className="sm:col-span-2 font-mono text-xs text-text-primary bg-surface-secondary px-2 py-1 rounded select-all break-all">
-                              {request.requestID || '-'}
-                            </dd>
-                          </div>
-                          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 items-center">
-                            <dt className="text-xs font-medium text-text-secondary uppercase tracking-wider">
-                              Session ID
-                            </dt>
-                            <dd className="sm:col-span-2 font-mono text-xs text-text-primary bg-surface-secondary px-2 py-1 rounded select-all break-all">
-                              {request.sessionID || '-'}
-                            </dd>
-                          </div>
-                          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 items-center">
-                            <dt className="text-xs font-medium text-text-secondary uppercase tracking-wider">
-                              Instance ID
-                            </dt>
-                            <dd className="sm:col-span-2 font-mono text-xs text-text-primary bg-surface-secondary px-2 py-1 rounded select-all break-all">
-                              {request.instanceID || '-'}
-                            </dd>
-                          </div>
-                          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 items-center">
-                            <dt className="text-xs font-medium text-text-secondary uppercase tracking-wider">
-                              Request Model
-                            </dt>
-                            <dd className="sm:col-span-2 font-mono text-xs text-text-primary bg-surface-secondary px-2 py-1 rounded">
-                              {request.requestModel || '-'}
-                            </dd>
-                          </div>
-                          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 items-center">
-                            <dt className="text-xs font-medium text-text-secondary uppercase tracking-wider">
-                              Response Model
-                            </dt>
-                            <dd className="sm:col-span-2 font-mono text-xs text-text-primary bg-surface-secondary px-2 py-1 rounded">
-                              {request.responseModel || '-'}
-                            </dd>
-                          </div>
+                        <CardContent className="pt-4">
+                          <dl className="space-y-4">
+                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 items-center">
+                              <dt className="text-xs font-medium text-text-secondary uppercase tracking-wider">
+                                Request ID
+                              </dt>
+                              <dd className="sm:col-span-2 font-mono text-xs text-text-primary bg-surface-secondary px-2 py-1 rounded select-all break-all">
+                                {request.requestID || '-'}
+                              </dd>
+                            </div>
+                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 items-center">
+                              <dt className="text-xs font-medium text-text-secondary uppercase tracking-wider">
+                                Session ID
+                              </dt>
+                              <dd className="sm:col-span-2 font-mono text-xs text-text-primary bg-surface-secondary px-2 py-1 rounded select-all break-all">
+                                {request.sessionID || '-'}
+                              </dd>
+                            </div>
+                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 items-center">
+                              <dt className="text-xs font-medium text-text-secondary uppercase tracking-wider">
+                                Instance ID
+                              </dt>
+                              <dd className="sm:col-span-2 font-mono text-xs text-text-primary bg-surface-secondary px-2 py-1 rounded select-all break-all">
+                                {request.instanceID || '-'}
+                              </dd>
+                            </div>
+                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 items-center">
+                              <dt className="text-xs font-medium text-text-secondary uppercase tracking-wider">
+                                Request Model
+                              </dt>
+                              <dd className="sm:col-span-2 font-mono text-xs text-text-primary bg-surface-secondary px-2 py-1 rounded">
+                                {request.requestModel || '-'}
+                              </dd>
+                            </div>
+                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 items-center">
+                              <dt className="text-xs font-medium text-text-secondary uppercase tracking-wider">
+                                Response Model
+                              </dt>
+                              <dd className="sm:col-span-2 font-mono text-xs text-text-primary bg-surface-secondary px-2 py-1 rounded">
+                                {request.responseModel || '-'}
+                              </dd>
+                            </div>
+                          </dl>
                         </CardContent>
                       </Card>
 
@@ -780,61 +795,63 @@ export function RequestDetailPage() {
                             Attempt Usage & Cache
                           </CardTitle>
                         </CardHeader>
-                        <CardContent className="pt-4 space-y-4">
-                          <div className="flex justify-between items-center border-b border-border/30 pb-2">
-                            <dt className="text-xs font-medium text-text-secondary uppercase tracking-wider">
-                              Input Tokens
-                            </dt>
-                            <dd className="text-sm text-text-primary font-mono font-medium">
-                              {selectedAttempt.inputTokenCount.toLocaleString()}
-                            </dd>
-                          </div>
-                          <div className="flex justify-between items-center border-b border-border/30 pb-2">
-                            <dt className="text-xs font-medium text-text-secondary uppercase tracking-wider">
-                              Output Tokens
-                            </dt>
-                            <dd className="text-sm text-text-primary font-mono font-medium">
-                              {selectedAttempt.outputTokenCount.toLocaleString()}
-                            </dd>
-                          </div>
-                          <div className="flex justify-between items-center border-b border-border/30 pb-2">
-                            <dt className="text-xs font-medium text-text-secondary uppercase tracking-wider">
-                              Cache Read
-                            </dt>
-                            <dd className="text-sm text-violet-400 font-mono font-medium">
-                              {selectedAttempt.cacheReadCount.toLocaleString()}
-                            </dd>
-                          </div>
-                          <div className="flex justify-between items-center border-b border-border/30 pb-2">
-                            <dt className="text-xs font-medium text-text-secondary uppercase tracking-wider">
-                              Cache Write
-                            </dt>
-                            <dd className="text-sm text-amber-400 font-mono font-medium">
-                              {selectedAttempt.cacheWriteCount.toLocaleString()}
-                            </dd>
-                          </div>
-                          {(selectedAttempt.cache5mWriteCount > 0 ||
-                            selectedAttempt.cache1hWriteCount > 0) && (
-                            <div className="flex justify-between items-center border-b border-border/30 pb-2 pl-4">
-                              <dt className="text-xs font-medium text-text-secondary/70 tracking-wider">
-                                <span className="text-cyan-400/80">5m:</span>{' '}
-                                {selectedAttempt.cache5mWriteCount}
-                                <span className="mx-2">|</span>
-                                <span className="text-orange-400/80">
-                                  1h:
-                                </span>{' '}
-                                {selectedAttempt.cache1hWriteCount}
+                        <CardContent className="pt-4">
+                          <dl className="space-y-4">
+                            <div className="flex justify-between items-center border-b border-border/30 pb-2">
+                              <dt className="text-xs font-medium text-text-secondary uppercase tracking-wider">
+                                Input Tokens
                               </dt>
+                              <dd className="text-sm text-text-primary font-mono font-medium">
+                                {selectedAttempt.inputTokenCount.toLocaleString()}
+                              </dd>
                             </div>
-                          )}
-                          <div className="flex justify-between items-center">
-                            <dt className="text-xs font-medium text-text-secondary uppercase tracking-wider">
-                              Cost
-                            </dt>
-                            <dd className="text-sm text-blue-400 font-mono font-medium">
-                              {formatCost(selectedAttempt.cost)}
-                            </dd>
-                          </div>
+                            <div className="flex justify-between items-center border-b border-border/30 pb-2">
+                              <dt className="text-xs font-medium text-text-secondary uppercase tracking-wider">
+                                Output Tokens
+                              </dt>
+                              <dd className="text-sm text-text-primary font-mono font-medium">
+                                {selectedAttempt.outputTokenCount.toLocaleString()}
+                              </dd>
+                            </div>
+                            <div className="flex justify-between items-center border-b border-border/30 pb-2">
+                              <dt className="text-xs font-medium text-text-secondary uppercase tracking-wider">
+                                Cache Read
+                              </dt>
+                              <dd className="text-sm text-violet-400 font-mono font-medium">
+                                {selectedAttempt.cacheReadCount.toLocaleString()}
+                              </dd>
+                            </div>
+                            <div className="flex justify-between items-center border-b border-border/30 pb-2">
+                              <dt className="text-xs font-medium text-text-secondary uppercase tracking-wider">
+                                Cache Write
+                              </dt>
+                              <dd className="text-sm text-amber-400 font-mono font-medium">
+                                {selectedAttempt.cacheWriteCount.toLocaleString()}
+                              </dd>
+                            </div>
+                            {(selectedAttempt.cache5mWriteCount > 0 ||
+                              selectedAttempt.cache1hWriteCount > 0) && (
+                              <div className="flex justify-between items-center border-b border-border/30 pb-2 pl-4">
+                                <dt className="text-xs font-medium text-text-secondary/70 tracking-wider">
+                                  <span className="text-cyan-400/80">5m:</span>{' '}
+                                  {selectedAttempt.cache5mWriteCount}
+                                  <span className="mx-2">|</span>
+                                  <span className="text-orange-400/80">
+                                    1h:
+                                  </span>{' '}
+                                  {selectedAttempt.cache1hWriteCount}
+                                </dt>
+                              </div>
+                            )}
+                            <div className="flex justify-between items-center">
+                              <dt className="text-xs font-medium text-text-secondary uppercase tracking-wider">
+                                Cost
+                              </dt>
+                              <dd className="text-sm text-blue-400 font-mono font-medium">
+                                {formatCost(selectedAttempt.cost)}
+                              </dd>
+                            </div>
+                          </dl>
                         </CardContent>
                       </Card>
                     </div>
@@ -894,13 +911,15 @@ function RequestDetailView({
   return (
     <>
       {/* Detail Header */}
-      <div className="h-16 border-b border-border bg-surface-secondary/20 px-6 flex items-center justify-between flex-shrink-0 backdrop-blur-sm sticky top-0 z-10">
+      <div className="h-16 border-b border-border bg-surface-secondary/20 px-6 flex items-center justify-between shrink-0 backdrop-blur-sm sticky top-0 z-10">
         <div className="flex items-center gap-4">
           <div
             className="w-10 h-10 rounded-lg flex items-center justify-center shadow-sm border border-border"
-            style={{
-              backgroundColor: `${getClientColor(request.clientType as ClientType)}15`,
-            }}
+            style={
+              {
+                backgroundColor: `${getClientColor(request.clientType as ClientType)}15`,
+              } as React.CSSProperties
+            }
           >
             <ClientIcon type={request.clientType as ClientType} size={20} />
           </div>
@@ -924,6 +943,7 @@ function RequestDetailView({
         {/* Detail Tabs */}
         <div className="flex bg-surface-secondary/50 p-1 rounded-lg border border-border">
           <button
+            type="button"
             onClick={() => setActiveTab('request')}
             className={cn(
               'px-4 py-1.5 text-xs font-medium rounded-md transition-all',
@@ -935,6 +955,7 @@ function RequestDetailView({
             Request
           </button>
           <button
+            type="button"
             onClick={() => setActiveTab('response')}
             className={cn(
               'px-4 py-1.5 text-xs font-medium rounded-md transition-all',
@@ -946,6 +967,7 @@ function RequestDetailView({
             Response
           </button>
           <button
+            type="button"
             onClick={() => setActiveTab('metadata')}
             className={cn(
               'px-4 py-1.5 text-xs font-medium rounded-md transition-all',
@@ -964,7 +986,7 @@ function RequestDetailView({
         {activeTab === 'request' &&
           (request.requestInfo ? (
             <div className="flex-1 flex flex-col overflow-hidden p-6 gap-6 animate-fade-in">
-              <div className="flex items-center gap-3 p-3 bg-surface-secondary/30 rounded-lg border border-border flex-shrink-0">
+              <div className="flex items-center gap-3 p-3 bg-surface-secondary/30 rounded-lg border border-border shrink-0">
                 <Badge variant="info" className="font-mono text-xs">
                   {request.requestInfo.method}
                 </Badge>
@@ -975,7 +997,7 @@ function RequestDetailView({
 
               <div className="flex flex-col min-h-0 flex-1 gap-6">
                 <div className="flex flex-col flex-1 min-h-0 gap-3">
-                  <h5 className="text-xs font-semibold text-text-secondary uppercase tracking-wider flex items-center gap-2 flex-shrink-0">
+                  <h5 className="text-xs font-semibold text-text-secondary uppercase tracking-wider flex items-center gap-2 shrink-0">
                     <Code size={14} /> Headers
                   </h5>
                   <div className="flex-1 rounded-lg border border-border bg-[#1a1a1a] p-4 overflow-auto shadow-inner relative group">
@@ -994,8 +1016,8 @@ function RequestDetailView({
                 </div>
 
                 {request.requestInfo.body && (
-                  <div className="flex flex-col flex-[2] min-h-0 gap-3">
-                    <h5 className="text-xs font-semibold text-text-secondary uppercase tracking-wider flex items-center gap-2 flex-shrink-0">
+                  <div className="flex flex-col flex-2 min-h-0 gap-3">
+                    <h5 className="text-xs font-semibold text-text-secondary uppercase tracking-wider flex items-center gap-2 shrink-0">
                       <Database size={14} /> Body
                     </h5>
                     <div className="flex-1 rounded-lg border border-border bg-[#1a1a1a] p-4 overflow-auto shadow-inner relative group">
@@ -1030,7 +1052,7 @@ function RequestDetailView({
         {activeTab === 'response' &&
           (request.responseInfo ? (
             <div className="flex-1 flex flex-col overflow-hidden p-6 gap-6 animate-fade-in">
-              <div className="flex items-center gap-3 p-3 bg-surface-secondary/30 rounded-lg border border-border flex-shrink-0">
+              <div className="flex items-center gap-3 p-3 bg-surface-secondary/30 rounded-lg border border-border shrink-0">
                 <div
                   className={cn(
                     'px-2 py-1 rounded text-xs font-bold font-mono',
@@ -1048,7 +1070,7 @@ function RequestDetailView({
 
               <div className="flex flex-col min-h-0 flex-1 gap-6">
                 <div className="flex flex-col flex-1 min-h-0 gap-3">
-                  <h5 className="text-xs font-semibold text-text-secondary uppercase tracking-wider flex items-center gap-2 flex-shrink-0">
+                  <h5 className="text-xs font-semibold text-text-secondary uppercase tracking-wider flex items-center gap-2 shrink-0">
                     <Code size={14} /> Headers
                   </h5>
                   <div className="flex-1 rounded-lg border border-border bg-[#1a1a1a] p-4 overflow-auto shadow-inner relative group">
@@ -1067,8 +1089,8 @@ function RequestDetailView({
                 </div>
 
                 {request.responseInfo.body && (
-                  <div className="flex flex-col flex-[2] min-h-0 gap-3">
-                    <h5 className="text-xs font-semibold text-text-secondary uppercase tracking-wider flex items-center gap-2 flex-shrink-0">
+                  <div className="flex flex-col flex-2 min-h-0 gap-3">
+                    <h5 className="text-xs font-semibold text-text-secondary uppercase tracking-wider flex items-center gap-2 shrink-0">
                       <Database size={14} /> Body
                     </h5>
                     <div className="flex-1 rounded-lg border border-border bg-[#1a1a1a] p-4 overflow-auto shadow-inner relative group">
@@ -1109,73 +1131,75 @@ function RequestDetailView({
                     <Info size={16} className="text-info" /> Request Info
                   </CardTitle>
                 </CardHeader>
-                <CardContent className="pt-4 space-y-4">
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 items-center">
-                    <dt className="text-xs font-medium text-text-secondary uppercase tracking-wider">
-                      Request ID
-                    </dt>
-                    <dd className="sm:col-span-2 font-mono text-xs text-text-primary bg-surface-secondary px-2 py-1 rounded select-all break-all">
-                      {request.requestID || '-'}
-                    </dd>
-                  </div>
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 items-center">
-                    <dt className="text-xs font-medium text-text-secondary uppercase tracking-wider">
-                      Session ID
-                    </dt>
-                    <dd className="sm:col-span-2">
-                      <div className="font-mono text-xs text-text-primary bg-surface-secondary px-2 py-1 rounded select-all break-all">
-                        {request.sessionID || '-'}
-                      </div>
-                      {sessionInfo && (
-                        <div className="flex items-center gap-2 mt-1 text-[10px] text-text-muted">
-                          <span className="capitalize">
-                            {sessionInfo.clientType}
-                          </span>
-                          {sessionInfo.projectID > 0 && (
-                            <>
-                              <span>·</span>
-                              <span>
-                                {projectMap.get(sessionInfo.projectID) ||
-                                  `Project #${sessionInfo.projectID}`}
-                              </span>
-                            </>
-                          )}
+                <CardContent className="pt-4">
+                  <dl className="space-y-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 items-center">
+                      <dt className="text-xs font-medium text-text-secondary uppercase tracking-wider">
+                        Request ID
+                      </dt>
+                      <dd className="sm:col-span-2 font-mono text-xs text-text-primary bg-surface-secondary px-2 py-1 rounded select-all break-all">
+                        {request.requestID || '-'}
+                      </dd>
+                    </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 items-center">
+                      <dt className="text-xs font-medium text-text-secondary uppercase tracking-wider">
+                        Session ID
+                      </dt>
+                      <dd className="sm:col-span-2">
+                        <div className="font-mono text-xs text-text-primary bg-surface-secondary px-2 py-1 rounded select-all break-all">
+                          {request.sessionID || '-'}
                         </div>
-                      )}
-                    </dd>
-                  </div>
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 items-center">
-                    <dt className="text-xs font-medium text-text-secondary uppercase tracking-wider">
-                      Instance ID
-                    </dt>
-                    <dd className="sm:col-span-2 font-mono text-xs text-text-primary bg-surface-secondary px-2 py-1 rounded select-all break-all">
-                      {request.instanceID || '-'}
-                    </dd>
-                  </div>
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 items-center">
-                    <dt className="text-xs font-medium text-text-secondary uppercase tracking-wider">
-                      Request Model
-                    </dt>
-                    <dd className="sm:col-span-2 font-mono text-xs text-text-primary bg-surface-secondary px-2 py-1 rounded">
-                      {request.requestModel || '-'}
-                    </dd>
-                  </div>
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 items-center">
-                    <dt className="text-xs font-medium text-text-secondary uppercase tracking-wider">
-                      Response Model
-                    </dt>
-                    <dd className="sm:col-span-2 font-mono text-xs text-text-primary bg-surface-secondary px-2 py-1 rounded">
-                      {request.responseModel || '-'}
-                    </dd>
-                  </div>
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 items-center">
-                    <dt className="text-xs font-medium text-text-secondary uppercase tracking-wider">
-                      Project
-                    </dt>
-                    <dd className="sm:col-span-2 font-mono text-xs text-text-primary bg-surface-secondary px-2 py-1 rounded">
-                      {projectName || '-'}
-                    </dd>
-                  </div>
+                        {sessionInfo && (
+                          <div className="flex items-center gap-2 mt-1 text-[10px] text-text-muted">
+                            <span className="capitalize">
+                              {sessionInfo.clientType}
+                            </span>
+                            {sessionInfo.projectID > 0 && (
+                              <>
+                                <span>·</span>
+                                <span>
+                                  {projectMap.get(sessionInfo.projectID) ||
+                                    `Project #${sessionInfo.projectID}`}
+                                </span>
+                              </>
+                            )}
+                          </div>
+                        )}
+                      </dd>
+                    </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 items-center">
+                      <dt className="text-xs font-medium text-text-secondary uppercase tracking-wider">
+                        Instance ID
+                      </dt>
+                      <dd className="sm:col-span-2 font-mono text-xs text-text-primary bg-surface-secondary px-2 py-1 rounded select-all break-all">
+                        {request.instanceID || '-'}
+                      </dd>
+                    </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 items-center">
+                      <dt className="text-xs font-medium text-text-secondary uppercase tracking-wider">
+                        Request Model
+                      </dt>
+                      <dd className="sm:col-span-2 font-mono text-xs text-text-primary bg-surface-secondary px-2 py-1 rounded">
+                        {request.requestModel || '-'}
+                      </dd>
+                    </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 items-center">
+                      <dt className="text-xs font-medium text-text-secondary uppercase tracking-wider">
+                        Response Model
+                      </dt>
+                      <dd className="sm:col-span-2 font-mono text-xs text-text-primary bg-surface-secondary px-2 py-1 rounded">
+                        {request.responseModel || '-'}
+                      </dd>
+                    </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 items-center">
+                      <dt className="text-xs font-medium text-text-secondary uppercase tracking-wider">
+                        Project
+                      </dt>
+                      <dd className="sm:col-span-2 font-mono text-xs text-text-primary bg-surface-secondary px-2 py-1 rounded">
+                        {projectName || '-'}
+                      </dd>
+                    </div>
+                  </dl>
                 </CardContent>
               </Card>
 
@@ -1185,59 +1209,61 @@ function RequestDetailView({
                     <Zap size={16} className="text-warning" /> Usage & Cache
                   </CardTitle>
                 </CardHeader>
-                <CardContent className="pt-4 space-y-4">
-                  <div className="flex justify-between items-center border-b border-border/30 pb-2">
-                    <dt className="text-xs font-medium text-text-secondary uppercase tracking-wider">
-                      Input Tokens
-                    </dt>
-                    <dd className="text-sm text-text-primary font-mono font-medium">
-                      {request.inputTokenCount.toLocaleString()}
-                    </dd>
-                  </div>
-                  <div className="flex justify-between items-center border-b border-border/30 pb-2">
-                    <dt className="text-xs font-medium text-text-secondary uppercase tracking-wider">
-                      Output Tokens
-                    </dt>
-                    <dd className="text-sm text-text-primary font-mono font-medium">
-                      {request.outputTokenCount.toLocaleString()}
-                    </dd>
-                  </div>
-                  <div className="flex justify-between items-center border-b border-border/30 pb-2">
-                    <dt className="text-xs font-medium text-text-secondary uppercase tracking-wider">
-                      Cache Read
-                    </dt>
-                    <dd className="text-sm text-violet-400 font-mono font-medium">
-                      {request.cacheReadCount.toLocaleString()}
-                    </dd>
-                  </div>
-                  <div className="flex justify-between items-center border-b border-border/30 pb-2">
-                    <dt className="text-xs font-medium text-text-secondary uppercase tracking-wider">
-                      Cache Write
-                    </dt>
-                    <dd className="text-sm text-amber-400 font-mono font-medium">
-                      {request.cacheWriteCount.toLocaleString()}
-                    </dd>
-                  </div>
-                  {(request.cache5mWriteCount > 0 ||
-                    request.cache1hWriteCount > 0) && (
-                    <div className="flex justify-between items-center border-b border-border/30 pb-2 pl-4">
-                      <dt className="text-xs font-medium text-text-secondary/70 tracking-wider">
-                        <span className="text-cyan-400/80">5m:</span>{' '}
-                        {request.cache5mWriteCount}
-                        <span className="mx-2">|</span>
-                        <span className="text-orange-400/80">1h:</span>{' '}
-                        {request.cache1hWriteCount}
+                <CardContent className="pt-4">
+                  <dl className="space-y-4">
+                    <div className="flex justify-between items-center border-b border-border/30 pb-2">
+                      <dt className="text-xs font-medium text-text-secondary uppercase tracking-wider">
+                        Input Tokens
                       </dt>
+                      <dd className="text-sm text-text-primary font-mono font-medium">
+                        {request.inputTokenCount.toLocaleString()}
+                      </dd>
                     </div>
-                  )}
-                  <div className="flex justify-between items-center">
-                    <dt className="text-xs font-medium text-text-secondary uppercase tracking-wider">
-                      Cost
-                    </dt>
-                    <dd className="text-sm text-blue-400 font-mono font-medium">
-                      {formatCost(request.cost)}
-                    </dd>
-                  </div>
+                    <div className="flex justify-between items-center border-b border-border/30 pb-2">
+                      <dt className="text-xs font-medium text-text-secondary uppercase tracking-wider">
+                        Output Tokens
+                      </dt>
+                      <dd className="text-sm text-text-primary font-mono font-medium">
+                        {request.outputTokenCount.toLocaleString()}
+                      </dd>
+                    </div>
+                    <div className="flex justify-between items-center border-b border-border/30 pb-2">
+                      <dt className="text-xs font-medium text-text-secondary uppercase tracking-wider">
+                        Cache Read
+                      </dt>
+                      <dd className="text-sm text-violet-400 font-mono font-medium">
+                        {request.cacheReadCount.toLocaleString()}
+                      </dd>
+                    </div>
+                    <div className="flex justify-between items-center border-b border-border/30 pb-2">
+                      <dt className="text-xs font-medium text-text-secondary uppercase tracking-wider">
+                        Cache Write
+                      </dt>
+                      <dd className="text-sm text-amber-400 font-mono font-medium">
+                        {request.cacheWriteCount.toLocaleString()}
+                      </dd>
+                    </div>
+                    {(request.cache5mWriteCount > 0 ||
+                      request.cache1hWriteCount > 0) && (
+                      <div className="flex justify-between items-center border-b border-border/30 pb-2 pl-4">
+                        <dt className="text-xs font-medium text-text-secondary/70 tracking-wider">
+                          <span className="text-cyan-400/80">5m:</span>{' '}
+                          {request.cache5mWriteCount}
+                          <span className="mx-2">|</span>
+                          <span className="text-orange-400/80">1h:</span>{' '}
+                          {request.cache1hWriteCount}
+                        </dt>
+                      </div>
+                    )}
+                    <div className="flex justify-between items-center">
+                      <dt className="text-xs font-medium text-text-secondary uppercase tracking-wider">
+                        Cost
+                      </dt>
+                      <dd className="text-sm text-blue-400 font-mono font-medium">
+                        {formatCost(request.cost)}
+                      </dd>
+                    </div>
+                  </dl>
                 </CardContent>
               </Card>
             </div>

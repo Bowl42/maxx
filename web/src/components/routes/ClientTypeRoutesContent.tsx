@@ -33,7 +33,7 @@ import {
 } from '@/hooks/queries'
 import { useStreamingRequests } from '@/hooks/use-streaming'
 import { getClientName, getClientColor } from '@/components/icons/client-icons'
-import { getProviderColor } from '@/lib/theme'
+import { getProviderColor, type ProviderType } from '@/lib/theme'
 import type { ClientType, Provider } from '@/lib/transport'
 import {
   SortableProviderRow,
@@ -302,7 +302,9 @@ export function ClientTypeRoutesContent({
                   const isNative = (
                     provider.supportedClientTypes || []
                   ).includes(clientType)
-                  const providerColor = getProviderColor(provider.type)
+                  const providerColor = getProviderColor(
+                    provider.type as ProviderType
+                  )
                   return (
                     <button
                       key={provider.id}

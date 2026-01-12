@@ -57,3 +57,5 @@ function Badge({
 }
 
 export { Badge, badgeVariants }
+export type BadgeProps = useRender.ComponentProps<'span'> &
+  VariantProps<typeof badgeVariants>

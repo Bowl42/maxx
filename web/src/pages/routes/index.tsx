@@ -13,12 +13,7 @@ import {
   TableRow,
   Badge,
 } from '@/components/ui'
-import {
-  useRoutes,
-  useDeleteRoute,
-  useProviders,
-  useProjects,
-} from '@/hooks/queries'
+import { useRoutes, useDeleteRoute, useProviders } from '@/hooks/queries'
 import { Plus, Trash2, Pencil, Route as RouteIcon } from 'lucide-react'
 import { RouteForm } from './form'
 import type { Route } from '@/lib/transport'

@@ -115,9 +115,10 @@ export function RouteForm({
         {showProjectSelector && (
           <div>
             <label className="mb-1 block text-sm font-medium">Project</label>
-            <Select
+            <select
               value={projectID}
               onChange={e => setProjectID(e.target.value)}
+              className="w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-xs focus:border-ring focus:ring-2 focus:ring-ring/50 outline-none"
             >
               <option value="0">Global (All Projects)</option>
               {projects?.map(p => (
@@ -125,7 +126,7 @@ export function RouteForm({
                   {p.name}
                 </option>
               ))}
-            </Select>
+            </select>
           </div>
         )}
         <div>
