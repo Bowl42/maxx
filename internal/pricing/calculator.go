@@ -4,7 +4,7 @@ import (
 	"log"
 	"sync"
 
-	"github.com/Bowl42/maxx-next/internal/usage"
+	"github.com/Bowl42/maxx/internal/usage"
 )
 
 // Calculator 成本计算器

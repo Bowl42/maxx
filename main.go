@@ -4,7 +4,7 @@ import (
 	"embed"
 	"log"
 
-	"github.com/Bowl42/maxx-next/internal/desktop"
+	"github.com/Bowl42/maxx/internal/desktop"
 	"github.com/wailsapp/wails/v2"
 	"github.com/wailsapp/wails/v2/pkg/options"
 	"github.com/wailsapp/wails/v2/pkg/options/assetserver"
@@ -24,7 +24,7 @@ func main() {
 
 	// Run Wails application
 	err = wails.Run(&options.App{
-		Title:     "maxx-next",
+		Title:     "Maxx",
 		Width:     1280,
 		Height:    800,
 		MinWidth:  1024,
@@ -39,6 +39,10 @@ func main() {
 		OnShutdown:       app.Shutdown,
 		Bind: []interface{}{
 			app,
+		},
+		// 启用 DevTools 方便调试
+		Debug: options.Debug{
+			OpenInspectorOnStartup: false,
 		},
 		Windows: &windows.Options{
 			WebviewIsTransparent: false,
@@ -58,7 +62,7 @@ func main() {
 			WebviewIsTransparent: true,
 			WindowIsTranslucent:  true,
 			About: &mac.AboutInfo{
-				Title:   "maxx-next",
+				Title:   "Maxx",
 				Message: "AI API Proxy Gateway\n© 2024 Bowl42",
 			},
 		},

@@ -4,7 +4,7 @@ import (
 	"database/sql"
 	"time"
 
-	"github.com/Bowl42/maxx-next/internal/domain"
+	"github.com/Bowl42/maxx/internal/domain"
 )
 
 type RouteRepository struct {

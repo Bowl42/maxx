@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/Bowl42/maxx-next/internal/domain"
+	"github.com/Bowl42/maxx/internal/domain"
 )
 
 // remapFunctionCallArgs remaps Gemini's function call arguments to Claude Code expected format

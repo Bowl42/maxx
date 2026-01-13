@@ -66,9 +66,18 @@ export { HttpTransport } from './http-transport';
 export {
   detectTransportType,
   isWailsEnvironment,
-  createTransport,
-  createTransportAsync,
   initializeTransport,
   getTransport,
+  getTransportState,
+  getTransportType,
+  isTransportReady,
   resetTransport,
 } from './factory';
+
+// React Context 导出
+export {
+  TransportProvider,
+  useTransport,
+  useTransportType,
+  useIsWails,
+} from './context';

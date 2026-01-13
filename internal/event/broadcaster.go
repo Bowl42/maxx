@@ -1,6 +1,6 @@
 package event
 
-import "github.com/Bowl42/maxx-next/internal/domain"
+import "github.com/Bowl42/maxx/internal/domain"
 
 // Broadcaster 事件广播接口
 // WebSocket 和 Wails 都实现此接口

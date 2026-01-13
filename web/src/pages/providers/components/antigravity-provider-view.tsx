@@ -5,8 +5,6 @@ import type { Provider, AntigravityQuotaData, AntigravityModelQuota } from '@/li
 import { getTransport } from '@/lib/transport';
 import { ANTIGRAVITY_COLOR } from '../types';
 
-const transport = getTransport();
-
 interface AntigravityProviderViewProps {
   provider: Provider;
   onDelete: () => void;
@@ -106,7 +104,7 @@ export function AntigravityProviderView({ provider, onDelete, onClose }: Antigra
     setLoading(true);
     setError(null);
     try {
-      const data = await transport.getAntigravityProviderQuota(provider.id, forceRefresh);
+      const data = await getTransport().getAntigravityProviderQuota(provider.id, forceRefresh);
       setQuota(data);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to fetch quota');
@@ -218,7 +216,7 @@ export function AntigravityProviderView({ provider, onDelete, onClose }: Antigra
                   </p>
                 </div>
               </div>
-            ) : quota && quota.models.length > 0 ? (
+            ) : quota?.models && quota.models.length > 0 ? (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {quota.models.map((model) => (
                   <ModelQuotaCard key={model.name} model={model} />

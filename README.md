@@ -1,8 +1,8 @@
 <p align="center">
-  <img src="web/public/logo.png" alt="maxx-next logo" width="128" height="128">
+  <img src="web/public/logo.png" alt="maxx logo" width="128" height="128">
 </p>
 
-# maxx-next
+# maxx
 
 Multi-provider AI proxy with a built-in admin UI, routing, and usage tracking.
 
@@ -25,7 +25,7 @@ Full example:
 services:
   maxx:
     image: ghcr.io/bowl42/maxx:latest
-    container_name: maxx-next
+    container_name: maxx
     restart: unless-stopped
     ports:
       - "9880:9880"

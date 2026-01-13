@@ -5,8 +5,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/Bowl42/maxx-next/internal/domain"
-	"github.com/Bowl42/maxx-next/internal/repository"
+	"github.com/Bowl42/maxx/internal/domain"
+	"github.com/Bowl42/maxx/internal/repository"
 )
 
 // Manager manages provider cooldown states

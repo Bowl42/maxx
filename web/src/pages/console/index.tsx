@@ -4,8 +4,6 @@ import { getTransport } from '@/lib/transport'
 import { Button } from '@/components/ui'
 import { PageHeader } from '@/components/layout/page-header'
 
-const transport = getTransport()
-
 export function ConsolePage() {
   const [logs, setLogs] = useState<string[]>([])
   const [isPaused, setIsPaused] = useState(false)
@@ -21,6 +19,7 @@ export function ConsolePage() {
 
   // Subscribe to log_message events (only real-time logs from this session)
   useEffect(() => {
+    const transport = getTransport()
     const unsubscribe = transport.subscribe<string>('log_message', message => {
       if (pausedRef.current) return
       setLogs(prev => [...prev.slice(-999), message])

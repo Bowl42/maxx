@@ -1,8 +1,8 @@
 package desktop
 
 import (
-	"github.com/Bowl42/maxx-next/internal/domain"
-	"github.com/Bowl42/maxx-next/internal/service"
+	"github.com/Bowl42/maxx/internal/domain"
+	"github.com/Bowl42/maxx/internal/service"
 )
 
 // ===== Provider API =====
@@ -91,6 +91,10 @@ func (a *DesktopApp) GetSessions() ([]*domain.Session, error) {
 
 func (a *DesktopApp) UpdateSessionProject(sessionID string, projectID uint64) (*service.UpdateSessionProjectResult, error) {
 	return a.components.AdminService.UpdateSessionProject(sessionID, projectID)
+}
+
+func (a *DesktopApp) RejectSession(sessionID string) (*domain.Session, error) {
+	return a.components.AdminService.RejectSession(sessionID)
 }
 
 // ===== RetryConfig API =====
@@ -244,6 +248,19 @@ func (a *DesktopApp) ValidateAntigravityTokenText(tokenText string) (*Antigravit
 func (a *DesktopApp) GetAntigravityProviderQuota(providerID uint64, forceRefresh bool) (*AntigravityQuotaData, error) {
 	// Placeholder - will be implemented by adding to AdminService
 	return &AntigravityQuotaData{}, nil
+}
+
+type AntigravityOAuthResult struct {
+	AuthURL string `json:"authURL"`
+	State   string `json:"state"`
+}
+
+func (a *DesktopApp) StartAntigravityOAuth() (*AntigravityOAuthResult, error) {
+	// Placeholder - will be implemented by adding to AdminService
+	return &AntigravityOAuthResult{
+		AuthURL: "",
+		State:   "",
+	}, nil
 }
 
 // ===== Cooldown API =====

@@ -5,8 +5,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { getTransport, type Project, type CreateProjectData } from '@/lib/transport';
 
-const transport = getTransport();
-
 // Query Keys
 export const projectKeys = {
   all: ['projects'] as const,
@@ -22,7 +20,7 @@ export const projectKeys = {
 export function useProjects() {
   return useQuery({
     queryKey: projectKeys.list(),
-    queryFn: () => transport.getProjects(),
+    queryFn: () => getTransport().getProjects(),
   });
 }
 
@@ -30,7 +28,7 @@ export function useProjects() {
 export function useProject(id: number) {
   return useQuery({
     queryKey: projectKeys.detail(id),
-    queryFn: () => transport.getProject(id),
+    queryFn: () => getTransport().getProject(id),
     enabled: id > 0,
   });
 }
@@ -39,7 +37,7 @@ export function useProject(id: number) {
 export function useProjectBySlug(slug: string) {
   return useQuery({
     queryKey: projectKeys.slug(slug),
-    queryFn: () => transport.getProjectBySlug(slug),
+    queryFn: () => getTransport().getProjectBySlug(slug),
     enabled: !!slug,
   });
 }
@@ -49,7 +47,7 @@ export function useCreateProject() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (data: CreateProjectData) => transport.createProject(data),
+    mutationFn: (data: CreateProjectData) => getTransport().createProject(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: projectKeys.lists() });
     },
@@ -62,7 +60,7 @@ export function useUpdateProject() {
 
   return useMutation({
     mutationFn: ({ id, data }: { id: number; data: Partial<Project> }) =>
-      transport.updateProject(id, data),
+      getTransport().updateProject(id, data),
     onSuccess: (_, { id }) => {
       queryClient.invalidateQueries({ queryKey: projectKeys.detail(id) });
       queryClient.invalidateQueries({ queryKey: projectKeys.lists() });
@@ -75,7 +73,7 @@ export function useDeleteProject() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (id: number) => transport.deleteProject(id),
+    mutationFn: (id: number) => getTransport().deleteProject(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: projectKeys.lists() });
     },

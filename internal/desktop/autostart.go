@@ -1,75 +1,45 @@
 package desktop
 
 import (
-	"fmt"
 	"os"
 	"path/filepath"
-	"strings"
 
-	"golang.org/x/sys/windows/registry"
+	"github.com/emersion/go-autostart"
 )
 
-const (
-	autoStartKey        = `Software\Microsoft\Windows\CurrentVersion\Run`
-	appName             = "maxx-next"
-	registryPathFormat  = `"%s" --minimized`
-)
+const appName = "maxx"
 
-func setAutoStart(enable bool) error {
-	key, _, err := registry.CreateKey(registry.CURRENT_USER, autoStartKey, registry.SET_VALUE)
+func getAutoStartApp() *autostart.App {
+	exePath, err := os.Executable()
 	if err != nil {
-		return fmt.Errorf("failed to open registry key: %w", err)
-	}
-	defer key.Close()
-
-	if enable {
-		exePath, err := os.Executable()
-		if err != nil {
-			return fmt.Errorf("failed to get executable path: %w", err)
-		}
-
-		value := fmt.Sprintf(registryPathFormat, exePath)
-		if err := key.SetStringValue(appName, value); err != nil {
-			return fmt.Errorf("failed to set registry value: %w", err)
-		}
-
 		return nil
 	}
 
-	if err := key.DeleteValue(appName); err != nil && err != registry.ErrNotExist {
-		return fmt.Errorf("failed to delete registry value: %w", err)
+	return &autostart.App{
+		Name:        appName,
+		DisplayName: "Maxx Next",
+		Exec:        []string{exePath, "--minimized"},
+	}
+}
+
+func setAutoStart(enable bool) error {
+	app := getAutoStartApp()
+	if app == nil {
+		return nil
 	}
 
-	return nil
+	if enable {
+		return app.Enable()
+	}
+	return app.Disable()
 }
 
 func isAutoStartEnabled() bool {
-	key, err := registry.OpenKey(registry.CURRENT_USER, autoStartKey, registry.READ)
-	if err != nil {
+	app := getAutoStartApp()
+	if app == nil {
 		return false
 	}
-	defer key.Close()
-
-	value, _, err := key.GetStringValue(appName)
-	if err != nil {
-		return false
-	}
-
-	if value == "" {
-		return false
-	}
-
-	exePath, err := os.Executable()
-	if err != nil {
-		return false
-	}
-
-	expectedValue := fmt.Sprintf(registryPathFormat, exePath)
-
-	normalizedActual := strings.ReplaceAll(value, "\\", "/")
-	_ = strings.ReplaceAll(expectedValue, "\\", "/") // normalizedExpected unused
-
-	return strings.Contains(normalizedActual, filepath.Base(exePath))
+	return app.IsEnabled()
 }
 
 func getExecutablePath() (string, error) {

@@ -138,7 +138,7 @@ export interface ResponseInfo {
   body: string;
 }
 
-export type ProxyRequestStatus = 'PENDING' | 'IN_PROGRESS' | 'COMPLETED' | 'FAILED' | 'CANCELLED';
+export type ProxyRequestStatus = 'PENDING' | 'IN_PROGRESS' | 'COMPLETED' | 'FAILED' | 'CANCELLED' | 'REJECTED';
 
 export interface ProxyRequest {
   id: number;
@@ -234,11 +234,26 @@ export type WSMessageType =
   | 'proxy_upstream_attempt_update'
   | 'stats_update'
   | 'log_message'
-  | 'antigravity_oauth_result';
+  | 'antigravity_oauth_result'
+  | 'new_session_pending'
+  | 'session_pending_cancelled'
+  | '_ws_reconnected'; // 内部事件：WebSocket 重连成功
 
 export interface WSMessage<T = unknown> {
   type: WSMessageType;
   data: T;
+}
+
+// New session pending event (for force project binding)
+export interface NewSessionPendingEvent {
+  sessionID: string;
+  clientType: ClientType;
+  createdAt: string;
+}
+
+// Session pending cancelled event (client disconnected)
+export interface SessionPendingCancelledEvent {
+  sessionID: string;
 }
 
 // ===== Proxy Status =====
@@ -280,7 +295,7 @@ export interface AntigravityModelQuota {
 }
 
 export interface AntigravityQuotaData {
-  models: AntigravityModelQuota[];
+  models: AntigravityModelQuota[] | null;
   lastUpdated: number;
   isForbidden: boolean;
   subscriptionTier: string; // FREE/PRO/ULTRA
@@ -296,7 +311,6 @@ export interface AntigravityTokenValidationResult {
 
 export interface AntigravityBatchValidationResult {
   results: AntigravityTokenValidationResult[];
-  total: number;
 }
 
 export interface AntigravityOAuthResult {
@@ -334,11 +348,16 @@ export type CooldownReason =
   | 'concurrent_limit'
   | 'unknown';
 
+/**
+ * Cooldown 类型 - 与 Go domain.Cooldown 同步
+ * 注意：providerName 和 remaining 需要在前端计算
+ */
 export interface Cooldown {
+  id: number;
+  createdAt: string;
+  updatedAt: string;
   providerID: number;
-  providerName: string;
   clientType: string; // 'all' for global cooldown, or specific client type
-  until: string; // ISO 8601 timestamp
-  remaining: string; // Human-readable duration like "15m30s"
-  reason: CooldownReason; // Cooldown reason
+  untilTime: string; // ISO 8601 timestamp (Go time.Time)
+  reason: CooldownReason;
 }

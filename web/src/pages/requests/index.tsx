@@ -43,6 +43,7 @@ export const statusVariant: Record<
   COMPLETED: 'success',
   FAILED: 'danger',
   CANCELLED: 'warning',
+  REJECTED: 'danger',
 }
 
 export function RequestsPage() {
@@ -283,6 +284,12 @@ function RequestStatusBadge({ status }: { status: ProxyRequestStatus }) {
           variant: 'warning' as const,
           label: 'Cancelled',
           icon: <Ban size={10} className="mr-1 shrink-0" />,
+        }
+      case 'REJECTED':
+        return {
+          variant: 'danger' as const,
+          label: 'Rejected',
+          icon: <Ban size={10} className="mr-1 flex-shrink-0" />,
         }
     }
   }

@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"time"
 
-	"github.com/Bowl42/maxx-next/internal/domain"
+	"github.com/Bowl42/maxx/internal/domain"
 )
 
 func init() {

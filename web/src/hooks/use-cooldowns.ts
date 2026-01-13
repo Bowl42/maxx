@@ -5,18 +5,21 @@ import { useEffect } from 'react';
 
 export function useCooldowns() {
   const queryClient = useQueryClient();
-  const transport = getTransport();
 
-  const { data: cooldowns = [], isLoading, error } = useQuery({
+  const {
+    data: cooldowns = [],
+    isLoading,
+    error,
+  } = useQuery({
     queryKey: ['cooldowns'],
-    queryFn: () => transport.getCooldowns(),
+    queryFn: () => getTransport().getCooldowns(),
     refetchInterval: 5000, // Refetch every 5 seconds from server
     staleTime: 3000,
   });
 
   // Mutation for clearing cooldown
   const clearCooldownMutation = useMutation({
-    mutationFn: (providerId: number) => transport.clearCooldown(providerId),
+    mutationFn: (providerId: number) => getTransport().clearCooldown(providerId),
     onSuccess: () => {
       // Invalidate and refetch cooldowns after successful deletion
       queryClient.invalidateQueries({ queryKey: ['cooldowns'] });
@@ -32,7 +35,7 @@ export function useCooldowns() {
     const timeouts: number[] = [];
 
     cooldowns.forEach((cooldown) => {
-      const until = new Date(cooldown.until).getTime();
+      const until = new Date(cooldown.untilTime).getTime();
       const now = Date.now();
       const delay = until - now;
 
@@ -68,7 +71,7 @@ export function useCooldowns() {
 
   // Helper to get remaining time as seconds
   const getRemainingSeconds = (cooldown: Cooldown) => {
-    const until = new Date(cooldown.until);
+    const until = new Date(cooldown.untilTime);
     const now = new Date();
     const diff = until.getTime() - now.getTime();
     return Math.max(0, Math.floor(diff / 1000));

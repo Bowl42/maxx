@@ -434,7 +434,7 @@ export function ProviderDetailsDialog({
                         {liveCountdown}
                       </div>
                       {(() => {
-                        const untilDateStr = formatUntilTime(cooldown.until)
+                        const untilDateStr = formatUntilTime(cooldown.untilTime)
                         return (
                           <div className="relative mt-2 text-[10px] text-cyan-500/70 font-mono flex items-center gap-2">
                             <Clock size={10} />

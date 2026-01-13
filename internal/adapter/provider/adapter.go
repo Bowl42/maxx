@@ -4,7 +4,7 @@ import (
 	"context"
 	"net/http"
 
-	"github.com/Bowl42/maxx-next/internal/domain"
+	"github.com/Bowl42/maxx/internal/domain"
 )
 
 // ProviderAdapter handles communication with upstream providers

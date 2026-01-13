@@ -8,11 +8,11 @@ import (
 	"strings"
 	"time"
 
-	"github.com/Bowl42/maxx-next/internal/adapter/provider/antigravity"
-	"github.com/Bowl42/maxx-next/internal/domain"
-	"github.com/Bowl42/maxx-next/internal/event"
-	"github.com/Bowl42/maxx-next/internal/repository"
-	"github.com/Bowl42/maxx-next/internal/service"
+	"github.com/Bowl42/maxx/internal/adapter/provider/antigravity"
+	"github.com/Bowl42/maxx/internal/domain"
+	"github.com/Bowl42/maxx/internal/event"
+	"github.com/Bowl42/maxx/internal/repository"
+	"github.com/Bowl42/maxx/internal/service"
 )
 
 // AntigravityHandler handles Antigravity-specific API requests

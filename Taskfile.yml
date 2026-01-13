@@ -1,4 +1,4 @@
-version: '3'
+version: "3"
 
 vars:
   VERSION:
@@ -7,7 +7,7 @@ vars:
     sh: git rev-parse --short HEAD 2>/dev/null || echo "unknown"
   BUILD_TIME:
     sh: date -u '+%Y-%m-%dT%H:%M:%SZ'
-  LDFLAGS: -X github.com/Bowl42/maxx-next/internal/version.Version={{.VERSION}} -X github.com/Bowl42/maxx-next/internal/version.Commit={{.COMMIT}} -X github.com/Bowl42/maxx-next/internal/version.BuildTime={{.BUILD_TIME}}
+  LDFLAGS: -X github.com/Bowl42/maxx/internal/version.Version={{.VERSION}} -X github.com/Bowl42/maxx/internal/version.Commit={{.COMMIT}} -X github.com/Bowl42/maxx/internal/version.BuildTime={{.BUILD_TIME}}
 
 tasks:
   dev:
@@ -83,3 +83,31 @@ tasks:
     desc: Build Docker image
     cmds:
       - docker build --build-arg VERSION={{.VERSION}} --build-arg COMMIT={{.COMMIT}} --build-arg BUILD_TIME={{.BUILD_TIME}} --build-arg VITE_COMMIT={{.COMMIT}} -t maxx .
+
+  build:desktop:
+    desc: Build Wails desktop application for current platform
+    cmds:
+      - wails build -ldflags '{{.LDFLAGS}}' -debug
+
+  build:desktop:darwin:
+    desc: Build Wails desktop application for macOS (both arm64 and amd64)
+    cmds:
+      - wails build -ldflags '{{.LDFLAGS}}' -platform darwin/arm64
+      - wails build -ldflags '{{.LDFLAGS}}' -platform darwin/amd64
+
+  build:desktop:windows:
+    desc: Build Wails desktop application for Windows
+    cmds:
+      - wails build -ldflags '{{.LDFLAGS}}' -platform windows/amd64
+
+  build:desktop:linux:
+    desc: Build Wails desktop application for Linux
+    cmds:
+      - wails build -ldflags '{{.LDFLAGS}}' -platform linux/amd64
+
+  build:desktop:all:
+    desc: Build Wails desktop application for all platforms
+    cmds:
+      - task: build:desktop:darwin
+      - task: build:desktop:windows
+      - task: build:desktop:linux

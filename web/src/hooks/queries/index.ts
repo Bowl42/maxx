@@ -39,7 +39,7 @@ export {
 } from './use-routes';
 
 // Session hooks
-export { sessionKeys, useSessions, useUpdateSessionProject } from './use-sessions';
+export { sessionKeys, useSessions, useUpdateSessionProject, useRejectSession } from './use-sessions';
 
 // RetryConfig hooks
 export {
@@ -73,3 +73,12 @@ export {
 
 // Proxy hooks
 export { proxyKeys, useProxyStatus } from './use-proxy';
+
+// Settings hooks
+export {
+  settingsKeys,
+  useSettings,
+  useSetting,
+  useUpdateSetting,
+  useDeleteSetting,
+} from './use-settings';

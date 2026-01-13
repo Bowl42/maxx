@@ -6,7 +6,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/Bowl42/maxx-next/internal/event"
+	"github.com/Bowl42/maxx/internal/event"
 )
 
 // OAuthSession 表示一个 OAuth 授权会话

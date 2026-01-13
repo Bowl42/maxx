@@ -7,11 +7,11 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/Bowl42/maxx-next/internal/adapter/client"
-	ctxutil "github.com/Bowl42/maxx-next/internal/context"
-	"github.com/Bowl42/maxx-next/internal/domain"
-	"github.com/Bowl42/maxx-next/internal/executor"
-	"github.com/Bowl42/maxx-next/internal/repository"
+	"github.com/Bowl42/maxx/internal/adapter/client"
+	ctxutil "github.com/Bowl42/maxx/internal/context"
+	"github.com/Bowl42/maxx/internal/domain"
+	"github.com/Bowl42/maxx/internal/executor"
+	"github.com/Bowl42/maxx/internal/repository"
 )
 
 // ProxyHandler handles AI API proxy requests
@@ -43,7 +43,7 @@ func (h *ProxyHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Claude Desktop / Anthropic compatibility: count_tokens placeholder (aligned with Antigravity-Manager when z.ai passthrough is disabled)
+	// Claude Desktop / Anthropic compatibility: count_tokens placeholder
 	if r.URL.Path == "/v1/messages/count_tokens" {
 		_, _ = io.Copy(io.Discard, r.Body)
 		_ = r.Body.Close()
@@ -105,17 +105,17 @@ func (h *ProxyHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		}
 	} else {
 		// Create new session with the project ID (from header or 0 for global)
-		newSession := &domain.Session{
+		session = &domain.Session{
 			SessionID:  sessionID,
 			ClientType: clientType,
 			ProjectID:  projectID,
 		}
-		_ = h.sessionRepo.Create(newSession)
+		_ = h.sessionRepo.Create(session)
 	}
 
 	ctx = ctxutil.WithProjectID(ctx, projectID)
 
-	// Execute request
+	// Execute request (executor handles request recording, project binding, routing, etc.)
 	err = h.executor.Execute(ctx, w, r)
 	if err != nil {
 		proxyErr, ok := err.(*domain.ProxyError)
@@ -187,7 +187,6 @@ func writeStreamError(w http.ResponseWriter, err *domain.ProxyError) {
 	w.Write([]byte("data: "))
 	w.Write(data)
 	w.Write([]byte("\n\n"))
-	w.Write([]byte("data: [DONE]\n\n"))
 
 	if f, ok := w.(http.Flusher); ok {
 		f.Flush()

@@ -1,6 +1,6 @@
 package converter
 
-import "github.com/Bowl42/maxx-next/internal/domain"
+import "github.com/Bowl42/maxx/internal/domain"
 
 // Global registry instance - initialized at package level before init() functions
 var globalRegistry = &Registry{

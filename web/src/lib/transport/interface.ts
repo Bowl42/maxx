@@ -62,6 +62,7 @@ export interface Transport {
   // ===== Session API =====
   getSessions(): Promise<Session[]>;
   updateSessionProject(sessionID: string, projectID: number): Promise<{ session: Session; updatedRequests: number }>;
+  rejectSession(sessionID: string): Promise<Session>;
 
   // ===== RetryConfig API =====
   getRetryConfigs(): Promise<RetryConfig[]>;

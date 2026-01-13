@@ -4,9 +4,13 @@
 
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useEffect } from 'react';
-import { getTransport, type ProxyRequest, type ProxyUpstreamAttempt, type CursorPaginationParams, type CursorPaginationResult } from '@/lib/transport';
-
-const transport = getTransport();
+import {
+  getTransport,
+  type ProxyRequest,
+  type ProxyUpstreamAttempt,
+  type CursorPaginationParams,
+  type CursorPaginationResult,
+} from '@/lib/transport';
 
 // Query Keys
 export const requestKeys = {
@@ -22,7 +26,7 @@ export const requestKeys = {
 export function useProxyRequests(params?: CursorPaginationParams) {
   return useQuery({
     queryKey: requestKeys.list(params),
-    queryFn: () => transport.getProxyRequests(params),
+    queryFn: () => getTransport().getProxyRequests(params),
   });
 }
 
@@ -30,7 +34,7 @@ export function useProxyRequests(params?: CursorPaginationParams) {
 export function useProxyRequestsCount() {
   return useQuery({
     queryKey: ['requestsCount'] as const,
-    queryFn: () => transport.getProxyRequestsCount(),
+    queryFn: () => getTransport().getProxyRequestsCount(),
   });
 }
 
@@ -38,7 +42,7 @@ export function useProxyRequestsCount() {
 export function useProxyRequest(id: number) {
   return useQuery({
     queryKey: requestKeys.detail(id),
-    queryFn: () => transport.getProxyRequest(id),
+    queryFn: () => getTransport().getProxyRequest(id),
     enabled: id > 0,
   });
 }
@@ -47,7 +51,7 @@ export function useProxyRequest(id: number) {
 export function useProxyUpstreamAttempts(proxyRequestId: number) {
   return useQuery({
     queryKey: requestKeys.attempts(proxyRequestId),
-    queryFn: () => transport.getProxyUpstreamAttempts(proxyRequestId),
+    queryFn: () => getTransport().getProxyUpstreamAttempts(proxyRequestId),
     enabled: proxyRequestId > 0,
   });
 }
@@ -57,6 +61,8 @@ export function useProxyRequestUpdates() {
   const queryClient = useQueryClient();
 
   useEffect(() => {
+    const transport = getTransport();
+
     // 订阅 ProxyRequest 更新事件 (连接由 main.tsx 统一管理)
     const unsubscribeRequest = transport.subscribe<ProxyRequest>(
       'proxy_request_update',
@@ -66,10 +72,7 @@ export function useProxyRequestUpdates() {
         const isNewRequest = !existingDetail;
 
         // 更新单个请求的缓存
-        queryClient.setQueryData(
-          requestKeys.detail(updatedRequest.id),
-          updatedRequest
-        );
+        queryClient.setQueryData(requestKeys.detail(updatedRequest.id), updatedRequest);
 
         // 更新列表缓存（乐观更新）- 适配 CursorPaginationResult 结构
         queryClient.setQueriesData<CursorPaginationResult<ProxyRequest>>(

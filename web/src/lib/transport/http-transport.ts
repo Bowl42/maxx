@@ -167,6 +167,13 @@ export class HttpTransport implements Transport {
     return data;
   }
 
+  async rejectSession(sessionID: string): Promise<Session> {
+    const { data } = await this.client.post<Session>(
+      `/sessions/${encodeURIComponent(sessionID)}/reject`
+    );
+    return data;
+  }
+
   // ===== RetryConfig API =====
 
   async getRetryConfigs(): Promise<RetryConfig[]> {
@@ -371,8 +378,16 @@ export class HttpTransport implements Transport {
       this.ws = new WebSocket(this.config.wsURL);
 
       this.ws.onopen = () => {
+        const isReconnect = this.reconnectAttempts > 0;
         this.reconnectAttempts = 0;
         this.connectPromise = null;
+
+        // 如果是重连，发送内部事件通知前端清理状态
+        if (isReconnect) {
+          const listeners = this.eventListeners.get('_ws_reconnected');
+          listeners?.forEach((callback) => callback({}));
+        }
+
         resolve();
       };
 

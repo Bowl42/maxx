@@ -3,19 +3,15 @@ package main
 import (
 	"context"
 	"embed"
-	"fmt"
 	"log"
 	"os"
-	"path/filepath"
-	"time"
 
 	"github.com/wailsapp/wails/v2"
 	"github.com/wailsapp/wails/v2/pkg/options"
 	"github.com/wailsapp/wails/v2/pkg/options/assetserver"
 	"github.com/wailsapp/wails/v2/pkg/options/mac"
 	"github.com/wailsapp/wails/v2/pkg/options/windows"
-	"github.com/Bowl42/maxx-next/internal/core"
-	"github.com/Bowl42/maxx-next/internal/desktop"
+	"github.com/Bowl42/maxx/internal/desktop"
 )
 
 //go:embed all:../web/dist
@@ -24,13 +20,16 @@ var assets embed.FS
 
 func main() {
 	err := wails.Run(&options.App{
-		Title:     "maxx-next",
+		Title:     "Maxx",
 		Width:      1280,
 		Height:     800,
 		MinWidth:   1024,
 		MinHeight:  600,
 		AssetServer: &assetserver.Options{
 			Assets: assets,
+		},
+		Bind: []interface{}{
+			app,
 		},
 		OnStartup:   app.Startup,
 		OnShutdown:  app.Shutdown,

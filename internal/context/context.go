@@ -4,8 +4,8 @@ import (
 	"context"
 	"net/http"
 
-	"github.com/Bowl42/maxx-next/internal/domain"
-	"github.com/Bowl42/maxx-next/internal/event"
+	"github.com/Bowl42/maxx/internal/domain"
+	"github.com/Bowl42/maxx/internal/event"
 )
 
 type contextKey string

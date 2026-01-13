@@ -4,8 +4,8 @@ import (
 	"log"
 	"time"
 
-	"github.com/Bowl42/maxx-next/internal/domain"
-	"github.com/Bowl42/maxx-next/internal/repository"
+	"github.com/Bowl42/maxx/internal/domain"
+	"github.com/Bowl42/maxx/internal/repository"
 )
 
 // FailureTracker manages failure counts and their persistence

@@ -52,7 +52,7 @@ interface ProviderRowProps {
 function getClaudeQuotaInfo(
   quota: AntigravityQuotaData | undefined
 ): { percentage: number; resetTime: string } | null {
-  if (!quota || quota.isForbidden) return null
+  if (!quota || quota.isForbidden || !quota.models) return null
   const claudeModel = quota.models.find(m => m.name.includes('claude'))
   if (!claudeModel) return null
   return {

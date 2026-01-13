@@ -153,7 +153,7 @@ export function CooldownDetailsDialog({
     })
   }
 
-  const untilDateStr = formatUntilTime(cooldown.until)
+  const untilDateStr = formatUntilTime(cooldown.untilTime)
   const [datePart, timePart] = untilDateStr.split(' ')
 
   return createPortal(
@@ -220,7 +220,7 @@ export function CooldownDetailsDialog({
                 )}
               </div>
               <div className="font-semibold text-text-primary truncate">
-                {cooldown.providerName || `Provider #${cooldown.providerID}`}
+                Provider #{cooldown.providerID}
               </div>
             </div>
           </div>
