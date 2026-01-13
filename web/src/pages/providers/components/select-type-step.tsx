@@ -117,7 +117,7 @@ export function SelectTypeStep({
                   </div>
                   
                   <div className="text-left">
-                    <div className="text-base font-semibold text-text-primary mb-1 group-hover:text-accent transition-colors">
+                    <div className="text-base font-semibold text-text-primary mb-1">
                       Empty Template
                     </div>
                     <div className="text-xs text-text-secondary leading-relaxed">
