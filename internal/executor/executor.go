@@ -6,14 +6,14 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/Bowl42/maxx-next/internal/cooldown"
-	ctxutil "github.com/Bowl42/maxx-next/internal/context"
-	"github.com/Bowl42/maxx-next/internal/domain"
-	"github.com/Bowl42/maxx-next/internal/event"
-	"github.com/Bowl42/maxx-next/internal/repository"
-	"github.com/Bowl42/maxx-next/internal/router"
-	"github.com/Bowl42/maxx-next/internal/usage"
-	"github.com/Bowl42/maxx-next/internal/waiter"
+	"github.com/Bowl42/maxx/internal/cooldown"
+	ctxutil "github.com/Bowl42/maxx/internal/context"
+	"github.com/Bowl42/maxx/internal/domain"
+	"github.com/Bowl42/maxx/internal/event"
+	"github.com/Bowl42/maxx/internal/repository"
+	"github.com/Bowl42/maxx/internal/router"
+	"github.com/Bowl42/maxx/internal/usage"
+	"github.com/Bowl42/maxx/internal/waiter"
 )
 
 // Executor handles request execution with retry logic
@@ -400,6 +400,16 @@ func (e *Executor) Execute(ctx context.Context, w http.ResponseWriter, req *http
 
 			// Check if it's a context cancellation (client disconnect)
 			if ctx.Err() != nil {
+				// Set final status before returning to ensure it's persisted
+				// (defer block also handles this, but we want to be explicit and broadcast immediately)
+				proxyReq.Status = "CANCELLED"
+				proxyReq.EndTime = time.Now()
+				proxyReq.Duration = proxyReq.EndTime.Sub(proxyReq.StartTime)
+				proxyReq.Error = "client disconnected"
+				_ = e.proxyRequestRepo.Update(proxyReq)
+				if e.broadcaster != nil {
+					e.broadcaster.BroadcastProxyRequest(proxyReq)
+				}
 				log.Printf("[Executor] Context cancelled, stopping")
 				return ctx.Err()
 			}
@@ -429,6 +439,15 @@ func (e *Executor) Execute(ctx context.Context, w http.ResponseWriter, req *http
 				log.Printf("[Executor] Waiting %v before retry", waitTime)
 				select {
 				case <-ctx.Done():
+					// Set final status before returning
+					proxyReq.Status = "CANCELLED"
+					proxyReq.EndTime = time.Now()
+					proxyReq.Duration = proxyReq.EndTime.Sub(proxyReq.StartTime)
+					proxyReq.Error = "client disconnected during retry wait"
+					_ = e.proxyRequestRepo.Update(proxyReq)
+					if e.broadcaster != nil {
+						e.broadcaster.BroadcastProxyRequest(proxyReq)
+					}
 					return ctx.Err()
 				case <-time.After(waitTime):
 				}

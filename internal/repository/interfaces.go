@@ -1,6 +1,6 @@
 package repository
 
-import "github.com/Bowl42/maxx-next/internal/domain"
+import "github.com/Bowl42/maxx/internal/domain"
 
 type ProviderRepository interface {
 	Create(provider *domain.Provider) error
@@ -66,6 +66,7 @@ type ProxyRequestRepository interface {
 	// UpdateProjectIDBySessionID 批量更新指定 sessionID 的所有请求的 projectID
 	UpdateProjectIDBySessionID(sessionID string, projectID uint64) (int64, error)
 	// MarkStaleAsFailed marks all IN_PROGRESS/PENDING requests from other instances as FAILED
+	// Also marks requests that have been IN_PROGRESS for too long (> 30 minutes) as timed out
 	MarkStaleAsFailed(currentInstanceID string) (int64, error)
 }
 
