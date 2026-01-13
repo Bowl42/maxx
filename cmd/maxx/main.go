@@ -20,6 +20,7 @@ import (
 	"github.com/Bowl42/maxx-next/internal/router"
 	"github.com/Bowl42/maxx-next/internal/service"
 	"github.com/Bowl42/maxx-next/internal/version"
+	"github.com/Bowl42/maxx-next/internal/waiter"
 )
 
 // getDefaultDataDir returns the default data directory path (~/.config/maxx)
@@ -162,8 +163,11 @@ func main() {
 	logWriter := handler.NewWebSocketLogWriter(wsHub, os.Stdout, logPath)
 	log.SetOutput(logWriter)
 
+	// Create project waiter for force project binding
+	projectWaiter := waiter.NewProjectWaiter(cachedSessionRepo, settingRepo, wsHub)
+
 	// Create executor
-	exec := executor.NewExecutor(r, proxyRequestRepo, attemptRepo, cachedRetryConfigRepo, wsHub, instanceID)
+	exec := executor.NewExecutor(r, proxyRequestRepo, attemptRepo, cachedRetryConfigRepo, cachedSessionRepo, wsHub, projectWaiter, instanceID)
 
 	// Create client adapter
 	clientAdapter := client.NewAdapter()

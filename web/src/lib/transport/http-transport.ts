@@ -167,6 +167,13 @@ export class HttpTransport implements Transport {
     return data;
   }
 
+  async rejectSession(sessionID: string): Promise<Session> {
+    const { data } = await this.client.post<Session>(
+      `/sessions/${encodeURIComponent(sessionID)}/reject`
+    );
+    return data;
+  }
+
   // ===== RetryConfig API =====
 
   async getRetryConfigs(): Promise<RetryConfig[]> {

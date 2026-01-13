@@ -37,3 +37,15 @@ export function useUpdateSessionProject() {
     },
   });
 }
+
+// 拒绝 Session
+export function useRejectSession() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (sessionID: string) => transport.rejectSession(sessionID),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: sessionKeys.all });
+    },
+  });
+}

@@ -138,7 +138,7 @@ export interface ResponseInfo {
   body: string;
 }
 
-export type ProxyRequestStatus = 'PENDING' | 'IN_PROGRESS' | 'COMPLETED' | 'FAILED' | 'CANCELLED';
+export type ProxyRequestStatus = 'PENDING' | 'IN_PROGRESS' | 'COMPLETED' | 'FAILED' | 'CANCELLED' | 'REJECTED';
 
 export interface ProxyRequest {
   id: number;
@@ -234,11 +234,25 @@ export type WSMessageType =
   | 'proxy_upstream_attempt_update'
   | 'stats_update'
   | 'log_message'
-  | 'antigravity_oauth_result';
+  | 'antigravity_oauth_result'
+  | 'new_session_pending'
+  | 'session_pending_cancelled';
 
 export interface WSMessage<T = unknown> {
   type: WSMessageType;
   data: T;
+}
+
+// New session pending event (for force project binding)
+export interface NewSessionPendingEvent {
+  sessionID: string;
+  clientType: ClientType;
+  createdAt: string;
+}
+
+// Session pending cancelled event (client disconnected)
+export interface SessionPendingCancelledEvent {
+  sessionID: string;
 }
 
 // ===== Proxy Status =====

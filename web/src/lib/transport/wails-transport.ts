@@ -140,6 +140,10 @@ export class WailsTransport implements Transport {
     return this.call<{ session: Session; updatedRequests: number }>('AdminService.UpdateSessionProject', sessionID, projectID);
   }
 
+  async rejectSession(sessionID: string): Promise<Session> {
+    return this.call<Session>('AdminService.RejectSession', sessionID);
+  }
+
   // ===== RetryConfig API =====
 
   async getRetryConfigs(): Promise<RetryConfig[]> {

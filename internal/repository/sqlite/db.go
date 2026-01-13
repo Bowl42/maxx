@@ -310,6 +310,29 @@ func (d *DB) migrate() error {
 		}
 	}
 
+	// Migration: Add rejected_at column to sessions if it doesn't exist
+	var hasRejectedAt bool
+	row = d.db.QueryRow(`SELECT COUNT(*) FROM pragma_table_info('sessions') WHERE name='rejected_at'`)
+	row.Scan(&hasRejectedAt)
+
+	if !hasRejectedAt {
+		// Check if old 'rejected' column exists and migrate
+		var hasOldRejected bool
+		row = d.db.QueryRow(`SELECT COUNT(*) FROM pragma_table_info('sessions') WHERE name='rejected'`)
+		row.Scan(&hasOldRejected)
+
+		// Add new column
+		_, err = d.db.Exec(`ALTER TABLE sessions ADD COLUMN rejected_at DATETIME`)
+		if err != nil {
+			return err
+		}
+
+		// Migrate old data if exists (rejected=1 -> rejected_at=now)
+		if hasOldRejected {
+			_, _ = d.db.Exec(`UPDATE sessions SET rejected_at = CURRENT_TIMESTAMP WHERE rejected = 1`)
+		}
+	}
+
 	return nil
 }
 

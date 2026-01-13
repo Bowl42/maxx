@@ -407,11 +407,17 @@ func (h *AdminHandler) handleProjectBySlug(w http.ResponseWriter, r *http.Reques
 }
 
 // Session handlers
-// Routes: /admin/sessions, /admin/sessions/{sessionID}/project
+// Routes: /admin/sessions, /admin/sessions/{sessionID}/project, /admin/sessions/{sessionID}/reject
 func (h *AdminHandler) handleSessions(w http.ResponseWriter, r *http.Request, parts []string) {
 	// Check for sub-resource: /admin/sessions/{sessionID}/project
 	if len(parts) > 3 && parts[3] == "project" {
 		h.handleSessionProject(w, r, parts[2])
+		return
+	}
+
+	// Check for sub-resource: /admin/sessions/{sessionID}/reject
+	if len(parts) > 3 && parts[3] == "reject" {
+		h.handleSessionReject(w, r, parts[2])
 		return
 	}
 
@@ -455,6 +461,27 @@ func (h *AdminHandler) handleSessionProject(w http.ResponseWriter, r *http.Reque
 	}
 
 	writeJSON(w, http.StatusOK, result)
+}
+
+// handleSessionReject handles POST /admin/sessions/{sessionID}/reject
+func (h *AdminHandler) handleSessionReject(w http.ResponseWriter, r *http.Request, sessionID string) {
+	if r.Method != http.MethodPost {
+		writeJSON(w, http.StatusMethodNotAllowed, map[string]string{"error": "method not allowed"})
+		return
+	}
+
+	if sessionID == "" {
+		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "session ID required"})
+		return
+	}
+
+	session, err := h.svc.RejectSession(sessionID)
+	if err != nil {
+		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": err.Error()})
+		return
+	}
+
+	writeJSON(w, http.StatusOK, session)
 }
 
 // RetryConfig handlers
