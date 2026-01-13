@@ -6,14 +6,14 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/Bowl42/maxx/internal/cooldown"
-	ctxutil "github.com/Bowl42/maxx/internal/context"
-	"github.com/Bowl42/maxx/internal/domain"
-	"github.com/Bowl42/maxx/internal/event"
-	"github.com/Bowl42/maxx/internal/repository"
-	"github.com/Bowl42/maxx/internal/router"
-	"github.com/Bowl42/maxx/internal/usage"
-	"github.com/Bowl42/maxx/internal/waiter"
+	"github.com/awsl-project/maxx/internal/cooldown"
+	ctxutil "github.com/awsl-project/maxx/internal/context"
+	"github.com/awsl-project/maxx/internal/domain"
+	"github.com/awsl-project/maxx/internal/event"
+	"github.com/awsl-project/maxx/internal/repository"
+	"github.com/awsl-project/maxx/internal/router"
+	"github.com/awsl-project/maxx/internal/usage"
+	"github.com/awsl-project/maxx/internal/waiter"
 )
 
 // Executor handles request execution with retry logic

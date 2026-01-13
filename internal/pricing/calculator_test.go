@@ -3,7 +3,7 @@ package pricing
 import (
 	"testing"
 
-	"github.com/Bowl42/maxx/internal/usage"
+	"github.com/awsl-project/maxx/internal/usage"
 )
 
 func TestCalculateTieredCostMicro(t *testing.T) {

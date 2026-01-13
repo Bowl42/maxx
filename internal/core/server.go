@@ -6,7 +6,7 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/Bowl42/maxx/internal/handler"
+	"github.com/awsl-project/maxx/internal/handler"
 )
 
 // ServerConfig 服务器配置

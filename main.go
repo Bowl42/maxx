@@ -4,7 +4,7 @@ import (
 	"embed"
 	"log"
 
-	"github.com/Bowl42/maxx/internal/desktop"
+	"github.com/awsl-project/maxx/internal/desktop"
 	"github.com/wailsapp/wails/v2"
 	"github.com/wailsapp/wails/v2/pkg/options"
 	"github.com/wailsapp/wails/v2/pkg/options/assetserver"
@@ -63,7 +63,7 @@ func main() {
 			WindowIsTranslucent:  true,
 			About: &mac.AboutInfo{
 				Title:   "Maxx",
-				Message: "AI API Proxy Gateway\n© 2024 Bowl42",
+				Message: "AI API Proxy Gateway\n© 2024 awsl-project",
 			},
 		},
 	})

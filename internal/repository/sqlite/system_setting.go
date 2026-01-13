@@ -4,7 +4,7 @@ import (
 	"database/sql"
 	"time"
 
-	"github.com/Bowl42/maxx/internal/domain"
+	"github.com/awsl-project/maxx/internal/domain"
 )
 
 type SystemSettingRepository struct {

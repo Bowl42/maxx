@@ -7,11 +7,11 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/Bowl42/maxx/internal/adapter/client"
-	ctxutil "github.com/Bowl42/maxx/internal/context"
-	"github.com/Bowl42/maxx/internal/domain"
-	"github.com/Bowl42/maxx/internal/executor"
-	"github.com/Bowl42/maxx/internal/repository"
+	"github.com/awsl-project/maxx/internal/adapter/client"
+	ctxutil "github.com/awsl-project/maxx/internal/context"
+	"github.com/awsl-project/maxx/internal/domain"
+	"github.com/awsl-project/maxx/internal/executor"
+	"github.com/awsl-project/maxx/internal/repository"
 )
 
 // ProxyHandler handles AI API proxy requests

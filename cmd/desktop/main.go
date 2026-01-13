@@ -11,7 +11,7 @@ import (
 	"github.com/wailsapp/wails/v2/pkg/options/assetserver"
 	"github.com/wailsapp/wails/v2/pkg/options/mac"
 	"github.com/wailsapp/wails/v2/pkg/options/windows"
-	"github.com/Bowl42/maxx/internal/desktop"
+	"github.com/awsl-project/maxx/internal/desktop"
 )
 
 //go:embed all:../web/dist

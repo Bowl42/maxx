@@ -1,6 +1,6 @@
 package repository
 
-import "github.com/Bowl42/maxx/internal/domain"
+import "github.com/awsl-project/maxx/internal/domain"
 
 type ProviderRepository interface {
 	Create(provider *domain.Provider) error

@@ -6,7 +6,7 @@ import (
 	"context"
 	"sync"
 
-	"github.com/Bowl42/maxx/internal/domain"
+	"github.com/awsl-project/maxx/internal/domain"
 	"github.com/wailsapp/wails/v2/pkg/runtime"
 )
 

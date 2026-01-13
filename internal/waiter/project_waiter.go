@@ -8,9 +8,9 @@ import (
 	"sync"
 	"time"
 
-	"github.com/Bowl42/maxx/internal/domain"
-	"github.com/Bowl42/maxx/internal/event"
-	"github.com/Bowl42/maxx/internal/repository"
+	"github.com/awsl-project/maxx/internal/domain"
+	"github.com/awsl-project/maxx/internal/event"
+	"github.com/awsl-project/maxx/internal/repository"
 )
 
 var (

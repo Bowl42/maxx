@@ -14,10 +14,10 @@ import (
 	"sync"
 	"time"
 
-	"github.com/Bowl42/maxx/internal/adapter/provider"
-	ctxutil "github.com/Bowl42/maxx/internal/context"
-	"github.com/Bowl42/maxx/internal/domain"
-	"github.com/Bowl42/maxx/internal/usage"
+	"github.com/awsl-project/maxx/internal/adapter/provider"
+	ctxutil "github.com/awsl-project/maxx/internal/context"
+	"github.com/awsl-project/maxx/internal/domain"
+	"github.com/awsl-project/maxx/internal/usage"
 )
 
 func init() {

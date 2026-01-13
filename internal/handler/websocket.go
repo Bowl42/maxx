@@ -9,7 +9,7 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/Bowl42/maxx/internal/domain"
+	"github.com/awsl-project/maxx/internal/domain"
 	"github.com/gorilla/websocket"
 )
 

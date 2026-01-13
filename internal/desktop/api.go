@@ -1,8 +1,8 @@
 package desktop
 
 import (
-	"github.com/Bowl42/maxx/internal/domain"
-	"github.com/Bowl42/maxx/internal/service"
+	"github.com/awsl-project/maxx/internal/domain"
+	"github.com/awsl-project/maxx/internal/service"
 )
 
 // ===== Provider API =====

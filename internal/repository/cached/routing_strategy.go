@@ -3,8 +3,8 @@ package cached
 import (
 	"sync"
 
-	"github.com/Bowl42/maxx/internal/domain"
-	"github.com/Bowl42/maxx/internal/repository"
+	"github.com/awsl-project/maxx/internal/domain"
+	"github.com/awsl-project/maxx/internal/repository"
 )
 
 type RoutingStrategyRepository struct {

@@ -8,11 +8,11 @@ import (
 	"strings"
 	"time"
 
-	"github.com/Bowl42/maxx/internal/adapter/provider/antigravity"
-	"github.com/Bowl42/maxx/internal/domain"
-	"github.com/Bowl42/maxx/internal/event"
-	"github.com/Bowl42/maxx/internal/repository"
-	"github.com/Bowl42/maxx/internal/service"
+	"github.com/awsl-project/maxx/internal/adapter/provider/antigravity"
+	"github.com/awsl-project/maxx/internal/domain"
+	"github.com/awsl-project/maxx/internal/event"
+	"github.com/awsl-project/maxx/internal/repository"
+	"github.com/awsl-project/maxx/internal/service"
 )
 
 // AntigravityHandler handles Antigravity-specific API requests

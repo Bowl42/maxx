@@ -5,8 +5,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/Bowl42/maxx/internal/domain"
-	"github.com/Bowl42/maxx/internal/repository"
+	"github.com/awsl-project/maxx/internal/domain"
+	"github.com/awsl-project/maxx/internal/repository"
 )
 
 // ProviderAdapterRefresher is an interface for refreshing provider adapters

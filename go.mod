@@ -1,4 +1,4 @@
-module github.com/Bowl42/maxx
+module github.com/awsl-project/maxx
 
 go 1.25.5
 

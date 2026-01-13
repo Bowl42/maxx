@@ -5,7 +5,7 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/Bowl42/maxx/internal/repository"
+	"github.com/awsl-project/maxx/internal/repository"
 )
 
 // ProjectProxyHandler wraps ProxyHandler to handle project-prefixed proxy requests

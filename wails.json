@@ -11,11 +11,11 @@
   "wailsjsdir": "./web/src",
   "version": "2",
   "author": {
-    "name": "Bowl42",
+    "name": "awsl-project",
     "email": ""
   },
   "info": {
-    "companyName": "Bowl42",
+    "companyName": "awsl-project",
     "productName": "maxx",
     "productVersion": "1.0.0",
     "copyright": "",

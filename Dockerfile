@@ -49,9 +49,9 @@ ARG BUILD_TIME=unknown
 # Build backend binary with version info
 RUN CGO_ENABLED=1 GOOS=linux go build -a -installsuffix cgo \
     -ldflags="-s -w \
-    -X github.com/Bowl42/maxx/internal/version.Version=${VERSION} \
-    -X github.com/Bowl42/maxx/internal/version.Commit=${COMMIT} \
-    -X github.com/Bowl42/maxx/internal/version.BuildTime=${BUILD_TIME}" \
+    -X github.com/awsl-project/maxx/internal/version.Version=${VERSION} \
+    -X github.com/awsl-project/maxx/internal/version.Commit=${COMMIT} \
+    -X github.com/awsl-project/maxx/internal/version.BuildTime=${BUILD_TIME}" \
     -o maxx cmd/maxx/main.go
 
 # Stage 3: Final runtime image

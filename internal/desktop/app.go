@@ -8,7 +8,7 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/Bowl42/maxx/internal/core"
+	"github.com/awsl-project/maxx/internal/core"
 	"github.com/wailsapp/wails/v2/pkg/runtime"
 )
 

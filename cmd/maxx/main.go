@@ -9,18 +9,18 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/Bowl42/maxx/internal/adapter/client"
-	_ "github.com/Bowl42/maxx/internal/adapter/provider/antigravity" // Register antigravity adapter
-	_ "github.com/Bowl42/maxx/internal/adapter/provider/custom"      // Register custom adapter
-	"github.com/Bowl42/maxx/internal/cooldown"
-	"github.com/Bowl42/maxx/internal/executor"
-	"github.com/Bowl42/maxx/internal/handler"
-	"github.com/Bowl42/maxx/internal/repository/cached"
-	"github.com/Bowl42/maxx/internal/repository/sqlite"
-	"github.com/Bowl42/maxx/internal/router"
-	"github.com/Bowl42/maxx/internal/service"
-	"github.com/Bowl42/maxx/internal/version"
-	"github.com/Bowl42/maxx/internal/waiter"
+	"github.com/awsl-project/maxx/internal/adapter/client"
+	_ "github.com/awsl-project/maxx/internal/adapter/provider/antigravity" // Register antigravity adapter
+	_ "github.com/awsl-project/maxx/internal/adapter/provider/custom"      // Register custom adapter
+	"github.com/awsl-project/maxx/internal/cooldown"
+	"github.com/awsl-project/maxx/internal/executor"
+	"github.com/awsl-project/maxx/internal/handler"
+	"github.com/awsl-project/maxx/internal/repository/cached"
+	"github.com/awsl-project/maxx/internal/repository/sqlite"
+	"github.com/awsl-project/maxx/internal/router"
+	"github.com/awsl-project/maxx/internal/service"
+	"github.com/awsl-project/maxx/internal/version"
+	"github.com/awsl-project/maxx/internal/waiter"
 )
 
 // getDefaultDataDir returns the default data directory path (~/.config/maxx)

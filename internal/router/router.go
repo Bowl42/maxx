@@ -6,10 +6,10 @@ import (
 	"sort"
 	"sync"
 
-	"github.com/Bowl42/maxx/internal/adapter/provider"
-	"github.com/Bowl42/maxx/internal/cooldown"
-	"github.com/Bowl42/maxx/internal/domain"
-	"github.com/Bowl42/maxx/internal/repository/cached"
+	"github.com/awsl-project/maxx/internal/adapter/provider"
+	"github.com/awsl-project/maxx/internal/cooldown"
+	"github.com/awsl-project/maxx/internal/domain"
+	"github.com/awsl-project/maxx/internal/repository/cached"
 )
 
 // MatchedRoute contains all data needed to execute a proxy request
