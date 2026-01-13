@@ -16,7 +16,7 @@ export function AppLayout() {
     <SidebarProvider>
       <SidebarNav />
       <SidebarInset>
-        <div className="@container/main">
+        <div className="@container/main h-full">
           <Outlet />
         </div>
       </SidebarInset>
