@@ -5,6 +5,7 @@
 
 # Binary
 maxx
+build/bin/
 
 # Go build cache
 .gocache/
