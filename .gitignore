@@ -19,6 +19,7 @@ build/bin/
 node_modules/
 web/node_modules/
 web/dist/
+web/src/wailsjs/
 
 # IDE
 .idea/
