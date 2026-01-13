@@ -16,6 +16,7 @@ import (
 	"github.com/Bowl42/maxx-next/internal/repository/sqlite"
 	"github.com/Bowl42/maxx-next/internal/router"
 	"github.com/Bowl42/maxx-next/internal/service"
+	"github.com/Bowl42/maxx-next/internal/waiter"
 )
 
 // DatabaseConfig 数据库配置
@@ -195,13 +196,18 @@ func InitializeServerComponents(
 	logWriter := handler.NewWebSocketLogWriter(wsHub, os.Stdout, logPath)
 	log.SetOutput(logWriter)
 
+	log.Printf("[Core] Creating project waiter")
+	projectWaiter := waiter.NewProjectWaiter(repos.CachedSessionRepo, repos.SettingRepo, wsHub)
+
 	log.Printf("[Core] Creating executor")
 	exec := executor.NewExecutor(
 		r,
 		repos.ProxyRequestRepo,
 		repos.AttemptRepo,
 		repos.CachedRetryConfigRepo,
+		repos.CachedSessionRepo,
 		wsHub,
+		projectWaiter,
 		instanceID,
 	)
 
