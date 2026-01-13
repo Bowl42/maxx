@@ -216,7 +216,7 @@ export function ClientTypeRoutesContent({
   }
 
   return (
-    <div className="flex flex-col h-full">
+    <div className="flex flex-col h-full px-6">
       <div className="flex-1 overflow-y-auto px-lg py-6">
         <div className="mx-auto max-w-[1400px] space-y-6">
           {/* Routes List */}
@@ -310,7 +310,7 @@ export function ClientTypeRoutesContent({
                       key={provider.id}
                       onClick={() => handleAddRoute(provider, isNative)}
                       disabled={createRoute.isPending}
-                      className="group relative flex flex-col p-4 rounded-xl border border-border/60 bg-surface-secondary hover:border-border shadow-sm transition-all duration-300 text-left disabled:opacity-50 disabled:cursor-not-allowed overflow-hidden"
+                      className="group relative flex flex-col p-4 rounded-xl border border-border/60 bg-secondary hover:border-border shadow-sm transition-all duration-300 text-left disabled:opacity-50 disabled:cursor-not-allowed overflow-hidden"
                     >
                       {/* Provider Icon */}
                       <div className="flex items-start gap-3 mb-3">
@@ -319,7 +319,7 @@ export function ClientTypeRoutesContent({
                           style={{
                             backgroundColor: `${providerColor}15`,
                             borderColor: `${providerColor}30`,
-                            color: providerColor
+                            color: providerColor,
                           }}
                         >
                           <span className="relative text-xl font-black">
@@ -340,7 +340,8 @@ export function ClientTypeRoutesContent({
                       <div className="flex items-center justify-between">
                         {isNative ? (
                           <span className="flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/10 text-emerald-500 border border-emerald-500/20">
-                            <Zap size={10} className="fill-emerald-500/20" /> NATIVE
+                            <Zap size={10} className="fill-emerald-500/20" />{' '}
+                            NATIVE
                           </span>
                         ) : (
                           <span className="flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/10 text-amber-500 border border-amber-500/20">

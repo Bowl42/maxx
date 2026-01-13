@@ -13,14 +13,6 @@ export default {
 				"screen-xl": "1280px",
 				"screen-2xl": "1536px",
 			},
-			spacing: {
-				xs: "var(--spacing-xs)",
-				sm: "var(--spacing-sm)",
-				md: "var(--spacing-md)",
-				lg: "var(--spacing-lg)",
-				xl: "var(--spacing-xl)",
-				xxl: "var(--spacing-xxl)",
-			},
 			borderRadius: {
 				sm: "4px",
 				md: "8px",

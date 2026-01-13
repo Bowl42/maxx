@@ -7,6 +7,7 @@ import { defaultClients, type ClientConfig } from '../types'
 import { ClientsConfigSection } from './clients-config-section'
 import { AntigravityProviderView } from './antigravity-provider-view'
 import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
 
 interface ProviderEditFlowProps {
   provider: Provider
@@ -171,7 +172,6 @@ export function ProviderEditFlow({ provider, onClose }: ProviderEditFlowProps) {
           </Button>
           <Button
             onClick={onClose}
-            className="btn bg-surface-secondary hover:bg-surface-hover text-text-primary"
             variant={'secondary'}
           >
             Cancel
@@ -206,14 +206,14 @@ export function ProviderEditFlow({ provider, onClose }: ProviderEditFlowProps) {
                 <label className="text-sm font-medium text-text-primary block mb-2">
                   Display Name
                 </label>
-                <input
+                <Input
                   type="text"
                   value={formData.name}
                   onChange={e =>
                     setFormData(prev => ({ ...prev, name: e.target.value }))
                   }
                   placeholder="My Provider"
-                  className="form-input w-full"
+                  className="w-full"
                 />
               </div>
 
@@ -225,7 +225,7 @@ export function ProviderEditFlow({ provider, onClose }: ProviderEditFlowProps) {
                       <span>API Endpoint</span>
                     </div>
                   </label>
-                  <input
+                  <Input
                     type="text"
                     value={formData.baseURL}
                     onChange={e =>
@@ -235,7 +235,7 @@ export function ProviderEditFlow({ provider, onClose }: ProviderEditFlowProps) {
                       }))
                     }
                     placeholder="https://api.example.com/v1"
-                    className="form-input w-full"
+                    className="w-full"
                   />
                   <p className="text-xs text-text-secondary mt-1">
                     Optional if client-specific URLs are set below.
@@ -249,14 +249,14 @@ export function ProviderEditFlow({ provider, onClose }: ProviderEditFlowProps) {
                       <span>API Key (leave empty to keep current)</span>
                     </div>
                   </label>
-                  <input
+                  <Input
                     type="password"
                     value={formData.apiKey}
                     onChange={e =>
                       setFormData(prev => ({ ...prev, apiKey: e.target.value }))
                     }
                     placeholder="••••••••"
-                    className="form-input w-full"
+                    className="w-full"
                   />
                 </div>
               </div>
@@ -322,14 +322,16 @@ function DeleteConfirmModal({
         <div className="flex justify-end gap-3">
           <Button
             onClick={onCancel}
-            className="btn bg-surface-secondary hover:bg-surface-hover text-text-primary px-4"
+            variant={'secondary'}
+            className="px-4"
           >
             Cancel
           </Button>
           <Button
             onClick={onConfirm}
             disabled={deleting}
-            className="btn bg-error text-white hover:bg-error/90 px-4"
+            variant={'destructive'}
+            className="px-4"
           >
             {deleting ? 'Deleting...' : 'Delete'}
           </Button>

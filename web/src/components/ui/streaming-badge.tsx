@@ -66,7 +66,7 @@ export function StreamingBadge({
   return (
     <span
       className={cn(
-        'py-0.5 px-2 rounded text-xs font-extrabold animate-pulse-soft shadow-md min-w-xl text-center bg-surface-secondary border-2',
+        'py-1 px-2 rounded text-xs font-extrabold animate-pulse-soft shadow-md text-center bg-secondary border-2',
         'text-primary',
         className
       )}

@@ -1,4 +1,5 @@
 import { Switch } from '@/components/ui';
+import { Input } from '@/components/ui/input';
 import { ClientIcon } from '@/components/icons/client-icons';
 import type { ClientType } from '@/lib/transport';
 import type { ClientConfig } from '../types';
@@ -39,13 +40,13 @@ export function ClientsConfigSection({ clients, onUpdateClient }: ClientsConfigS
                   <label className="text-xs font-medium text-text-secondary block mb-1.5 uppercase tracking-wide">
                      Endpoint Override
                   </label>
-                  <input
+                  <Input
                     type="text"
                     value={client.urlOverride}
                     onChange={(e) => onUpdateClient(client.id, { urlOverride: e.target.value })}
                     placeholder="Default"
                     disabled={!client.enabled}
-                    className="form-input text-sm w-full bg-surface-primary h-9"
+                    className="text-sm w-full bg-surface-primary h-9"
                   />
                </div>
             </div>

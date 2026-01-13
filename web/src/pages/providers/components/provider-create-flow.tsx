@@ -6,6 +6,8 @@ import { quickTemplates, defaultClients, type ClientConfig, type ProviderFormDat
 import { ClientsConfigSection } from './clients-config-section';
 import { SelectTypeStep } from './select-type-step';
 import { AntigravityTokenImport } from './antigravity-token-import';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 
 interface ProviderCreateFlowProps {
   onClose: () => void;
@@ -152,13 +154,13 @@ export function ProviderCreateFlow({ onClose }: ProviderCreateFlowProps) {
           </div>
         </div>
         <div className="flex items-center gap-sm">
-          <button onClick={onClose} className="btn bg-surface-secondary hover:bg-surface-hover text-text-primary">
+          <Button onClick={onClose} variant={'secondary'}>
             Cancel
-          </button>
-          <button
+          </Button>
+          <Button
             onClick={handleSave}
             disabled={saving || !isValid()}
-            className={`btn flex items-center gap-2 ${saving || !isValid() ? 'bg-surface-hover text-text-muted cursor-not-allowed' : 'btn-primary'}`}
+            variant={'default'}
           >
             {saving ? (
               'Saving...'
@@ -169,7 +171,7 @@ export function ProviderCreateFlow({ onClose }: ProviderCreateFlowProps) {
             ) : (
               'Create Provider'
             )}
-          </button>
+          </Button>
         </div>
       </div>
 
@@ -184,12 +186,12 @@ export function ProviderCreateFlow({ onClose }: ProviderCreateFlowProps) {
             <div className="grid gap-6">
               <div>
                 <label className="text-sm font-medium text-text-primary block mb-2">Display Name</label>
-                <input
+                <Input
                   type="text"
                   value={formData.name}
                   onChange={(e) => setFormData((prev) => ({ ...prev, name: e.target.value }))}
                   placeholder="e.g. Production OpenAI"
-                  className="form-input w-full"
+                  className="w-full"
                 />
               </div>
 
@@ -201,12 +203,12 @@ export function ProviderCreateFlow({ onClose }: ProviderCreateFlowProps) {
                       <span>API Endpoint</span>
                     </div>
                   </label>
-                  <input
+                  <Input
                     type="text"
                     value={formData.baseURL}
                     onChange={(e) => setFormData((prev) => ({ ...prev, baseURL: e.target.value }))}
                     placeholder="https://api.openai.com/v1"
-                    className="form-input w-full"
+                    className="w-full"
                   />
                   <p className="text-xs text-text-secondary mt-1">
                     Optional if client-specific URLs are set below.
@@ -220,12 +222,12 @@ export function ProviderCreateFlow({ onClose }: ProviderCreateFlowProps) {
                       <span>API Key</span>
                     </div>
                   </label>
-                  <input
+                  <Input
                     type="password"
                     value={formData.apiKey}
                     onChange={(e) => setFormData((prev) => ({ ...prev, apiKey: e.target.value }))}
                     placeholder="sk-..."
-                    className="form-input w-full"
+                    className="w-full"
                   />
                 </div>
               </div>

@@ -7,6 +7,7 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from '@/components/ui/tooltip'
+import { Button } from '../ui'
 
 export function NavProxyStatus() {
   const { data: proxyStatus } = useProxyStatus()
@@ -61,9 +62,10 @@ export function NavProxyStatus() {
   }
 
   return (
-    <button
+    <Button
+      variant={'ghost'}
       onClick={handleCopy}
-      className="flex items-center gap-sm group w-full rounded-lg p-2 hover:bg-surface-hover transition-all cursor-pointer"
+      className="h-auto border-none p-2 flex items-center gap-sm group w-full rounded-lg transition-all cursor-pointer"
       title={`Click to copy: ${fullUrl}`}
     >
       <div className="w-8 h-8 rounded-lg bg-emerald-400/10 flex items-center justify-center shrink-0 group-hover:bg-emerald-400/20 transition-colors">
@@ -91,6 +93,6 @@ export function NavProxyStatus() {
           }`}
         />
       </div>
-    </button>
+    </Button>
   )
 }
