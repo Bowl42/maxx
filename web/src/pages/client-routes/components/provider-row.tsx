@@ -6,7 +6,7 @@ import {
   Snowflake,
   Info,
 } from 'lucide-react'
-import { Switch } from '@/components/ui'
+import { Button, Switch } from '@/components/ui'
 import { StreamingBadge } from '@/components/ui/streaming-badge'
 import { useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
@@ -250,15 +250,16 @@ export function ProviderRowContent({
   }
 
   return (
-    <div
+    <Button
+      variant={null}
       onClick={handleContentClick}
       className={cn(
-        'group relative flex items-center gap-4 p-3 rounded-xl border transition-all duration-300 overflow-hidden',
+        'group relative flex items-center gap-4 p-3 rounded-xl border transition-all duration-300 overflow-hidden w-full h-auto',
         isInCooldown
-          ? 'bg-gradient-to-r from-cyan-950/40 to-blue-950/40 border-cyan-500/30 shadow-[0_0_20px_rgba(6,182,212,0.1)] cursor-pointer'
+          ? 'bg-teal-200/70 dark:bg-teal-950/80 border-teal-400/60 shadow-[0_0_25px_rgba(20,184,166,0.3)] cursor-pointer'
           : enabled
             ? streamingCount > 0
-              ? 'bg-surface-primary border-transparent ring-1 ring-black/5 dark:ring-white/10'
+              ? 'bg-accent/5 border-transparent ring-1 ring-black/5 dark:ring-white/10'
               : 'bg-surface-primary/60 border-border hover:border-emerald-500/30 hover:bg-surface-primary shadow-sm cursor-pointer'
             : 'bg-surface-secondary/40 border-dashed border-border opacity-70 cursor-pointer grayscale-[0.5] hover:opacity-100 hover:grayscale-0'
       )}
@@ -284,8 +285,8 @@ export function ProviderRowContent({
       {/* Cooldown 冰冻效果 - 增强版 */}
       {isInCooldown && (
         <>
-          <div className="absolute inset-0 bg-gradient-to-br from-cyan-500/5 via-transparent to-blue-600/5 pointer-events-none animate-pulse" />
-          <div className="absolute inset-x-0 top-0 h-[1px] bg-gradient-to-r from-transparent via-cyan-400/20 to-transparent" />
+          <div className="absolute inset-0 bg-linear-to-br from-cyan-500/5 via-transparent to-blue-600/5 pointer-events-none animate-pulse" />
+          <div className="absolute inset-x-0 top-0 h-[1px] bg-linear-to-r from-transparent via-cyan-400/20 to-transparent" />
           {/* 雪花动画 (CSS Background) */}
           <div className="absolute inset-0 animate-snowing pointer-events-none opacity-60" />
           <div className="absolute inset-0 animate-snowing-secondary pointer-events-none opacity-60" />
@@ -350,7 +351,7 @@ export function ProviderRowContent({
               className={cn(
                 'text-[14px] font-bold truncate transition-colors',
                 isInCooldown
-                  ? 'text-cyan-200'
+                  ? 'text-text-primary'
                   : enabled
                     ? 'text-text-primary'
                     : 'text-text-muted'
@@ -375,7 +376,7 @@ export function ProviderRowContent({
             className={cn(
               'text-[11px] font-medium truncate flex items-center gap-1',
               isInCooldown
-                ? 'text-cyan-500/70'
+                ? 'text-text-muted'
                 : enabled
                   ? 'text-text-muted'
                   : 'text-text-muted/50'
@@ -435,23 +436,23 @@ export function ProviderRowContent({
 
         {/* Center-placed Countdown (when in cooldown) or Stats Grid */}
         {isInCooldown && cooldown ? (
-          <div className="flex items-center gap-3 bg-cyan-950/40 rounded-xl border border-cyan-500/40 p-1 px-3 backdrop-blur-md shadow-[0_0_15px_rgba(6,182,212,0.1)]">
+          <div className="flex items-center gap-3 bg-white/80 dark:bg-teal-950/60 rounded-xl border border-teal-500/50 p-1 px-3 backdrop-blur-md shadow-[0_0_15px_rgba(20,184,166,0.15)]">
             <div className="flex flex-col items-center">
-              <span className="text-[8px] font-black text-cyan-500/60 uppercase tracking-tight">
+              <span className="text-[8px] font-black text-teal-600 dark:text-teal-500/60 uppercase tracking-tight">
                 Remaining
               </span>
               <div className="flex items-center gap-1.5">
                 <Snowflake
                   size={12}
-                  className="text-cyan-400 animate-spin-slow"
+                  className="text-teal-500 dark:text-teal-400 animate-spin-slow"
                 />
-                <span className="text-sm font-mono font-black text-cyan-400">
+                <span className="text-sm font-mono font-black text-teal-600 dark:text-teal-400">
                   {liveCountdown}
                 </span>
               </div>
             </div>
-            <div className="w-px h-6 bg-cyan-500/20" />
-            <div className="flex flex-col items-center text-cyan-500/40">
+            <div className="w-px h-6 bg-teal-500/20" />
+            <div className="flex flex-col items-center text-teal-600/60 dark:text-teal-500/40">
               <Zap size={14} />
               <span className="text-[8px] font-bold">FROZEN</span>
             </div>
@@ -517,10 +518,15 @@ export function ProviderRowContent({
           </div>
         )}
       </div>
-
+      {/* Streaming Indicator - Inline before Switch */}
+      {enabled && streamingCount > 0 && !isInCooldown && (
+        <div className="relative z-10 flex items-center shrink-0">
+          <StreamingBadge count={streamingCount} color={color} />
+        </div>
+      )}
       {/* Control Area - Switch */}
       <div
-        className="relative z-10 flex items-center shrink-0 ml-auto pl-2"
+        className="relative z-10 flex items-center shrink-0  pl-2"
         onClick={e => e.stopPropagation()}
         onPointerDown={e => e.stopPropagation()}
       >
@@ -530,13 +536,6 @@ export function ProviderRowContent({
           disabled={isToggling}
         />
       </div>
-
-      {/* Streaming Indicator - Top Right */}
-      {enabled && streamingCount > 0 && !isInCooldown && (
-        <div className="absolute top-0 right-0 z-20">
-          <StreamingBadge count={streamingCount} color={color} />
-        </div>
-      )}
-    </div>
+    </Button>
   )
 }

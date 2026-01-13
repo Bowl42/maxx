@@ -232,7 +232,7 @@ export function ClientTypeRoutesContent({
                 items={items}
                 strategy={verticalListSortingStrategy}
               >
-                <div className="space-y-sm">
+                <div className="space-y-2">
                   {items.map((item, index) => (
                     <SortableProviderRow
                       key={item.id}
@@ -337,7 +337,10 @@ export function ClientTypeRoutesContent({
                             </span>
                             {isNative ? (
                               <span className="flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 whitespace-nowrap">
-                                <Zap size={10} className="fill-current opacity-30" />
+                                <Zap
+                                  size={10}
+                                  className="fill-current opacity-30"
+                                />
                                 NATIVE
                               </span>
                             ) : (

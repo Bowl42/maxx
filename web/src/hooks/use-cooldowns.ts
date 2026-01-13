@@ -71,7 +71,11 @@ export function useCooldowns() {
 
   // Helper to get remaining time as seconds
   const getRemainingSeconds = (cooldown: Cooldown) => {
-    const until = new Date(cooldown.untilTime);
+    // Handle both 'untilTime' and 'until' field names for backward compatibility
+    const untilTime = cooldown.untilTime || (cooldown as Record<string, unknown>).until as string;
+    if (!untilTime) return 0;
+
+    const until = new Date(untilTime);
     const now = new Date();
     const diff = until.getTime() - now.getTime();
     return Math.max(0, Math.floor(diff / 1000));
@@ -81,7 +85,7 @@ export function useCooldowns() {
   const formatRemaining = (cooldown: Cooldown) => {
     const seconds = getRemainingSeconds(cooldown);
 
-    if (seconds === 0) return 'Expired';
+    if (Number.isNaN(seconds) || seconds === 0) return 'Expired';
 
     const hours = Math.floor(seconds / 3600);
     const minutes = Math.floor((seconds % 3600) / 60);

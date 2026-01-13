@@ -27,7 +27,7 @@ import type {
 } from '@/lib/transport/types'
 import type { ProviderConfigItem } from '@/pages/client-routes/types'
 import { useCooldowns } from '@/hooks/use-cooldowns'
-import { Switch } from '@/components/ui'
+import { Button, Switch } from '@/components/ui'
 import { getProviderColor, type ProviderType } from '@/lib/theme'
 import { cn } from '@/lib/utils'
 import { Dialog, DialogContent } from '@/components/ui/dialog'
@@ -62,43 +62,48 @@ const REASON_INFO: Record<
     label: '服务器错误',
     description: '上游服务器返回 5xx 错误，系统自动进入冷却保护',
     icon: Server,
-    color: 'text-red-400',
-    bgColor: 'bg-red-400/10 border-red-400/20',
+    color: 'text-rose-500 dark:text-rose-400',
+    bgColor:
+      'bg-rose-500/10 dark:bg-rose-500/15 border-rose-500/30 dark:border-rose-500/25',
   },
   network_error: {
     label: '网络错误',
     description: '无法连接到上游服务器，可能是网络故障或服务器宕机',
     icon: Wifi,
-    color: 'text-amber-400',
-    bgColor: 'bg-amber-400/10 border-amber-400/20',
+    color: 'text-amber-600 dark:text-amber-400',
+    bgColor:
+      'bg-amber-500/10 dark:bg-amber-500/15 border-amber-500/30 dark:border-amber-500/25',
   },
   quota_exhausted: {
     label: '配额耗尽',
     description: 'API 配额已用完，等待配额重置',
     icon: AlertCircle,
-    color: 'text-red-400',
-    bgColor: 'bg-red-400/10 border-red-400/20',
+    color: 'text-rose-500 dark:text-rose-400',
+    bgColor:
+      'bg-rose-500/10 dark:bg-rose-500/15 border-rose-500/30 dark:border-rose-500/25',
   },
   rate_limit_exceeded: {
     label: '速率限制',
     description: '请求速率超过限制，触发了速率保护',
     icon: Zap,
-    color: 'text-yellow-400',
-    bgColor: 'bg-yellow-400/10 border-yellow-400/20',
+    color: 'text-yellow-600 dark:text-yellow-400',
+    bgColor:
+      'bg-yellow-500/10 dark:bg-yellow-500/15 border-yellow-500/30 dark:border-yellow-500/25',
   },
   concurrent_limit: {
     label: '并发限制',
     description: '并发请求数超过限制',
     icon: Ban,
-    color: 'text-orange-400',
-    bgColor: 'bg-orange-400/10 border-orange-400/20',
+    color: 'text-orange-600 dark:text-orange-400',
+    bgColor:
+      'bg-orange-500/10 dark:bg-orange-500/15 border-orange-500/30 dark:border-orange-500/25',
   },
   unknown: {
     label: '未知原因',
     description: '因未知原因进入冷却状态',
     icon: HelpCircle,
     color: 'text-text-muted',
-    bgColor: 'bg-surface-secondary border-border',
+    bgColor: 'bg-surface-secondary/50 border-border',
   },
 }
 
@@ -209,7 +214,9 @@ export function ProviderDetailsDialog({
               <span
                 className={cn(
                   'text-xs font-bold',
-                  enabled ? 'text-emerald-500' : 'text-text-muted'
+                  enabled
+                    ? 'text-emerald-600 dark:text-emerald-400'
+                    : 'text-text-muted'
                 )}
               >
                 {enabled ? 'ON' : 'OFF'}
@@ -221,12 +228,14 @@ export function ProviderDetailsDialog({
               />
             </div>
             <div className="w-px h-6 bg-border" />
-            <button
+            <Button
+              type="button"
               onClick={() => onOpenChange(false)}
-              className="p-2 rounded-full hover:bg-surface-hover text-text-muted hover:text-text-primary transition-colors"
+              variant={'ghost'}
+              className={'border-none rounded-full'}
             >
               <X size={18} />
-            </button>
+            </Button>
           </div>
 
           <div className="flex items-center gap-4 pr-32 lg:pr-40">
@@ -235,7 +244,7 @@ export function ProviderDetailsDialog({
               className={cn(
                 'relative w-14 h-14 lg:w-16 lg:h-16 rounded-2xl flex items-center justify-center border shadow-lg',
                 isInCooldown
-                  ? 'bg-cyan-900/40 border-cyan-500/30'
+                  ? 'bg-cyan-500/10 dark:bg-cyan-950/40 border-cyan-500/40 dark:border-cyan-500/30'
                   : 'bg-surface-secondary border-border'
               )}
               style={!isInCooldown ? { color } : {}}
@@ -244,7 +253,7 @@ export function ProviderDetailsDialog({
                 className={cn(
                   'text-2xl lg:text-3xl font-black',
                   isInCooldown
-                    ? 'text-cyan-400 opacity-20 scale-150 blur-[1px]'
+                    ? 'text-cyan-400 dark:text-cyan-300 opacity-20 scale-150 blur-[1px]'
                     : ''
                 )}
               >
@@ -253,7 +262,7 @@ export function ProviderDetailsDialog({
               {isInCooldown && (
                 <Snowflake
                   size={24}
-                  className="absolute text-cyan-400 animate-pulse drop-shadow-[0_0_8px_rgba(34,211,238,0.5)]"
+                  className="absolute text-cyan-400 dark:text-cyan-300 animate-pulse drop-shadow-[0_0_8px_rgba(34,211,238,0.5)]"
                 />
               )}
             </div>
@@ -265,11 +274,11 @@ export function ProviderDetailsDialog({
               </h2>
               <div className="flex flex-wrap items-center gap-2">
                 {isNative ? (
-                  <span className="flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/10 text-emerald-500 border border-emerald-500/20">
+                  <span className="flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/10 dark:bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30 dark:border-emerald-500/25">
                     <Zap size={10} className="fill-emerald-500/20" /> NATIVE
                   </span>
                 ) : (
-                  <span className="flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/10 text-amber-500 border border-amber-500/20">
+                  <span className="flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/10 dark:bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/30 dark:border-amber-500/25">
                     <Activity size={10} /> CONVERTED
                   </span>
                 )}
@@ -277,7 +286,7 @@ export function ProviderDetailsDialog({
                   {provider.type}
                 </span>
                 {streamingCount > 0 && (
-                  <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-500/10 text-blue-400 border border-blue-500/20 animate-pulse">
+                  <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-500/10 dark:bg-blue-500/15 text-blue-600 dark:text-blue-400 border border-blue-500/30 dark:border-blue-500/25 animate-pulse">
                     {streamingCount} Streaming
                   </span>
                 )}
@@ -291,7 +300,7 @@ export function ProviderDetailsDialog({
             {/* 左侧：Provider 信息 + 操作 */}
             <div className="lg:col-span-5 xl:col-span-4 space-y-4">
               {/* Provider Basic Info Card */}
-              <div className="rounded-xl border border-border bg-surface-secondary p-4 space-y-3">
+              <div className="rounded-xl border border-border bg-muted-background p-4 space-y-3">
                 <div className="flex items-start gap-2">
                   <Info size={14} className="text-text-muted mt-0.5 shrink-0" />
                   <div className="flex-1 min-w-0">
@@ -330,44 +339,37 @@ export function ProviderDetailsDialog({
               <div className="space-y-3">
                 {/* Cooldown Actions (if in cooldown) */}
                 {isInCooldown && (
-                  <button
+                  <Button
                     onClick={onClearCooldown}
                     disabled={isClearingCooldown || isToggling}
-                    className="w-full relative overflow-hidden rounded-xl p-[1px] group disabled:opacity-50 disabled:cursor-not-allowed transition-all hover:scale-[1.01] active:scale-[0.99]"
+                    className="w-full relative overflow-hidden rounded-xl p-px group disabled:opacity-50 disabled:cursor-not-allowed transition-all hover:scale-[1.01] active:scale-[0.99] shadow-lg shadow-teal-500/20 dark:shadow-teal-500/30 hover:shadow-teal-500/40 dark:hover:shadow-teal-500/50"
                   >
-                    <span className="absolute inset-0 bg-gradient-to-r from-cyan-500 to-blue-600 rounded-xl" />
-                    <div className="relative flex items-center justify-center gap-2 rounded-[11px] bg-surface-primary group-hover:bg-transparent px-4 py-3 transition-colors">
+                    <span className="absolute inset-0 bg-linear-to-r from-teal-500 via-cyan-500 to-blue-500 rounded-xl" />
+                    <div className="relative flex items-center justify-center gap-2 rounded-lg px-4 py-3 transition-colors">
                       {isClearingCooldown ? (
                         <>
-                          <div className="h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white" />
-                          <span className="text-sm font-bold text-white">
-                            Thawing...
-                          </span>
+                          <div className="h-4 w-4 animate-spin rounded-full border-2 border-teal-400/30 border-t-teal-400" />
+                          <span className="text-sm font-bold ">Thawing...</span>
                         </>
                       ) : (
                         <>
-                          <Zap
-                            size={16}
-                            className="text-cyan-400 group-hover:text-white transition-colors"
-                          />
-                          <span className="text-sm font-bold text-cyan-400 group-hover:text-white transition-colors">
-                            立即解冻
-                          </span>
+                          <Zap size={16} />
+                          立即解冻
                         </>
                       )}
                     </div>
-                  </button>
+                  </Button>
                 )}
 
                 {/* Delete Button */}
                 {onDelete && (
-                  <button
+                  <Button
                     onClick={onDelete}
-                    className="w-full flex items-center justify-center gap-2 rounded-xl border border-red-500/20 bg-red-500/5 hover:bg-red-500/10 px-4 py-2.5 text-sm font-medium text-red-400 transition-colors"
+                    className="w-full flex items-center justify-center gap-2 rounded-xl border border-rose-500/30 dark:border-rose-500/25 bg-rose-500/5 dark:bg-rose-500/10 hover:bg-rose-500/10 dark:hover:bg-rose-500/15 px-4 py-2.5 text-sm font-medium text-rose-600 dark:text-rose-400 transition-colors"
                   >
                     <Trash2 size={14} />
                     删除此路由
-                  </button>
+                  </Button>
                 )}
 
                 {/* Warning Note */}
@@ -384,8 +386,8 @@ export function ProviderDetailsDialog({
             <div className="lg:col-span-7 xl:col-span-8 space-y-4">
               {/* Cooldown Warning (if in cooldown) */}
               {isInCooldown && cooldown && (
-                <div className="rounded-xl border border-cyan-500/30 bg-gradient-to-br from-cyan-950/20 to-blue-950/10 p-4 space-y-3">
-                  <div className="flex items-center gap-2 text-cyan-400">
+                <div className="rounded-xl border p-4 space-y-3">
+                  <div className="flex items-center gap-2 text-teal-600 dark:text-teal-400">
                     <Snowflake size={16} className="animate-spin-slow" />
                     <span className="text-sm font-bold">冷却保护激活</span>
                   </div>
@@ -393,7 +395,7 @@ export function ProviderDetailsDialog({
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                     {/* Reason Section */}
                     <div
-                      className={`rounded-xl border p-3 ${REASON_INFO[cooldown.reason]?.bgColor || REASON_INFO.unknown.bgColor}`}
+                      className={`rounded-xl border p-3 backdrop-blur-sm ${REASON_INFO[cooldown.reason]?.bgColor || REASON_INFO.unknown.bgColor}`}
                     >
                       <div className="flex gap-3">
                         <div
@@ -422,21 +424,21 @@ export function ProviderDetailsDialog({
                     </div>
 
                     {/* Timer Section */}
-                    <div className="relative overflow-hidden rounded-xl bg-gradient-to-br from-cyan-950/30 to-transparent border border-cyan-500/20 p-4 flex flex-col items-center justify-center group">
-                      <div className="absolute inset-0 bg-cyan-400/5 opacity-50 group-hover:opacity-100 transition-opacity" />
-                      <div className="relative flex items-center gap-1.5 text-cyan-500 mb-1">
+                    <div className="relative overflow-hidden rounded-xl bg-gradient-to-br from-teal-500/10 via-cyan-500/5 to-transparent dark:from-teal-950/40 dark:via-cyan-950/20 dark:to-transparent border border-teal-400/30 dark:border-teal-500/20 p-4 flex flex-col items-center justify-center group shadow-inner">
+                      <div className="absolute inset-0 bg-gradient-to-br from-teal-400/5 to-cyan-400/5 dark:from-teal-400/5 dark:to-cyan-400/5 opacity-50 group-hover:opacity-100 transition-opacity" />
+                      <div className="relative flex items-center gap-1.5 text-teal-600 dark:text-teal-400 mb-1">
                         <Thermometer size={12} />
                         <span className="text-[9px] font-bold uppercase tracking-widest">
                           Remaining
                         </span>
                       </div>
-                      <div className="relative font-mono text-2xl lg:text-3xl font-bold text-cyan-400 tracking-widest tabular-nums drop-shadow-[0_0_8px_rgba(34,211,238,0.3)]">
+                      <div className="relative font-mono text-2xl lg:text-3xl font-bold text-teal-600 dark:text-teal-400 tracking-widest tabular-nums drop-shadow-[0_0_12px_rgba(20,184,166,0.4)]">
                         {liveCountdown}
                       </div>
                       {(() => {
                         const untilDateStr = formatUntilTime(cooldown.untilTime)
                         return (
-                          <div className="relative mt-2 text-[10px] text-cyan-500/70 font-mono flex items-center gap-2">
+                          <div className="relative mt-2 text-[10px] text-teal-600/70 dark:text-teal-400/70 font-mono flex items-center gap-2">
                             <Clock size={10} />
                             {untilDateStr}
                           </div>
@@ -459,33 +461,38 @@ export function ProviderDetailsDialog({
                 {stats && stats.totalRequests > 0 ? (
                   <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 lg:gap-3">
                     {/* Requests */}
-                    <div className="p-3 rounded-lg bg-surface-secondary border border-border">
+                    <div className="p-3 rounded-lg bg-linear-to-br from-slate-50 to-slate-100/50 dark:from-slate-900/50 dark:to-slate-800/30 border border-slate-200 dark:border-slate-700/50 shadow-sm hover:shadow-md transition-shadow">
                       <div className="flex items-center gap-1.5 mb-2">
-                        <Hash size={12} className="text-text-muted" />
-                        <span className="text-[9px] font-bold text-text-muted uppercase tracking-wider">
+                        <Hash
+                          size={12}
+                          className="text-slate-500 dark:text-slate-400"
+                        />
+                        <span className="text-[9px] font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider">
                           Requests
                         </span>
                       </div>
                       <div className="space-y-1">
                         <div className="flex items-center justify-between text-xs">
-                          <span className="text-text-secondary">Total</span>
-                          <span className="font-mono font-bold text-text-primary">
+                          <span className="text-slate-600 dark:text-slate-400">
+                            Total
+                          </span>
+                          <span className="font-mono font-bold text-slate-900 dark:text-slate-100">
                             {stats.totalRequests}
                           </span>
                         </div>
                         <div className="flex items-center justify-between text-xs">
-                          <span className="text-emerald-500 flex items-center gap-1">
+                          <span className="text-emerald-600 dark:text-emerald-400 flex items-center gap-1">
                             <CheckCircle2 size={10} /> OK
                           </span>
-                          <span className="font-mono font-bold text-emerald-500">
+                          <span className="font-mono font-bold text-emerald-600 dark:text-emerald-400">
                             {stats.successfulRequests}
                           </span>
                         </div>
                         <div className="flex items-center justify-between text-xs">
-                          <span className="text-red-400 flex items-center gap-1">
+                          <span className="text-rose-600 dark:text-rose-400 flex items-center gap-1">
                             <XCircle size={10} /> Fail
                           </span>
-                          <span className="font-mono font-bold text-red-400">
+                          <span className="font-mono font-bold text-rose-600 dark:text-rose-400">
                             {stats.failedRequests}
                           </span>
                         </div>
@@ -493,22 +500,25 @@ export function ProviderDetailsDialog({
                     </div>
 
                     {/* Success Rate */}
-                    <div className="p-3 rounded-lg bg-surface-secondary border border-border">
+                    <div className="p-3 rounded-lg bg-linear-to-br from-emerald-50 to-emerald-100/50 dark:from-emerald-950/30 dark:to-emerald-900/20 border border-emerald-200 dark:border-emerald-800/50 shadow-sm hover:shadow-md transition-shadow">
                       <div className="flex items-center gap-1.5 mb-2">
-                        <Activity size={12} className="text-text-muted" />
-                        <span className="text-[9px] font-bold text-text-muted uppercase tracking-wider">
+                        <Activity
+                          size={12}
+                          className="text-emerald-600 dark:text-emerald-400"
+                        />
+                        <span className="text-[9px] font-bold text-emerald-700 dark:text-emerald-400 uppercase tracking-wider">
                           Success Rate
                         </span>
                       </div>
                       <div className="flex flex-col items-center justify-center h-[52px]">
                         <div
                           className={cn(
-                            'text-2xl lg:text-3xl font-black font-mono',
+                            'text-2xl lg:text-3xl font-black font-mono drop-shadow-sm',
                             stats.successRate >= 95
-                              ? 'text-emerald-500'
+                              ? 'text-emerald-600 dark:text-emerald-400'
                               : stats.successRate >= 90
-                                ? 'text-blue-400'
-                                : 'text-amber-500'
+                                ? 'text-blue-600 dark:text-blue-400'
+                                : 'text-amber-600 dark:text-amber-400'
                           )}
                         >
                           {Math.round(stats.successRate)}%
@@ -517,29 +527,38 @@ export function ProviderDetailsDialog({
                     </div>
 
                     {/* Tokens */}
-                    <div className="p-3 rounded-lg bg-surface-secondary border border-border">
+                    <div className="p-3 rounded-lg bg-linear-to-br from-blue-50 to-blue-100/50 dark:from-blue-950/30 dark:to-blue-900/20 border border-blue-200 dark:border-blue-800/50 shadow-sm hover:shadow-md transition-shadow">
                       <div className="flex items-center gap-1.5 mb-2">
-                        <Zap size={12} className="text-text-muted" />
-                        <span className="text-[9px] font-bold text-text-muted uppercase tracking-wider">
+                        <Zap
+                          size={12}
+                          className="text-blue-600 dark:text-blue-400"
+                        />
+                        <span className="text-[9px] font-bold text-blue-700 dark:text-blue-400 uppercase tracking-wider">
                           Tokens
                         </span>
                       </div>
                       <div className="space-y-1">
                         <div className="flex items-center justify-between text-xs">
-                          <span className="text-text-secondary">In</span>
-                          <span className="font-mono font-bold text-blue-400">
+                          <span className="text-blue-600 dark:text-blue-400">
+                            In
+                          </span>
+                          <span className="font-mono font-bold text-blue-700 dark:text-blue-300">
                             {formatTokens(stats.totalInputTokens)}
                           </span>
                         </div>
                         <div className="flex items-center justify-between text-xs">
-                          <span className="text-text-secondary">Out</span>
-                          <span className="font-mono font-bold text-purple-400">
+                          <span className="text-purple-600 dark:text-purple-400">
+                            Out
+                          </span>
+                          <span className="font-mono font-bold text-purple-700 dark:text-purple-300">
                             {formatTokens(stats.totalOutputTokens)}
                           </span>
                         </div>
                         <div className="flex items-center justify-between text-xs">
-                          <span className="text-text-secondary">Cache</span>
-                          <span className="font-mono font-bold text-cyan-400">
+                          <span className="text-cyan-600 dark:text-cyan-400">
+                            Cache
+                          </span>
+                          <span className="font-mono font-bold text-cyan-700 dark:text-cyan-300">
                             {formatTokens(
                               stats.totalCacheRead + stats.totalCacheWrite
                             )}
@@ -549,25 +568,28 @@ export function ProviderDetailsDialog({
                     </div>
 
                     {/* Cost */}
-                    <div className="p-3 rounded-lg bg-surface-secondary border border-border">
+                    <div className="p-3 rounded-lg bg-linear-to-br from-purple-50 to-purple-100/50 dark:from-purple-950/30 dark:to-purple-900/20 border border-purple-200 dark:border-purple-800/50 shadow-sm hover:shadow-md transition-shadow">
                       <div className="flex items-center gap-1.5 mb-2">
-                        <DollarSign size={12} className="text-text-muted" />
-                        <span className="text-[9px] font-bold text-text-muted uppercase tracking-wider">
+                        <DollarSign
+                          size={12}
+                          className="text-purple-600 dark:text-purple-400"
+                        />
+                        <span className="text-[9px] font-bold text-purple-700 dark:text-purple-400 uppercase tracking-wider">
                           Cost
                         </span>
                       </div>
                       <div className="flex flex-col items-center justify-center h-[52px]">
-                        <div className="text-xl lg:text-2xl font-black font-mono text-purple-400">
+                        <div className="text-xl lg:text-2xl font-black font-mono text-purple-700 dark:text-purple-300 drop-shadow-sm">
                           {formatCost(stats.totalCost)}
                         </div>
-                        <div className="text-[9px] text-text-muted mt-0.5">
+                        <div className="text-[9px] text-purple-600/70 dark:text-purple-400/70 mt-0.5 font-medium">
                           Cache: {calcCacheRate(stats).toFixed(1)}%
                         </div>
                       </div>
                     </div>
                   </div>
                 ) : (
-                  <div className="p-6 lg:p-8 flex flex-col items-center gap-2 text-text-muted/30 rounded-lg bg-surface-secondary border border-border">
+                  <div className="p-6 lg:p-8 flex flex-col items-center gap-2 text-slate-400 dark:text-slate-500 rounded-lg bg-gradient-to-br from-slate-50 to-slate-100/50 dark:from-slate-900/30 dark:to-slate-800/20 border border-slate-200 dark:border-slate-700/50">
                     <Activity size={24} />
                     <span className="text-xs font-bold uppercase tracking-widest">
                       No Statistics Available

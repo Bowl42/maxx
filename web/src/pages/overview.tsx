@@ -85,7 +85,7 @@ export function OverviewPage() {
           {/* Welcome Section */}
           {!hasProviders && (
             <div className="text-center py-16 md:py-20 px-4">
-              <div className="w-24 h-24 rounded-3xl bg-gradient-to-br from-violet-500 to-indigo-600 flex items-center justify-center mx-auto mb-8 shadow-xl shadow-indigo-500/20 animate-pulse-slow ring-4 ring-white/50 dark:ring-white/10">
+              <div className="w-24 h-24 rounded-3xl bg-linear-to-br from-violet-500 to-indigo-600 flex items-center justify-center mx-auto mb-8 shadow-xl shadow-indigo-500/20 animate-pulse-slow ring-4 ring-white/50 dark:ring-white/10">
                 <Zap size={40} className="text-white drop-shadow-md" />
               </div>
               <h1 className="text-3xl md:text-5xl font-bold text-foreground mb-6 tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-violet-600 to-indigo-600 dark:from-violet-400 dark:to-indigo-400">

@@ -245,7 +245,7 @@ export function CooldownDetailsDialog({
           {/* Timer Section */}
           <div className="grid grid-cols-2 gap-3">
             {/* Countdown */}
-            <div className="col-span-2 relative overflow-hidden rounded-xl bg-gradient-to-br from-cyan-950/30 to-transparent border border-cyan-500/20 p-5 flex flex-col items-center justify-center group">
+            <div className="col-span-2 relative overflow-hidden rounded-xl bg-linear-to-br from-cyan-950/30 to-transparent border border-cyan-500/20 p-5 flex flex-col items-center justify-center group">
               <div className="absolute inset-0 bg-cyan-400/5 opacity-50 group-hover:opacity-100 transition-opacity" />
               <div className="relative flex items-center gap-1.5 text-cyan-500 mb-1">
                 <Thermometer size={14} />
