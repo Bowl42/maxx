@@ -166,7 +166,7 @@ export function ProviderCreateFlow({ onClose }: ProviderCreateFlowProps) {
   return (
     <div className="flex flex-col h-full">
       <div className="h-[73px] flex items-center justify-between px-6 border-b border-border bg-card">
-        <div className="flex items-center gap-md">
+        <div className="flex items-center gap-4">
           <Button onClick={handleBack} variant="ghost" size="sm">
             <ChevronLeft size={20} />
           </Button>
@@ -179,7 +179,7 @@ export function ProviderCreateFlow({ onClose }: ProviderCreateFlowProps) {
             </p>
           </div>
         </div>
-        <div className="flex items-center gap-sm">
+        <div className="flex items-center gap-2">
           <Button onClick={onClose} variant={'secondary'}>
             Cancel
           </Button>

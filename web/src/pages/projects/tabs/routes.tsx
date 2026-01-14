@@ -45,7 +45,7 @@ function ProjectClientTypeWrapper({
     <div className="flex flex-col h-full">
       {/* Header with Toggle */}
       <div className="flex items-center justify-between px-lg py-4 border-b border-border bg-surface-primary">
-        <div className="flex items-center gap-md">
+        <div className="flex items-center gap-4">
           <ClientIcon type={clientType} size={32} />
           <div>
             <h2 className="text-lg font-semibold text-text-primary">

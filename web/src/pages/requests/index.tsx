@@ -434,7 +434,7 @@ function LogRow({
 
   // Duration color
   const durationColor = isPending
-    ? 'text-accent font-bold'
+    ? 'text-primary font-bold'
     : displayDuration && displayDuration / 1_000_000 > 5000
       ? 'text-amber-400'
       : 'text-text-secondary'
