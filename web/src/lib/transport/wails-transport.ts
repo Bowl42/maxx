@@ -3,6 +3,8 @@
  * 使用 Wails 自动生成的绑定调用 Go 方法
  */
 
+/* eslint-disable @typescript-eslint/no-explicit-any */
+
 import type { Transport, TransportConfig } from './interface';
 import type {
   Provider,
@@ -55,6 +57,7 @@ export class WailsTransport implements Transport {
   private eventUnsubscribers: Map<string, WailsUnsubscribeFn> = new Map();
   private eventCallbacks: Map<WSMessageType, Set<EventCallback>> = new Map();
 
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   constructor(_config: TransportConfig = {}) {
     // Wails 模式下配置通常不需要
   }

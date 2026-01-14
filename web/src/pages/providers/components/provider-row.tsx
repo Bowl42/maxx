@@ -8,7 +8,7 @@ import {
 } from 'lucide-react'
 import { ClientIcon } from '@/components/icons/client-icons'
 import { StreamingBadge } from '@/components/ui/streaming-badge'
-import { getProviderColorVar } from '@/lib/theme'
+import { getProviderColorVar, type ProviderType } from '@/lib/theme'
 import type {
   Provider,
   ProviderStats,
@@ -95,7 +95,7 @@ export function ProviderRow({
   const isAntigravity = provider.type === 'antigravity'
   const color = isAntigravity
     ? ANTIGRAVITY_COLOR
-    : getProviderColorVar(provider.type as any)
+    : getProviderColorVar(provider.type as ProviderType)
 
   // 仅为 Antigravity provider 获取额度
   const { data: quota } = useAntigravityQuota(provider.id, isAntigravity)

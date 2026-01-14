@@ -205,7 +205,7 @@ export function ProviderRowContent({
   streamingCount,
   stats,
   isToggling,
-  isOverlay: _isOverlay,
+  isOverlay: _isOverlay, // eslint-disable-line @typescript-eslint/no-unused-vars
   onToggle,
   onRowClick,
   isInCooldown: isInCooldownProp,

@@ -6,6 +6,7 @@ interface RequestsTabProps {
   project: Project
 }
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 export function RequestsTab({ project: _project }: RequestsTabProps) {
   return (
     <div className="p-6 space-y-6">

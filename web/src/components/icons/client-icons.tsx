@@ -42,7 +42,7 @@ export const clientNames: Record<ClientType, string> = {
  * 获取客户端颜色（返回 CSS 变量引用）
  */
 export function getClientColor(clientType: ClientType): string {
-  return getClientColorVar(clientType as any) || 'var(--color-provider-custom)';
+  return getClientColorVar(clientType) || 'var(--color-provider-custom)';
 }
 
 /**

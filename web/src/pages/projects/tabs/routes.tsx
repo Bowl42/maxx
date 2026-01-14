@@ -13,7 +13,7 @@ import {
 } from '@/components/icons/client-icons'
 import { cn } from '@/lib/utils'
 import { Switch } from '@/components/ui'
-import type { Project, ClientType } from '@/lib/transport'
+import type { Project, ClientType, Route } from '@/lib/transport'
 import { StreamingBadge } from '@/components/ui/streaming-badge'
 import { useQueryClient } from '@tanstack/react-query'
 import { ClientTypeRoutesContent } from '@/components/routes/ClientTypeRoutesContent'
@@ -31,7 +31,7 @@ interface ProjectClientTypeWrapperProps {
   project: Project
   isCustomRoutesEnabled: boolean
   onToggleCustomRoutes: (enabled: boolean) => void
-  projectRoutes: any[]
+  projectRoutes: Route[]
 }
 
 function ProjectClientTypeWrapper({

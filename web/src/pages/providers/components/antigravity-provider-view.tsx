@@ -138,7 +138,7 @@ export function AntigravityProviderView({
 
   useEffect(() => {
     fetchQuota(false)
-  }, [provider.id])
+  }, [provider.id]) // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
     <div className="flex flex-col h-full">

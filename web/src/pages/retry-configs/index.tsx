@@ -44,7 +44,7 @@ export function RetryConfigsPage() {
         }
       }
     }
-  }, [configs])
+  }, [configs]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleInputChange = (setter: (val: string) => void, value: string) => {
     setter(value)

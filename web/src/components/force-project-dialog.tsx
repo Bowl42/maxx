@@ -30,14 +30,16 @@ export function ForceProjectDialog({
   const rejectSession = useRejectSession()
   const [selectedProjectId, setSelectedProjectId] = useState<number>(0)
   const [remainingTime, setRemainingTime] = useState(timeoutSeconds)
+  const [eventId, setEventId] = useState<string | null>(null)
 
   // Reset state when event changes
   useEffect(() => {
-    if (event) {
+    if (event && event.sessionID !== eventId) {
+      setEventId(event.sessionID)
       setSelectedProjectId(0)
       setRemainingTime(timeoutSeconds)
     }
-  }, [event, timeoutSeconds])
+  }, [event, eventId, timeoutSeconds])
 
   // Countdown timer
   useEffect(() => {

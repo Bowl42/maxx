@@ -30,7 +30,8 @@ export function StreamingBadge({
   className,
   hideDelay = 1000,
 }: StreamingBadgeProps) {
-  const [displayCount, setDisplayCount] = useState(count)
+  // 使用 count 作为初始值，当 count > 0 时直接显示
+  const [displayCount, setDisplayCount] = useState(count > 0 ? count : 0)
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   useEffect(() => {
@@ -41,9 +42,9 @@ export function StreamingBadge({
         timeoutRef.current = null
       }
       setDisplayCount(count)
-    } else {
+    } else if (displayCount > 0) {
       // 计数 = 0: 延迟后隐藏（防止闪烁）
-      if (!timeoutRef.current && displayCount > 0) {
+      if (!timeoutRef.current) {
         timeoutRef.current = setTimeout(() => {
           setDisplayCount(0)
           timeoutRef.current = null
@@ -56,7 +57,7 @@ export function StreamingBadge({
         clearTimeout(timeoutRef.current)
       }
     }
-  }, [count, displayCount, hideDelay])
+  }, [count, hideDelay]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // 不显示时返回 null
   if (displayCount === 0) {

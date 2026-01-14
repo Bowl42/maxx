@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import {
   Snowflake,
   Clock,
@@ -153,16 +153,18 @@ export function ProviderDetailsDialog({
   isClearingCooldown,
 }: ProviderDetailsDialogProps) {
   const { formatRemaining } = useCooldowns()
-  const [liveCountdown, setLiveCountdown] = useState<string>('')
+
+  // 计算初始倒计时值
+  const getInitialCountdown = useCallback(() => {
+    return cooldown ? formatRemaining(cooldown) : ''
+  }, [cooldown, formatRemaining])
+
+  const [liveCountdown, setLiveCountdown] = useState<string>(getInitialCountdown)
 
   // 每秒更新倒计时
   useEffect(() => {
-    if (!cooldown) {
-      setLiveCountdown('')
-      return
-    }
+    if (!cooldown) return
 
-    setLiveCountdown(formatRemaining(cooldown))
     const interval = setInterval(() => {
       setLiveCountdown(formatRemaining(cooldown))
     }, 1000)

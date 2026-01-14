@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import {
   Dialog,
   DialogContent,
@@ -97,18 +97,17 @@ export function CooldownDetailsDialog({
   // 获取 formatRemaining 函数用于实时倒计时
   const { formatRemaining } = useCooldowns()
 
+  // 计算初始倒计时值
+  const getInitialCountdown = useCallback(() => {
+    return cooldown ? formatRemaining(cooldown) : ''
+  }, [cooldown, formatRemaining])
+
   // 实时倒计时状态
-  const [liveCountdown, setLiveCountdown] = useState<string>('')
+  const [liveCountdown, setLiveCountdown] = useState<string>(getInitialCountdown)
 
   // 每秒更新倒计时
   useEffect(() => {
-    if (!cooldown) {
-      setLiveCountdown('')
-      return
-    }
-
-    // 立即更新一次
-    setLiveCountdown(formatRemaining(cooldown))
+    if (!cooldown) return
 
     // 每秒更新
     const interval = setInterval(() => {
