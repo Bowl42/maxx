@@ -47,9 +47,17 @@ jobs:
 
   build:
     needs: release
-    uses: ./.github/workflows/ci-build.yml
+    uses: ./.github/workflows/ci-docker-build.yml
     with:
       tag: ${{ inputs.version }}
     permissions:
       contents: read
       packages: write
+
+  wails-build:
+    needs: release
+    uses: ./.github/workflows/ci-wails-build.yml
+    with:
+      tag: ${{ inputs.version }}
+    permissions:
+      contents: write

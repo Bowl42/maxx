@@ -4,6 +4,11 @@ on:
   push:
     tags:
       - 'v*'
+  workflow_call:
+    inputs:
+      tag:
+        required: true
+        type: string
 
 permissions:
   contents: write
@@ -17,6 +22,8 @@ jobs:
         arch: [arm64, amd64]
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.tag || github.ref }}
 
       - uses: actions/setup-go@v5
         with:
@@ -34,7 +41,8 @@ jobs:
 
       - name: Build macOS ${{ matrix.arch }}
         run: |
-          VERSION=${GITHUB_REF#refs/tags/v}
+          TAG="${{ inputs.tag || github.ref_name }}"
+          VERSION=${TAG#v}
           wails build -platform darwin/${{ matrix.arch }} -ldflags "-X github.com/Bowl42/maxx-next/internal/version.Version=$VERSION" -clean
 
       - name: Create DMG and generate checksum
@@ -81,6 +89,8 @@ jobs:
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.tag || github.ref }}
 
       - uses: actions/setup-go@v5
         with:
@@ -98,7 +108,8 @@ jobs:
 
       - name: Build Windows Binary
         run: |
-          $VERSION = "${{ github.ref_name }}".TrimStart('v')
+          $TAG = "${{ inputs.tag || github.ref_name }}"
+          $VERSION = $TAG.TrimStart('v')
           wails build -platform windows/amd64 -ldflags "-X github.com/Bowl42/maxx-next/internal/version.Version=$VERSION" -clean
 
       - name: Verify and prepare Binary
@@ -138,6 +149,8 @@ jobs:
     runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.tag || github.ref }}
 
       - uses: actions/setup-go@v5
         with:
@@ -164,7 +177,8 @@ jobs:
 
       - name: Build Linux Binary
         run: |
-          VERSION=${GITHUB_REF#refs/tags/v}
+          TAG="${{ inputs.tag || github.ref_name }}"
+          VERSION=${TAG#v}
           wails build -platform linux/amd64 -ldflags "-X github.com/Bowl42/maxx-next/internal/version.Version=$VERSION" -clean
 
       - name: Prepare binary
@@ -233,7 +247,7 @@ jobs:
           ls -lh release-assets/
       - name: Generate latest.json
         run: |
-          VERSION=${GITHUB_REF#refs/tags/}
+          VERSION="${{ inputs.tag || github.ref_name }}"
           REPO="${{ github.repository }}"
           BASE_URL="https://github.com/${REPO}/releases/download/${VERSION}"
 
@@ -278,7 +292,8 @@ jobs:
 
       - name: Generate release body
         run: |
-          VERSION=${GITHUB_REF#refs/tags/v}
+          TAG="${{ inputs.tag || github.ref_name }}"
+          VERSION=${TAG#v}
           echo "Generating release body for Maxx v$VERSION"
 
           cat > /tmp/release_body.md << 'EOF'
