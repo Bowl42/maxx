@@ -4,27 +4,51 @@ import (
 	"embed"
 	"log"
 
-	"github.com/Bowl42/maxx-next/app"
+	"github.com/awsl-project/maxx/internal/desktop"
 	"github.com/wailsapp/wails/v2"
 	"github.com/wailsapp/wails/v2/pkg/options"
 	"github.com/wailsapp/wails/v2/pkg/options/assetserver"
 	"github.com/wailsapp/wails/v2/pkg/options/mac"
+	"github.com/wailsapp/wails/v2/pkg/options/windows"
 )
 
 //go:embed all:web/dist
 var assets embed.FS
 
 func main() {
-	err := wails.Run(&options.App{
-		Title:  "Maxx",
-		Width:  1200,
-		Height: 800,
+	// Create desktop app instance
+	app, err := desktop.NewDesktopApp()
+	if err != nil {
+		log.Fatal("Failed to initialize desktop app:", err)
+	}
+
+	// Run Wails application
+	err = wails.Run(&options.App{
+		Title:     "Maxx",
+		Width:     1280,
+		Height:    800,
+		MinWidth:  1024,
+		MinHeight: 768,
 		AssetServer: &assetserver.Options{
 			Assets: assets,
 		},
 		BackgroundColour: &options.RGBA{R: 27, G: 38, B: 54, A: 1},
-		OnStartup:        app.Instance.OnStartup,
-		OnShutdown:       app.Instance.OnShutdown,
+		OnStartup:        app.Startup,
+		OnDomReady:       app.DomReady,
+		OnBeforeClose:    app.BeforeClose,
+		OnShutdown:       app.Shutdown,
+		Bind: []interface{}{
+			app,
+		},
+		// 启用 DevTools 方便调试
+		Debug: options.Debug{
+			OpenInspectorOnStartup: false,
+		},
+		Windows: &windows.Options{
+			WebviewIsTransparent: false,
+			WindowIsTranslucent:  false,
+			DisableWindowIcon:    false,
+		},
 		Mac: &mac.Options{
 			TitleBar: &mac.TitleBar{
 				TitlebarAppearsTransparent: true,
@@ -34,16 +58,17 @@ func main() {
 				UseToolbar:                 false,
 				HideToolbarSeparator:       true,
 			},
-			WebviewIsTransparent: false,
-			WindowIsTranslucent:  false,
+			Appearance:           mac.NSAppearanceNameDarkAqua,
+			WebviewIsTransparent: true,
+			WindowIsTranslucent:  true,
 			About: &mac.AboutInfo{
 				Title:   "Maxx",
-				Message: "Maxx - AI API Gateway & Proxy\n\n© 2025 Bowl42",
+				Message: "AI API Proxy Gateway\n© 2024 awsl-project",
 			},
 		},
 	})
 
 	if err != nil {
-		log.Fatalf("Error: %v", err)
+		log.Fatal("Error:", err)
 	}
 }

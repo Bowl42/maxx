@@ -4,8 +4,8 @@ import (
 	"sort"
 	"sync"
 
-	"github.com/Bowl42/maxx-next/internal/domain"
-	"github.com/Bowl42/maxx-next/internal/repository"
+	"github.com/awsl-project/maxx/internal/domain"
+	"github.com/awsl-project/maxx/internal/repository"
 )
 
 type RouteRepository struct {

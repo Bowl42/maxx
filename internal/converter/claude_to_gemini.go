@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/Bowl42/maxx-next/internal/domain"
+	"github.com/awsl-project/maxx/internal/domain"
 )
 
 func init() {

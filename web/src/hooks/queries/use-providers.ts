@@ -6,8 +6,6 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { getTransport, type Provider, type CreateProviderData } from '@/lib/transport';
 import { routeKeys } from './use-routes';
 
-const transport = getTransport();
-
 // Query Keys
 export const providerKeys = {
   all: ['providers'] as const,
@@ -22,7 +20,7 @@ export const providerKeys = {
 export function useProviders() {
   return useQuery({
     queryKey: providerKeys.list(),
-    queryFn: () => transport.getProviders(),
+    queryFn: () => getTransport().getProviders(),
   });
 }
 
@@ -30,7 +28,7 @@ export function useProviders() {
 export function useProvider(id: number) {
   return useQuery({
     queryKey: providerKeys.detail(id),
-    queryFn: () => transport.getProvider(id),
+    queryFn: () => getTransport().getProvider(id),
     enabled: id > 0,
   });
 }
@@ -40,7 +38,7 @@ export function useCreateProvider() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (data: CreateProviderData) => transport.createProvider(data),
+    mutationFn: (data: CreateProviderData) => getTransport().createProvider(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: providerKeys.lists() });
       queryClient.invalidateQueries({ queryKey: routeKeys.lists() });
@@ -54,7 +52,7 @@ export function useUpdateProvider() {
 
   return useMutation({
     mutationFn: ({ id, data }: { id: number; data: Partial<Provider> }) =>
-      transport.updateProvider(id, data),
+      getTransport().updateProvider(id, data),
     onSuccess: (_, { id }) => {
       queryClient.invalidateQueries({ queryKey: providerKeys.detail(id) });
       queryClient.invalidateQueries({ queryKey: providerKeys.lists() });
@@ -68,7 +66,7 @@ export function useDeleteProvider() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (id: number) => transport.deleteProvider(id),
+    mutationFn: (id: number) => getTransport().deleteProvider(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: providerKeys.lists() });
       queryClient.invalidateQueries({ queryKey: routeKeys.lists() });
@@ -80,7 +78,7 @@ export function useDeleteProvider() {
 export function useProviderStats(clientType?: string, projectId?: number) {
   return useQuery({
     queryKey: [...providerKeys.stats(), clientType, projectId],
-    queryFn: () => transport.getProviderStats(clientType, projectId),
+    queryFn: () => getTransport().getProviderStats(clientType, projectId),
     // 每 30 秒刷新一次
     refetchInterval: 30000,
     enabled: !!clientType, // 只在有 clientType 时才查询
@@ -91,7 +89,7 @@ export function useProviderStats(clientType?: string, projectId?: number) {
 export function useAllProviderStats() {
   return useQuery({
     queryKey: [...providerKeys.stats(), 'all'],
-    queryFn: () => transport.getProviderStats(),
+    queryFn: () => getTransport().getProviderStats(),
     // 每 30 秒刷新一次
     refetchInterval: 30000,
   });
@@ -101,7 +99,7 @@ export function useAllProviderStats() {
 export function useAntigravityQuota(providerId: number, enabled = true) {
   return useQuery({
     queryKey: [...providerKeys.all, 'antigravity-quota', providerId],
-    queryFn: () => transport.getAntigravityProviderQuota(providerId, false),
+    queryFn: () => getTransport().getAntigravityProviderQuota(providerId, false),
     enabled: enabled && providerId > 0,
     // 每 60 秒刷新一次
     refetchInterval: 60000,

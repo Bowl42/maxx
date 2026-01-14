@@ -97,6 +97,9 @@ type Session struct {
 
 	// 0 表示没有项目
 	ProjectID uint64 `json:"projectID"`
+
+	// RejectedAt 记录会话被拒绝的时间，nil 表示未被拒绝
+	RejectedAt *time.Time `json:"rejectedAt,omitempty"`
 }
 
 // 路由
@@ -161,7 +164,8 @@ type ProxyRequest struct {
 	// 是否为 SSE 流式请求
 	IsStream bool `json:"isStream"`
 
-	// PENDING, IN_PROGRESS, COMPLETED, FAILED
+	// PENDING, IN_PROGRESS, COMPLETED, FAILED, REJECTED
+	// REJECTED: 请求被拒绝（如：强制项目绑定超时）
 	Status string `json:"status"`
 
 	// HTTP 状态码（冗余存储，用于列表查询性能优化）

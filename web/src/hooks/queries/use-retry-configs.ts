@@ -5,8 +5,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { getTransport, type RetryConfig, type CreateRetryConfigData } from '@/lib/transport';
 
-const transport = getTransport();
-
 // Query Keys
 export const retryConfigKeys = {
   all: ['retryConfigs'] as const,
@@ -20,7 +18,7 @@ export const retryConfigKeys = {
 export function useRetryConfigs() {
   return useQuery({
     queryKey: retryConfigKeys.list(),
-    queryFn: () => transport.getRetryConfigs(),
+    queryFn: () => getTransport().getRetryConfigs(),
   });
 }
 
@@ -28,7 +26,7 @@ export function useRetryConfigs() {
 export function useRetryConfig(id: number) {
   return useQuery({
     queryKey: retryConfigKeys.detail(id),
-    queryFn: () => transport.getRetryConfig(id),
+    queryFn: () => getTransport().getRetryConfig(id),
     enabled: id > 0,
   });
 }
@@ -38,7 +36,7 @@ export function useCreateRetryConfig() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (data: CreateRetryConfigData) => transport.createRetryConfig(data),
+    mutationFn: (data: CreateRetryConfigData) => getTransport().createRetryConfig(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: retryConfigKeys.lists() });
     },
@@ -51,7 +49,7 @@ export function useUpdateRetryConfig() {
 
   return useMutation({
     mutationFn: ({ id, data }: { id: number; data: Partial<RetryConfig> }) =>
-      transport.updateRetryConfig(id, data),
+      getTransport().updateRetryConfig(id, data),
     onSuccess: (_, { id }) => {
       queryClient.invalidateQueries({ queryKey: retryConfigKeys.detail(id) });
       queryClient.invalidateQueries({ queryKey: retryConfigKeys.lists() });
@@ -64,7 +62,7 @@ export function useDeleteRetryConfig() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (id: number) => transport.deleteRetryConfig(id),
+    mutationFn: (id: number) => getTransport().deleteRetryConfig(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: retryConfigKeys.lists() });
     },

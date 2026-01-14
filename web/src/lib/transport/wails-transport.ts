@@ -1,7 +1,9 @@
 /**
  * Wails Transport 实现
- * 使用 Wails bindings 调用 Go 方法，Wails Events 接收实时推送
+ * 使用 Wails 自动生成的绑定调用 Go 方法
  */
+
+/* eslint-disable @typescript-eslint/no-explicit-any */
 
 import type { Transport, TransportConfig } from './interface';
 import type {
@@ -29,251 +31,284 @@ import type {
   AntigravityBatchValidationResult,
   AntigravityQuotaData,
   Cooldown,
+  ImportResult,
 } from './types';
+
+// 导入 Wails 自动生成的绑定
+// @ts-ignore - Wails 绑定在构建时可能不存在
+import * as DesktopApp from '@/wailsjs/go/desktop/DesktopApp';
 
 // Wails 事件 API 类型
 type WailsEventCallback = (data: unknown) => void;
 type WailsUnsubscribeFn = () => void;
+
+// Wails v2 runtime 类型
+declare global {
+  interface Window {
+    runtime?: {
+      EventsOn: (eventName: string, callback: WailsEventCallback) => WailsUnsubscribeFn;
+      EventsOff: (eventName: string) => void;
+    };
+  }
+}
 
 export class WailsTransport implements Transport {
   private connected = false;
   private eventUnsubscribers: Map<string, WailsUnsubscribeFn> = new Map();
   private eventCallbacks: Map<WSMessageType, Set<EventCallback>> = new Map();
 
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   constructor(_config: TransportConfig = {}) {
     // Wails 模式下配置通常不需要
-  }
-
-  // 辅助方法：调用 Go 服务方法
-  private async call<T>(method: string, ...args: unknown[]): Promise<T> {
-    if (!window.wails) {
-      throw new Error('Wails runtime not available');
-    }
-    return window.wails.Call(method, ...args) as Promise<T>;
   }
 
   // ===== Provider API =====
 
   async getProviders(): Promise<Provider[]> {
-    return this.call<Provider[]>('AdminService.GetProviders');
+    return DesktopApp.GetProviders() as Promise<Provider[]>;
   }
 
   async getProvider(id: number): Promise<Provider> {
-    return this.call<Provider>('AdminService.GetProvider', id);
+    return DesktopApp.GetProvider(id) as Promise<Provider>;
   }
 
   async createProvider(data: CreateProviderData): Promise<Provider> {
-    return this.call<Provider>('AdminService.CreateProvider', data);
+    await DesktopApp.CreateProvider(data as any);
+    // Wails CreateProvider returns void, need to get the created provider
+    const providers = await this.getProviders();
+    return providers[providers.length - 1];
   }
 
   async updateProvider(id: number, data: Partial<Provider>): Promise<Provider> {
-    return this.call<Provider>('AdminService.UpdateProvider', id, data);
+    await DesktopApp.UpdateProvider({ ...data, id } as any);
+    return this.getProvider(id);
   }
 
   async deleteProvider(id: number): Promise<void> {
-    await this.call<void>('AdminService.DeleteProvider', id);
+    await DesktopApp.DeleteProvider(id);
   }
 
   async exportProviders(): Promise<Provider[]> {
-    return this.call<Provider[]>('AdminService.ExportProviders');
+    return DesktopApp.ExportProviders() as Promise<Provider[]>;
   }
 
-  async importProviders(providers: Provider[]): Promise<{ imported: number; skipped: number; errors: string[] }> {
-    return this.call<{ imported: number; skipped: number; errors: string[] }>('AdminService.ImportProviders', providers);
+  async importProviders(providers: Provider[]): Promise<ImportResult> {
+    return DesktopApp.ImportProviders(providers as any) as Promise<ImportResult>;
   }
 
   // ===== Project API =====
 
   async getProjects(): Promise<Project[]> {
-    return this.call<Project[]>('AdminService.GetProjects');
+    return DesktopApp.GetProjects() as Promise<Project[]>;
   }
 
   async getProject(id: number): Promise<Project> {
-    return this.call<Project>('AdminService.GetProject', id);
-  }
-
-  async createProject(data: CreateProjectData): Promise<Project> {
-    return this.call<Project>('AdminService.CreateProject', data);
-  }
-
-  async updateProject(id: number, data: Partial<Project>): Promise<Project> {
-    return this.call<Project>('AdminService.UpdateProject', id, data);
-  }
-
-  async deleteProject(id: number): Promise<void> {
-    await this.call<void>('AdminService.DeleteProject', id);
+    return DesktopApp.GetProject(id) as Promise<Project>;
   }
 
   async getProjectBySlug(slug: string): Promise<Project> {
-    return this.call<Project>('AdminService.GetProjectBySlug', slug);
+    return DesktopApp.GetProjectBySlug(slug) as Promise<Project>;
+  }
+
+  async createProject(data: CreateProjectData): Promise<Project> {
+    await DesktopApp.CreateProject(data as any);
+    const projects = await this.getProjects();
+    return projects[projects.length - 1];
+  }
+
+  async updateProject(id: number, data: Partial<Project>): Promise<Project> {
+    await DesktopApp.UpdateProject({ ...data, id } as any);
+    return this.getProject(id);
+  }
+
+  async deleteProject(id: number): Promise<void> {
+    await DesktopApp.DeleteProject(id);
   }
 
   // ===== Route API =====
 
   async getRoutes(): Promise<Route[]> {
-    return this.call<Route[]>('AdminService.GetRoutes');
+    return DesktopApp.GetRoutes() as Promise<Route[]>;
   }
 
   async getRoute(id: number): Promise<Route> {
-    return this.call<Route>('AdminService.GetRoute', id);
+    return DesktopApp.GetRoute(id) as Promise<Route>;
   }
 
   async createRoute(data: CreateRouteData): Promise<Route> {
-    return this.call<Route>('AdminService.CreateRoute', data);
+    await DesktopApp.CreateRoute(data as any);
+    const routes = await this.getRoutes();
+    return routes[routes.length - 1];
   }
 
   async updateRoute(id: number, data: Partial<Route>): Promise<Route> {
-    return this.call<Route>('AdminService.UpdateRoute', id, data);
+    await DesktopApp.UpdateRoute({ ...data, id } as any);
+    return this.getRoute(id);
   }
 
   async deleteRoute(id: number): Promise<void> {
-    await this.call<void>('AdminService.DeleteRoute', id);
+    await DesktopApp.DeleteRoute(id);
   }
 
   // ===== Session API =====
 
   async getSessions(): Promise<Session[]> {
-    return this.call<Session[]>('AdminService.GetSessions');
+    return DesktopApp.GetSessions() as Promise<Session[]>;
   }
 
-  async updateSessionProject(sessionID: string, projectID: number): Promise<{ session: Session; updatedRequests: number }> {
-    return this.call<{ session: Session; updatedRequests: number }>('AdminService.UpdateSessionProject', sessionID, projectID);
+  async updateSessionProject(
+    sessionID: string,
+    projectID: number
+  ): Promise<{ session: Session; updatedRequests: number }> {
+    const result = await DesktopApp.UpdateSessionProject(sessionID, projectID);
+    return result as { session: Session; updatedRequests: number };
+  }
+
+  async rejectSession(sessionID: string): Promise<Session> {
+    return DesktopApp.RejectSession(sessionID) as Promise<Session>;
   }
 
   // ===== RetryConfig API =====
 
   async getRetryConfigs(): Promise<RetryConfig[]> {
-    return this.call<RetryConfig[]>('AdminService.GetRetryConfigs');
+    return DesktopApp.GetRetryConfigs() as Promise<RetryConfig[]>;
   }
 
   async getRetryConfig(id: number): Promise<RetryConfig> {
-    return this.call<RetryConfig>('AdminService.GetRetryConfig', id);
+    return DesktopApp.GetRetryConfig(id) as Promise<RetryConfig>;
   }
 
   async createRetryConfig(data: CreateRetryConfigData): Promise<RetryConfig> {
-    return this.call<RetryConfig>('AdminService.CreateRetryConfig', data);
+    await DesktopApp.CreateRetryConfig(data as any);
+    const configs = await this.getRetryConfigs();
+    return configs[configs.length - 1];
   }
 
   async updateRetryConfig(id: number, data: Partial<RetryConfig>): Promise<RetryConfig> {
-    return this.call<RetryConfig>('AdminService.UpdateRetryConfig', id, data);
+    await DesktopApp.UpdateRetryConfig({ ...data, id } as any);
+    return this.getRetryConfig(id);
   }
 
   async deleteRetryConfig(id: number): Promise<void> {
-    await this.call<void>('AdminService.DeleteRetryConfig', id);
+    await DesktopApp.DeleteRetryConfig(id);
   }
 
   // ===== RoutingStrategy API =====
 
   async getRoutingStrategies(): Promise<RoutingStrategy[]> {
-    return this.call<RoutingStrategy[]>('AdminService.GetRoutingStrategies');
+    return DesktopApp.GetRoutingStrategies() as Promise<RoutingStrategy[]>;
   }
 
   async getRoutingStrategy(id: number): Promise<RoutingStrategy> {
-    return this.call<RoutingStrategy>('AdminService.GetRoutingStrategy', id);
+    return DesktopApp.GetRoutingStrategy(id) as Promise<RoutingStrategy>;
   }
 
   async createRoutingStrategy(data: CreateRoutingStrategyData): Promise<RoutingStrategy> {
-    return this.call<RoutingStrategy>('AdminService.CreateRoutingStrategy', data);
+    await DesktopApp.CreateRoutingStrategy(data as any);
+    const strategies = await this.getRoutingStrategies();
+    return strategies[strategies.length - 1];
   }
 
   async updateRoutingStrategy(id: number, data: Partial<RoutingStrategy>): Promise<RoutingStrategy> {
-    return this.call<RoutingStrategy>('AdminService.UpdateRoutingStrategy', id, data);
+    await DesktopApp.UpdateRoutingStrategy({ ...data, id } as any);
+    return this.getRoutingStrategy(id);
   }
 
   async deleteRoutingStrategy(id: number): Promise<void> {
-    await this.call<void>('AdminService.DeleteRoutingStrategy', id);
+    await DesktopApp.DeleteRoutingStrategy(id);
   }
 
   // ===== ProxyRequest API =====
 
   async getProxyRequests(params?: CursorPaginationParams): Promise<CursorPaginationResult<ProxyRequest>> {
-    return this.call<CursorPaginationResult<ProxyRequest>>(
-      'AdminService.GetProxyRequestsCursor',
+    const result = await DesktopApp.GetProxyRequestsCursor(
       params?.limit ?? 100,
       params?.before ?? 0,
       params?.after ?? 0
     );
+    return result as CursorPaginationResult<ProxyRequest>;
   }
 
   async getProxyRequestsCount(): Promise<number> {
-    return this.call<number>('AdminService.GetProxyRequestsCount');
+    return DesktopApp.GetProxyRequestsCount();
   }
 
   async getProxyRequest(id: number): Promise<ProxyRequest> {
-    return this.call<ProxyRequest>('AdminService.GetProxyRequest', id);
+    return DesktopApp.GetProxyRequest(id) as Promise<ProxyRequest>;
   }
 
   async getProxyUpstreamAttempts(proxyRequestId: number): Promise<ProxyUpstreamAttempt[]> {
-    return this.call<ProxyUpstreamAttempt[]>('AdminService.GetProxyUpstreamAttempts', proxyRequestId);
+    return DesktopApp.GetProxyUpstreamAttempts(proxyRequestId) as Promise<ProxyUpstreamAttempt[]>;
   }
 
   // ===== Proxy Status API =====
 
   async getProxyStatus(): Promise<ProxyStatus> {
-    // Wails 模式下，调用 Go 方法获取代理状态
-    return this.call<ProxyStatus>('AdminService.GetProxyStatus');
+    return DesktopApp.GetProxyStatus() as Promise<ProxyStatus>;
   }
 
   // ===== Provider Stats API =====
 
-  async getProviderStats(clientType?: string): Promise<Record<number, ProviderStats>> {
-    return this.call<Record<number, ProviderStats>>('AdminService.GetProviderStats', clientType ?? '');
+  async getProviderStats(clientType?: string, projectId?: number): Promise<Record<number, ProviderStats>> {
+    return DesktopApp.GetProviderStats(clientType ?? '', projectId ?? 0) as Promise<Record<number, ProviderStats>>;
   }
 
   // ===== Settings API =====
 
   async getSettings(): Promise<Record<string, string>> {
-    return this.call<Record<string, string>>('AdminService.GetSettings');
+    return DesktopApp.GetSettings();
   }
 
   async getSetting(key: string): Promise<{ key: string; value: string }> {
-    return this.call<{ key: string; value: string }>('AdminService.GetSetting', key);
+    const value = await DesktopApp.GetSetting(key);
+    return { key, value };
   }
 
   async updateSetting(key: string, value: string): Promise<{ key: string; value: string }> {
-    return this.call<{ key: string; value: string }>('AdminService.UpdateSetting', key, value);
+    await DesktopApp.UpdateSetting(key, value);
+    return { key, value };
   }
 
   async deleteSetting(key: string): Promise<void> {
-    await this.call<void>('AdminService.DeleteSetting', key);
+    await DesktopApp.DeleteSetting(key);
   }
 
   // ===== Logs API =====
 
   async getLogs(limit = 100): Promise<{ lines: string[]; count: number }> {
-    return this.call<{ lines: string[]; count: number }>('AdminService.GetLogs', limit);
+    return DesktopApp.GetLogs(limit) as Promise<{ lines: string[]; count: number }>;
   }
 
   // ===== Antigravity API =====
 
   async validateAntigravityToken(refreshToken: string): Promise<AntigravityTokenValidationResult> {
-    return this.call<AntigravityTokenValidationResult>('AntigravityService.ValidateToken', refreshToken);
+    return DesktopApp.ValidateAntigravityToken(refreshToken) as Promise<AntigravityTokenValidationResult>;
   }
 
   async validateAntigravityTokens(tokens: string[]): Promise<AntigravityBatchValidationResult> {
-    return this.call<AntigravityBatchValidationResult>('AntigravityService.ValidateTokens', tokens);
+    return DesktopApp.ValidateAntigravityTokens(tokens) as Promise<AntigravityBatchValidationResult>;
   }
 
   async validateAntigravityTokenText(tokenText: string): Promise<AntigravityBatchValidationResult> {
-    return this.call<AntigravityBatchValidationResult>('AntigravityService.ValidateTokenText', tokenText);
+    return DesktopApp.ValidateAntigravityTokenText(tokenText) as Promise<AntigravityBatchValidationResult>;
   }
 
   async getAntigravityProviderQuota(providerId: number, forceRefresh?: boolean): Promise<AntigravityQuotaData> {
-    return this.call<AntigravityQuotaData>('AntigravityService.GetProviderQuota', providerId, forceRefresh ?? false);
+    return DesktopApp.GetAntigravityProviderQuota(providerId, forceRefresh ?? false) as Promise<AntigravityQuotaData>;
   }
 
   async startAntigravityOAuth(): Promise<{ authURL: string; state: string }> {
-    return this.call<{ authURL: string; state: string }>('AntigravityService.StartOAuth');
+    return DesktopApp.StartAntigravityOAuth() as Promise<{ authURL: string; state: string }>;
   }
 
   // ===== Cooldown API =====
 
   async getCooldowns(): Promise<Cooldown[]> {
-    return this.call<Cooldown[]>('AdminService.GetCooldowns');
+    return DesktopApp.GetCooldowns() as Promise<Cooldown[]>;
   }
 
   async clearCooldown(providerId: number): Promise<void> {
-    await this.call<void>('AdminService.ClearCooldown', providerId);
+    await DesktopApp.ClearCooldown(providerId);
   }
 
   // ===== Wails Events 订阅 =====
@@ -302,19 +337,17 @@ export class WailsTransport implements Transport {
   }
 
   private setupWailsEventListener(eventType: WSMessageType): void {
-    // 动态导入 Wails runtime 并设置监听
-    import('@wailsio/runtime')
-      .then((runtime) => {
-        const unsubscribe = runtime.Events.On(eventType, ((data: unknown) => {
-          const callbacks = this.eventCallbacks.get(eventType);
-          callbacks?.forEach((callback) => callback(data));
-        }) as WailsEventCallback);
+    if (!window.runtime?.EventsOn) {
+      console.warn('[WailsTransport] runtime.EventsOn not available');
+      return;
+    }
 
-        this.eventUnsubscribers.set(eventType, unsubscribe);
-      })
-      .catch((e) => {
-        console.warn('Failed to setup Wails event listener:', e);
-      });
+    const unsubscribe = window.runtime.EventsOn(eventType, (data: unknown) => {
+      const callbacks = this.eventCallbacks.get(eventType);
+      callbacks?.forEach((callback) => callback(data));
+    });
+
+    this.eventUnsubscribers.set(eventType, unsubscribe);
   }
 
   // ===== 生命周期 =====
@@ -332,6 +365,6 @@ export class WailsTransport implements Transport {
   }
 
   isConnected(): boolean {
-    return this.connected && !!window.wails;
+    return this.connected;
   }
 }

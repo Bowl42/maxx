@@ -5,8 +5,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { getTransport, type Route, type CreateRouteData } from '@/lib/transport';
 
-const transport = getTransport();
-
 // Query Keys
 export const routeKeys = {
   all: ['routes'] as const,
@@ -20,7 +18,7 @@ export const routeKeys = {
 export function useRoutes() {
   return useQuery({
     queryKey: routeKeys.list(),
-    queryFn: () => transport.getRoutes(),
+    queryFn: () => getTransport().getRoutes(),
   });
 }
 
@@ -28,7 +26,7 @@ export function useRoutes() {
 export function useRoute(id: number) {
   return useQuery({
     queryKey: routeKeys.detail(id),
-    queryFn: () => transport.getRoute(id),
+    queryFn: () => getTransport().getRoute(id),
     enabled: id > 0,
   });
 }
@@ -38,7 +36,7 @@ export function useCreateRoute() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (data: CreateRouteData) => transport.createRoute(data),
+    mutationFn: (data: CreateRouteData) => getTransport().createRoute(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: routeKeys.lists() });
     },
@@ -51,7 +49,7 @@ export function useUpdateRoute() {
 
   return useMutation({
     mutationFn: ({ id, data }: { id: number; data: Partial<Route> }) =>
-      transport.updateRoute(id, data),
+      getTransport().updateRoute(id, data),
     onSuccess: (_, { id }) => {
       queryClient.invalidateQueries({ queryKey: routeKeys.detail(id) });
       queryClient.invalidateQueries({ queryKey: routeKeys.lists() });
@@ -64,7 +62,7 @@ export function useDeleteRoute() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (id: number) => transport.deleteRoute(id),
+    mutationFn: (id: number) => getTransport().deleteRoute(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: routeKeys.lists() });
     },
@@ -77,6 +75,7 @@ export function useToggleRoute() {
 
   return useMutation({
     mutationFn: (id: number) => {
+      const transport = getTransport();
       // 先获取当前状态，然后切换
       return transport.getRoute(id).then((route) =>
         transport.updateRoute(id, { isEnabled: !route.isEnabled })
@@ -94,6 +93,7 @@ export function useUpdateRoutePositions() {
 
   return useMutation({
     mutationFn: (updates: Record<number, number>) => {
+      const transport = getTransport();
       // updates 是 { routeId: position } 的映射
       const promises = Object.entries(updates).map(([id, position]) =>
         transport.updateRoute(Number(id), { position })

@@ -5,8 +5,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { getTransport } from '@/lib/transport';
 
-const transport = getTransport();
-
 // Query Keys
 export const sessionKeys = {
   all: ['sessions'] as const,
@@ -18,7 +16,7 @@ export const sessionKeys = {
 export function useSessions() {
   return useQuery({
     queryKey: sessionKeys.list(),
-    queryFn: () => transport.getSessions(),
+    queryFn: () => getTransport().getSessions(),
   });
 }
 
@@ -28,12 +26,24 @@ export function useUpdateSessionProject() {
 
   return useMutation({
     mutationFn: ({ sessionID, projectID }: { sessionID: string; projectID: number }) =>
-      transport.updateSessionProject(sessionID, projectID),
+      getTransport().updateSessionProject(sessionID, projectID),
     onSuccess: () => {
       // Invalidate sessions list
       queryClient.invalidateQueries({ queryKey: sessionKeys.all });
       // Also invalidate proxy requests as their projectID may have changed
       queryClient.invalidateQueries({ queryKey: ['proxyRequests'] });
+    },
+  });
+}
+
+// 拒绝 Session
+export function useRejectSession() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (sessionID: string) => getTransport().rejectSession(sessionID),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: sessionKeys.all });
     },
   });
 }

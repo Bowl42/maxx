@@ -6,13 +6,14 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/Bowl42/maxx-next/internal/cooldown"
-	ctxutil "github.com/Bowl42/maxx-next/internal/context"
-	"github.com/Bowl42/maxx-next/internal/domain"
-	"github.com/Bowl42/maxx-next/internal/event"
-	"github.com/Bowl42/maxx-next/internal/repository"
-	"github.com/Bowl42/maxx-next/internal/router"
-	"github.com/Bowl42/maxx-next/internal/usage"
+	"github.com/awsl-project/maxx/internal/cooldown"
+	ctxutil "github.com/awsl-project/maxx/internal/context"
+	"github.com/awsl-project/maxx/internal/domain"
+	"github.com/awsl-project/maxx/internal/event"
+	"github.com/awsl-project/maxx/internal/repository"
+	"github.com/awsl-project/maxx/internal/router"
+	"github.com/awsl-project/maxx/internal/usage"
+	"github.com/awsl-project/maxx/internal/waiter"
 )
 
 // Executor handles request execution with retry logic
@@ -21,7 +22,9 @@ type Executor struct {
 	proxyRequestRepo repository.ProxyRequestRepository
 	attemptRepo      repository.ProxyUpstreamAttemptRepository
 	retryConfigRepo  repository.RetryConfigRepository
+	sessionRepo      repository.SessionRepository
 	broadcaster      event.Broadcaster
+	projectWaiter    *waiter.ProjectWaiter
 	instanceID       string
 }
 
@@ -31,7 +34,9 @@ func NewExecutor(
 	prr repository.ProxyRequestRepository,
 	ar repository.ProxyUpstreamAttemptRepository,
 	rcr repository.RetryConfigRepository,
+	sessionRepo repository.SessionRepository,
 	bc event.Broadcaster,
+	projectWaiter *waiter.ProjectWaiter,
 	instanceID string,
 ) *Executor {
 	return &Executor{
@@ -39,7 +44,9 @@ func NewExecutor(
 		proxyRequestRepo: prr,
 		attemptRepo:      ar,
 		retryConfigRepo:  rcr,
+		sessionRepo:      sessionRepo,
 		broadcaster:      bc,
+		projectWaiter:    projectWaiter,
 		instanceID:       instanceID,
 	}
 }
@@ -48,39 +55,26 @@ func NewExecutor(
 func (e *Executor) Execute(ctx context.Context, w http.ResponseWriter, req *http.Request) error {
 	clientType := ctxutil.GetClientType(ctx)
 	projectID := ctxutil.GetProjectID(ctx)
+	sessionID := ctxutil.GetSessionID(ctx)
 	requestModel := ctxutil.GetRequestModel(ctx)
 	isStream := ctxutil.GetIsStream(ctx)
 
 	log.Printf("[Executor] clientType=%s, projectID=%d, model=%s, isStream=%v", clientType, projectID, requestModel, isStream)
 
-	// Match routes
-	routes, err := e.router.Match(clientType, projectID)
-	if err != nil {
-		log.Printf("[Executor] Route match error: %v", err)
-		return domain.NewProxyErrorWithMessage(domain.ErrNoRoutes, false, "no routes available")
-	}
-
-	log.Printf("[Executor] Matched %d routes", len(routes))
-
-	if len(routes) == 0 {
-		log.Printf("[Executor] No routes configured for clientType=%s, projectID=%d", clientType, projectID)
-		return domain.NewProxyErrorWithMessage(domain.ErrNoRoutes, false, "no routes configured")
-	}
-
-	// Create proxy request record
+	// Create proxy request record immediately (PENDING status)
 	proxyReq := &domain.ProxyRequest{
 		InstanceID:   e.instanceID,
 		RequestID:    generateRequestID(),
-		SessionID:    ctxutil.GetSessionID(ctx),
+		SessionID:    sessionID,
 		ClientType:   clientType,
 		ProjectID:    projectID,
 		RequestModel: requestModel,
 		StartTime:    time.Now(),
 		IsStream:     isStream,
-		Status:       "IN_PROGRESS",
+		Status:       "PENDING",
 	}
 
-	// Capture client's original request info (before conversion to upstream format)
+	// Capture client's original request info
 	requestURI := ctxutil.GetRequestURI(ctx)
 	requestHeaders := ctxutil.GetRequestHeaders(ctx)
 	requestBody := ctxutil.GetRequestBody(ctx)
@@ -92,8 +86,97 @@ func (e *Executor) Execute(ctx context.Context, w http.ResponseWriter, req *http
 	}
 
 	if err := e.proxyRequestRepo.Create(proxyReq); err != nil {
-		// Log but continue
+		log.Printf("[Executor] Failed to create proxy request: %v", err)
 	}
+
+	// Broadcast the new request immediately
+	if e.broadcaster != nil {
+		e.broadcaster.BroadcastProxyRequest(proxyReq)
+	}
+
+	ctx = ctxutil.WithProxyRequest(ctx, proxyReq)
+
+	// Check for project binding if required
+	if projectID == 0 && e.projectWaiter != nil {
+		// Get session for project waiter
+		session, _ := e.sessionRepo.GetBySessionID(sessionID)
+		if session == nil {
+			session = &domain.Session{
+				SessionID:  sessionID,
+				ClientType: clientType,
+				ProjectID:  0,
+			}
+		}
+
+		if err := e.projectWaiter.WaitForProject(ctx, session); err != nil {
+			// Determine status based on error type
+			status := "REJECTED"
+			errorMsg := "project binding timeout: " + err.Error()
+			if err == context.Canceled {
+				status = "CANCELLED"
+				errorMsg = "client cancelled: " + err.Error()
+				// Notify frontend to close the dialog
+				if e.broadcaster != nil {
+					e.broadcaster.BroadcastMessage("session_pending_cancelled", map[string]interface{}{
+						"sessionID": sessionID,
+					})
+				}
+			}
+
+			// Update request record with final status
+			proxyReq.Status = status
+			proxyReq.Error = errorMsg
+			proxyReq.EndTime = time.Now()
+			proxyReq.Duration = proxyReq.EndTime.Sub(proxyReq.StartTime)
+			_ = e.proxyRequestRepo.Update(proxyReq)
+
+			// Broadcast the updated request
+			if e.broadcaster != nil {
+				e.broadcaster.BroadcastProxyRequest(proxyReq)
+			}
+
+			return domain.NewProxyErrorWithMessage(err, false, "project binding required: "+err.Error())
+		}
+
+		// Update projectID from the now-bound session
+		projectID = session.ProjectID
+		proxyReq.ProjectID = projectID
+		ctx = ctxutil.WithProjectID(ctx, projectID)
+	}
+
+	// Match routes
+	routes, err := e.router.Match(clientType, projectID)
+	if err != nil {
+		log.Printf("[Executor] Route match error: %v", err)
+		proxyReq.Status = "FAILED"
+		proxyReq.Error = "no routes available"
+		proxyReq.EndTime = time.Now()
+		proxyReq.Duration = proxyReq.EndTime.Sub(proxyReq.StartTime)
+		_ = e.proxyRequestRepo.Update(proxyReq)
+		if e.broadcaster != nil {
+			e.broadcaster.BroadcastProxyRequest(proxyReq)
+		}
+		return domain.NewProxyErrorWithMessage(domain.ErrNoRoutes, false, "no routes available")
+	}
+
+	log.Printf("[Executor] Matched %d routes", len(routes))
+
+	if len(routes) == 0 {
+		log.Printf("[Executor] No routes configured for clientType=%s, projectID=%d", clientType, projectID)
+		proxyReq.Status = "FAILED"
+		proxyReq.Error = "no routes configured"
+		proxyReq.EndTime = time.Now()
+		proxyReq.Duration = proxyReq.EndTime.Sub(proxyReq.StartTime)
+		_ = e.proxyRequestRepo.Update(proxyReq)
+		if e.broadcaster != nil {
+			e.broadcaster.BroadcastProxyRequest(proxyReq)
+		}
+		return domain.NewProxyErrorWithMessage(domain.ErrNoRoutes, false, "no routes configured")
+	}
+
+	// Update status to IN_PROGRESS
+	proxyReq.Status = "IN_PROGRESS"
+	_ = e.proxyRequestRepo.Update(proxyReq)
 	ctx = ctxutil.WithProxyRequest(ctx, proxyReq)
 
 	// Add broadcaster to context so adapters can send updates
@@ -317,6 +400,16 @@ func (e *Executor) Execute(ctx context.Context, w http.ResponseWriter, req *http
 
 			// Check if it's a context cancellation (client disconnect)
 			if ctx.Err() != nil {
+				// Set final status before returning to ensure it's persisted
+				// (defer block also handles this, but we want to be explicit and broadcast immediately)
+				proxyReq.Status = "CANCELLED"
+				proxyReq.EndTime = time.Now()
+				proxyReq.Duration = proxyReq.EndTime.Sub(proxyReq.StartTime)
+				proxyReq.Error = "client disconnected"
+				_ = e.proxyRequestRepo.Update(proxyReq)
+				if e.broadcaster != nil {
+					e.broadcaster.BroadcastProxyRequest(proxyReq)
+				}
 				log.Printf("[Executor] Context cancelled, stopping")
 				return ctx.Err()
 			}
@@ -346,6 +439,15 @@ func (e *Executor) Execute(ctx context.Context, w http.ResponseWriter, req *http
 				log.Printf("[Executor] Waiting %v before retry", waitTime)
 				select {
 				case <-ctx.Done():
+					// Set final status before returning
+					proxyReq.Status = "CANCELLED"
+					proxyReq.EndTime = time.Now()
+					proxyReq.Duration = proxyReq.EndTime.Sub(proxyReq.StartTime)
+					proxyReq.Error = "client disconnected during retry wait"
+					_ = e.proxyRequestRepo.Update(proxyReq)
+					if e.broadcaster != nil {
+						e.broadcaster.BroadcastProxyRequest(proxyReq)
+					}
 					return ctx.Err()
 				case <-time.After(waitTime):
 				}

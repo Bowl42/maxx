@@ -5,8 +5,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { getTransport, type RoutingStrategy, type CreateRoutingStrategyData } from '@/lib/transport';
 
-const transport = getTransport();
-
 // Query Keys
 export const routingStrategyKeys = {
   all: ['routingStrategies'] as const,
@@ -20,7 +18,7 @@ export const routingStrategyKeys = {
 export function useRoutingStrategies() {
   return useQuery({
     queryKey: routingStrategyKeys.list(),
-    queryFn: () => transport.getRoutingStrategies(),
+    queryFn: () => getTransport().getRoutingStrategies(),
   });
 }
 
@@ -28,7 +26,7 @@ export function useRoutingStrategies() {
 export function useRoutingStrategy(id: number) {
   return useQuery({
     queryKey: routingStrategyKeys.detail(id),
-    queryFn: () => transport.getRoutingStrategy(id),
+    queryFn: () => getTransport().getRoutingStrategy(id),
     enabled: id > 0,
   });
 }
@@ -38,7 +36,7 @@ export function useCreateRoutingStrategy() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (data: CreateRoutingStrategyData) => transport.createRoutingStrategy(data),
+    mutationFn: (data: CreateRoutingStrategyData) => getTransport().createRoutingStrategy(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: routingStrategyKeys.lists() });
     },
@@ -51,7 +49,7 @@ export function useUpdateRoutingStrategy() {
 
   return useMutation({
     mutationFn: ({ id, data }: { id: number; data: Partial<RoutingStrategy> }) =>
-      transport.updateRoutingStrategy(id, data),
+      getTransport().updateRoutingStrategy(id, data),
     onSuccess: (_, { id }) => {
       queryClient.invalidateQueries({ queryKey: routingStrategyKeys.detail(id) });
       queryClient.invalidateQueries({ queryKey: routingStrategyKeys.lists() });
@@ -64,7 +62,7 @@ export function useDeleteRoutingStrategy() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (id: number) => transport.deleteRoutingStrategy(id),
+    mutationFn: (id: number) => getTransport().deleteRoutingStrategy(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: routingStrategyKeys.lists() });
     },

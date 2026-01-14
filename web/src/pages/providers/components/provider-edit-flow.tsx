@@ -1,12 +1,20 @@
 import { useState } from 'react'
-import { createPortal } from 'react-dom'
 import { Globe, ChevronLeft, Key, Check, Trash2 } from 'lucide-react'
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from '@/components/ui/dialog'
 import { useUpdateProvider, useDeleteProvider } from '@/hooks/queries'
 import type { Provider, ClientType, CreateProviderData } from '@/lib/transport'
 import { defaultClients, type ClientConfig } from '../types'
 import { ClientsConfigSection } from './clients-config-section'
 import { AntigravityProviderView } from './antigravity-provider-view'
 import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
 
 interface ProviderEditFlowProps {
   provider: Provider
@@ -132,14 +140,13 @@ export function ProviderEditFlow({ provider, onClose }: ProviderEditFlowProps) {
           onDelete={() => setShowDeleteConfirm(true)}
           onClose={onClose}
         />
-        {showDeleteConfirm && (
-          <DeleteConfirmModal
-            providerName={provider.name}
-            deleting={deleting}
-            onConfirm={handleDelete}
-            onCancel={() => setShowDeleteConfirm(false)}
-          />
-        )}
+        <DeleteConfirmModal
+          providerName={provider.name}
+          deleting={deleting}
+          open={showDeleteConfirm}
+          onConfirm={handleDelete}
+          onCancel={() => setShowDeleteConfirm(false)}
+        />
       </>
     )
   }
@@ -147,9 +154,9 @@ export function ProviderEditFlow({ provider, onClose }: ProviderEditFlowProps) {
   // Custom provider edit form
   return (
     <div className="flex flex-col h-full">
-      <div className="h-[73px] flex items-center justify-between p-lg border-b border-border bg-surface-primary">
-        <div className="flex items-center gap-md">
-          <Button onClick={onClose}>
+      <div className="h-[73px] flex items-center justify-between px-6 border-b border-border bg-surface-primary">
+        <div className="flex items-center gap-4">
+          <Button onClick={onClose} variant={'ghost'}>
             <ChevronLeft size={20} />
           </Button>
           <div>
@@ -161,7 +168,7 @@ export function ProviderEditFlow({ provider, onClose }: ProviderEditFlowProps) {
             </p>
           </div>
         </div>
-        <div className="flex items-center gap-sm">
+        <div className="flex items-center gap-2">
           <Button
             onClick={() => setShowDeleteConfirm(true)}
             variant={'destructive'}
@@ -169,11 +176,7 @@ export function ProviderEditFlow({ provider, onClose }: ProviderEditFlowProps) {
             <Trash2 size={14} />
             Delete
           </Button>
-          <Button
-            onClick={onClose}
-            className="btn bg-surface-secondary hover:bg-surface-hover text-text-primary"
-            variant={'secondary'}
-          >
+          <Button onClick={onClose} variant={'secondary'}>
             Cancel
           </Button>
           <Button
@@ -194,8 +197,8 @@ export function ProviderEditFlow({ provider, onClose }: ProviderEditFlowProps) {
         </div>
       </div>
 
-      <div className="flex-1 overflow-y-auto p-lg">
-        <div className="container mx-auto max-w-[1600px] space-y-8">
+      <div className="flex-1 overflow-y-auto p-6">
+        <div className="mx-auto max-w-7xl space-y-8">
           <div className="space-y-6">
             <h3 className="text-lg font-semibold text-text-primary border-b border-border pb-2">
               1. Basic Information
@@ -206,14 +209,14 @@ export function ProviderEditFlow({ provider, onClose }: ProviderEditFlowProps) {
                 <label className="text-sm font-medium text-text-primary block mb-2">
                   Display Name
                 </label>
-                <input
+                <Input
                   type="text"
                   value={formData.name}
                   onChange={e =>
                     setFormData(prev => ({ ...prev, name: e.target.value }))
                   }
                   placeholder="My Provider"
-                  className="form-input w-full"
+                  className="w-full"
                 />
               </div>
 
@@ -225,7 +228,7 @@ export function ProviderEditFlow({ provider, onClose }: ProviderEditFlowProps) {
                       <span>API Endpoint</span>
                     </div>
                   </label>
-                  <input
+                  <Input
                     type="text"
                     value={formData.baseURL}
                     onChange={e =>
@@ -235,7 +238,7 @@ export function ProviderEditFlow({ provider, onClose }: ProviderEditFlowProps) {
                       }))
                     }
                     placeholder="https://api.example.com/v1"
-                    className="form-input w-full"
+                    className="w-full"
                   />
                   <p className="text-xs text-text-secondary mt-1">
                     Optional if client-specific URLs are set below.
@@ -249,14 +252,14 @@ export function ProviderEditFlow({ provider, onClose }: ProviderEditFlowProps) {
                       <span>API Key (leave empty to keep current)</span>
                     </div>
                   </label>
-                  <input
+                  <Input
                     type="password"
                     value={formData.apiKey}
                     onChange={e =>
                       setFormData(prev => ({ ...prev, apiKey: e.target.value }))
                     }
                     placeholder="••••••••"
-                    className="form-input w-full"
+                    className="w-full"
                   />
                 </div>
               </div>
@@ -283,14 +286,13 @@ export function ProviderEditFlow({ provider, onClose }: ProviderEditFlowProps) {
         </div>
       </div>
 
-      {showDeleteConfirm && (
-        <DeleteConfirmModal
-          providerName={provider.name}
-          deleting={deleting}
-          onConfirm={handleDelete}
-          onCancel={() => setShowDeleteConfirm(false)}
-        />
-      )}
+      <DeleteConfirmModal
+        providerName={provider.name}
+        deleting={deleting}
+        open={showDeleteConfirm}
+        onConfirm={handleDelete}
+        onCancel={() => setShowDeleteConfirm(false)}
+      />
     </div>
   )
 }
@@ -298,44 +300,43 @@ export function ProviderEditFlow({ provider, onClose }: ProviderEditFlowProps) {
 function DeleteConfirmModal({
   providerName,
   deleting,
+  open,
   onConfirm,
   onCancel,
 }: {
   providerName: string
   deleting: boolean
+  open: boolean
   onConfirm: () => void
   onCancel: () => void
 }) {
-  return createPortal(
-    <div className="dialog-overlay z-[9999]">
-      <div className="dialog-content p-6 w-[400px]">
-        <h3 className="text-lg font-semibold text-text-primary mb-2">
-          Delete Provider?
-        </h3>
-        <p className="text-sm text-text-secondary mb-6 leading-relaxed">
-          Are you sure you want to delete{' '}
-          <span className="font-medium text-text-primary">
-            "{providerName}"
-          </span>
-          ? This action cannot be undone.
-        </p>
-        <div className="flex justify-end gap-3">
-          <Button
-            onClick={onCancel}
-            className="btn bg-surface-secondary hover:bg-surface-hover text-text-primary px-4"
-          >
+  return (
+    <Dialog open={open} onOpenChange={(isOpen) => !isOpen && onCancel()}>
+      <DialogContent className="w-[400px]">
+        <DialogHeader>
+          <DialogTitle>Delete Provider?</DialogTitle>
+          <DialogDescription>
+            Are you sure you want to delete{' '}
+            <span className="font-medium text-text-primary">
+              "{providerName}"
+            </span>
+            ? This action cannot be undone.
+          </DialogDescription>
+        </DialogHeader>
+        <DialogFooter>
+          <Button onClick={onCancel} variant={'secondary'} className="px-4">
             Cancel
           </Button>
           <Button
             onClick={onConfirm}
             disabled={deleting}
-            className="btn bg-error text-white hover:bg-error/90 px-4"
+            variant={'destructive'}
+            className="px-4"
           >
             {deleting ? 'Deleting...' : 'Delete'}
           </Button>
-        </div>
-      </div>
-    </div>,
-    document.body
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   )
 }

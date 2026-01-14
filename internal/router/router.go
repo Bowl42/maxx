@@ -6,10 +6,10 @@ import (
 	"sort"
 	"sync"
 
-	"github.com/Bowl42/maxx-next/internal/adapter/provider"
-	"github.com/Bowl42/maxx-next/internal/cooldown"
-	"github.com/Bowl42/maxx-next/internal/domain"
-	"github.com/Bowl42/maxx-next/internal/repository/cached"
+	"github.com/awsl-project/maxx/internal/adapter/provider"
+	"github.com/awsl-project/maxx/internal/cooldown"
+	"github.com/awsl-project/maxx/internal/domain"
+	"github.com/awsl-project/maxx/internal/repository/cached"
 )
 
 // MatchedRoute contains all data needed to execute a proxy request
@@ -291,3 +291,16 @@ func (r *Router) sortRoutes(routes []*domain.Route, strategy *domain.RoutingStra
 		})
 	}
 }
+
+// GetCooldowns returns all active cooldowns
+func (r *Router) GetCooldowns() ([]*domain.Cooldown, error) {
+	return r.cooldownManager.GetAllCooldownsFromDB()
+}
+
+// ClearCooldown clears cooldown for a specific provider
+// Clears all cooldowns (global + per-client-type) for the provider
+func (r *Router) ClearCooldown(providerID uint64) error {
+	r.cooldownManager.ClearCooldown(providerID, "")
+	return nil
+}
+

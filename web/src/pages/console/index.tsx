@@ -4,8 +4,6 @@ import { getTransport } from '@/lib/transport'
 import { Button } from '@/components/ui'
 import { PageHeader } from '@/components/layout/page-header'
 
-const transport = getTransport()
-
 export function ConsolePage() {
   const [logs, setLogs] = useState<string[]>([])
   const [isPaused, setIsPaused] = useState(false)
@@ -21,6 +19,7 @@ export function ConsolePage() {
 
   // Subscribe to log_message events (only real-time logs from this session)
   useEffect(() => {
+    const transport = getTransport()
     const unsubscribe = transport.subscribe<string>('log_message', message => {
       if (pausedRef.current) return
       setLogs(prev => [...prev.slice(-999), message])
@@ -98,7 +97,7 @@ export function ConsolePage() {
             {logs.map((log, index) => (
               <div
                 key={index}
-                className="px-3 py-1.5 rounded-md hover:bg-zinc-200/50 dark:hover:bg-zinc-800/50 text-zinc-700 dark:text-zinc-300 transition-colors break-words whitespace-pre-wrap border border-transparent hover:border-zinc-200 dark:hover:border-zinc-800"
+                className="px-3 py-1.5 rounded-md hover:bg-zinc-200/50 dark:hover:bg-zinc-800/50 text-zinc-700 dark:text-zinc-300 transition-colors wrap-break-words whitespace-pre-wrap"
               >
                 <div className="opacity-50 text-[10px] select-none inline-block w-8 mr-2 text-right">
                   {index + 1}

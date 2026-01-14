@@ -3,7 +3,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    container_name: maxx-next
+    container_name: maxx
     restart: unless-stopped
     ports:
       - "9880:9880"

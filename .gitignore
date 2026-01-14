@@ -5,6 +5,7 @@
 
 # Binary
 maxx
+build/bin/
 
 # Wails build artifacts
 build/bin/
@@ -28,6 +29,7 @@ node_modules/
 web/node_modules/
 web/dist/
 web/wailsjs/runtime/
+web/src/wailsjs/
 
 # IDE
 .idea/

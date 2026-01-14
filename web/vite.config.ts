@@ -28,7 +28,10 @@ export default defineConfig({
 	},
 	build: {
 		rollupOptions: {
-			external: ["@wailsio/runtime"],
+			external: [
+				"@wailsio/runtime",
+				/wailsjs\/go\//,
+			],
 		},
 	},
 	server: {

@@ -3,9 +3,10 @@ package service
 import (
 	"strconv"
 	"strings"
+	"time"
 
-	"github.com/Bowl42/maxx-next/internal/domain"
-	"github.com/Bowl42/maxx-next/internal/repository"
+	"github.com/awsl-project/maxx/internal/domain"
+	"github.com/awsl-project/maxx/internal/repository"
 )
 
 // ProviderAdapterRefresher is an interface for refreshing provider adapters
@@ -259,6 +260,24 @@ func (s *AdminService) UpdateSessionProject(sessionID string, projectID uint64) 
 		Session:         session,
 		UpdatedRequests: updatedCount,
 	}, nil
+}
+
+// RejectSession marks a session as rejected with current timestamp
+func (s *AdminService) RejectSession(sessionID string) (*domain.Session, error) {
+	// Get the session first
+	session, err := s.sessionRepo.GetBySessionID(sessionID)
+	if err != nil {
+		return nil, err
+	}
+
+	// Mark as rejected with timestamp
+	now := time.Now()
+	session.RejectedAt = &now
+	if err := s.sessionRepo.Update(session); err != nil {
+		return nil, err
+	}
+
+	return session, nil
 }
 
 // ===== RetryConfig API =====

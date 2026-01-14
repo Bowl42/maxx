@@ -5,7 +5,7 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/Bowl42/maxx-next/internal/domain"
+	"github.com/awsl-project/maxx/internal/domain"
 )
 
 type ProxyRequestRepository struct {
@@ -137,10 +137,23 @@ func (r *ProxyRequestRepository) Count() (int64, error) {
 }
 
 // MarkStaleAsFailed marks all IN_PROGRESS/PENDING requests from other instances as FAILED
+// Also marks requests that have been IN_PROGRESS for too long (> 30 minutes) as timed out
 func (r *ProxyRequestRepository) MarkStaleAsFailed(currentInstanceID string) (int64, error) {
+	timeoutThreshold := time.Now().Add(-30 * time.Minute)
 	result, err := r.db.db.Exec(
-		`UPDATE proxy_requests SET status = 'FAILED', error = 'Server restarted', updated_at = ? WHERE status IN ('PENDING', 'IN_PROGRESS') AND (instance_id IS NULL OR instance_id != ?)`,
-		time.Now(), currentInstanceID,
+		`UPDATE proxy_requests
+		 SET status = 'FAILED',
+		     error = CASE
+		         WHEN instance_id IS NULL OR instance_id != ? THEN 'Server restarted'
+		         ELSE 'Request timed out (stuck in progress)'
+		     END,
+		     updated_at = ?
+		 WHERE status IN ('PENDING', 'IN_PROGRESS')
+		   AND (
+		       (instance_id IS NULL OR instance_id != ?)
+		       OR (start_time < ? AND start_time IS NOT NULL)
+		   )`,
+		currentInstanceID, time.Now(), currentInstanceID, timeoutThreshold,
 	)
 	if err != nil {
 		return 0, err

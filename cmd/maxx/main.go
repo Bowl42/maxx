@@ -9,17 +9,18 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/Bowl42/maxx-next/internal/adapter/client"
-	_ "github.com/Bowl42/maxx-next/internal/adapter/provider/antigravity" // Register antigravity adapter
-	_ "github.com/Bowl42/maxx-next/internal/adapter/provider/custom"      // Register custom adapter
-	"github.com/Bowl42/maxx-next/internal/cooldown"
-	"github.com/Bowl42/maxx-next/internal/executor"
-	"github.com/Bowl42/maxx-next/internal/handler"
-	"github.com/Bowl42/maxx-next/internal/repository/cached"
-	"github.com/Bowl42/maxx-next/internal/repository/sqlite"
-	"github.com/Bowl42/maxx-next/internal/router"
-	"github.com/Bowl42/maxx-next/internal/service"
-	"github.com/Bowl42/maxx-next/internal/version"
+	"github.com/awsl-project/maxx/internal/adapter/client"
+	_ "github.com/awsl-project/maxx/internal/adapter/provider/antigravity" // Register antigravity adapter
+	_ "github.com/awsl-project/maxx/internal/adapter/provider/custom"      // Register custom adapter
+	"github.com/awsl-project/maxx/internal/cooldown"
+	"github.com/awsl-project/maxx/internal/executor"
+	"github.com/awsl-project/maxx/internal/handler"
+	"github.com/awsl-project/maxx/internal/repository/cached"
+	"github.com/awsl-project/maxx/internal/repository/sqlite"
+	"github.com/awsl-project/maxx/internal/router"
+	"github.com/awsl-project/maxx/internal/service"
+	"github.com/awsl-project/maxx/internal/version"
+	"github.com/awsl-project/maxx/internal/waiter"
 )
 
 // getDefaultDataDir returns the default data directory path (~/.config/maxx)
@@ -162,8 +163,11 @@ func main() {
 	logWriter := handler.NewWebSocketLogWriter(wsHub, os.Stdout, logPath)
 	log.SetOutput(logWriter)
 
+	// Create project waiter for force project binding
+	projectWaiter := waiter.NewProjectWaiter(cachedSessionRepo, settingRepo, wsHub)
+
 	// Create executor
-	exec := executor.NewExecutor(r, proxyRequestRepo, attemptRepo, cachedRetryConfigRepo, wsHub, instanceID)
+	exec := executor.NewExecutor(r, proxyRequestRepo, attemptRepo, cachedRetryConfigRepo, cachedSessionRepo, wsHub, projectWaiter, instanceID)
 
 	// Create client adapter
 	clientAdapter := client.NewAdapter()
@@ -229,7 +233,7 @@ func main() {
 	loggedMux := handler.LoggingMiddleware(mux)
 
 	// Start server
-	log.Printf("Starting maxx-next server %s on %s", version.Info(), *addr)
+	log.Printf("Starting Maxx server %s on %s", version.Info(), *addr)
 	log.Printf("Data directory: %s", dataDirPath)
 	log.Printf("  Database: %s", dbPath)
 	log.Printf("  Log file: %s", logPath)

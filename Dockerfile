@@ -1,4 +1,4 @@
-# Multi-stage build for maxx-next
+# Multi-stage build for maxx
 
 # Stage 1: Build frontend
 FROM node:22-alpine AS frontend-builder
@@ -49,9 +49,9 @@ ARG BUILD_TIME=unknown
 # Build backend binary with version info
 RUN CGO_ENABLED=1 GOOS=linux go build -a -installsuffix cgo \
     -ldflags="-s -w \
-    -X github.com/Bowl42/maxx-next/internal/version.Version=${VERSION} \
-    -X github.com/Bowl42/maxx-next/internal/version.Commit=${COMMIT} \
-    -X github.com/Bowl42/maxx-next/internal/version.BuildTime=${BUILD_TIME}" \
+    -X github.com/awsl-project/maxx/internal/version.Version=${VERSION} \
+    -X github.com/awsl-project/maxx/internal/version.Commit=${COMMIT} \
+    -X github.com/awsl-project/maxx/internal/version.BuildTime=${BUILD_TIME}" \
     -o maxx cmd/maxx/main.go
 
 # Stage 3: Final runtime image

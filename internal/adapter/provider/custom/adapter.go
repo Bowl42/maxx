@@ -12,12 +12,12 @@ import (
 	"strings"
 	"time"
 
-	"github.com/Bowl42/maxx-next/internal/adapter/provider"
-	ctxutil "github.com/Bowl42/maxx-next/internal/context"
-	"github.com/Bowl42/maxx-next/internal/converter"
-	"github.com/Bowl42/maxx-next/internal/domain"
-	"github.com/Bowl42/maxx-next/internal/pricing"
-	"github.com/Bowl42/maxx-next/internal/usage"
+	"github.com/awsl-project/maxx/internal/adapter/provider"
+	ctxutil "github.com/awsl-project/maxx/internal/context"
+	"github.com/awsl-project/maxx/internal/converter"
+	"github.com/awsl-project/maxx/internal/domain"
+	"github.com/awsl-project/maxx/internal/pricing"
+	"github.com/awsl-project/maxx/internal/usage"
 )
 
 func init() {
