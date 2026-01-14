@@ -72,7 +72,7 @@ export function useCooldowns() {
   // Helper to get remaining time as seconds
   const getRemainingSeconds = (cooldown: Cooldown) => {
     // Handle both 'untilTime' and 'until' field names for backward compatibility
-    const untilTime = cooldown.untilTime || (cooldown as Record<string, unknown>).until as string;
+    const untilTime = cooldown.untilTime || (cooldown as unknown as Record<string, unknown>).until as string;
     if (!untilTime) return 0;
 
     const until = new Date(untilTime);
