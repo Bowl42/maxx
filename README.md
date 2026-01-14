@@ -128,6 +128,40 @@ build-desktop.bat
 - Project proxy: http://localhost:9880/{project-slug}/v1/messages (etc.)
 
 ## Data
+Default database path (non-Docker): `~/.config/maxx/maxx.db`
+Docker data directory: `/data` (mounted via `docker-compose.yml`)
+
+## Desktop App
+
+Maxx also provides a native desktop application built with Wails.
+
+### Build Desktop App
+
+```bash
+# Development mode
+task wails:dev
+# or
+wails dev
+
+# Production build
+task wails:build
+# or
+wails build
+```
+
+The built executable will be in `build/bin/`.
+
+### Data Directory (Desktop App)
+
+The desktop app stores data in the following locations:
+- **Windows**: `%USERPROFILE%\AppData\Local\maxx\`
+- **macOS**: `~/Library/Application Support/maxx/`
+- **Linux**: `~/.local/share/maxx/`
+
+### Download
+
+You can download pre-built desktop applications from [GitHub Releases](https://github.com/Bowl42/maxx-next/releases).
+
 - Desktop mode (Windows): `%APPDATA%\maxx`
 - Server mode (non-Docker): `~/.config/maxx/maxx.db`
 - Docker data directory: `/data` (mounted via `docker-compose.yml`)

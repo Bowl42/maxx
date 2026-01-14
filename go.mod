@@ -2,7 +2,12 @@ module github.com/awsl-project/maxx
 
 go 1.25.5
 
-require github.com/mattn/go-sqlite3 v1.14.33
+require (
+	github.com/google/uuid v1.6.0
+	github.com/gorilla/websocket v1.5.3
+	github.com/mattn/go-sqlite3 v1.14.33
+	github.com/wailsapp/wails/v2 v2.11.0
+)
 
 require (
 	github.com/bep/debounce v1.2.1 // indirect

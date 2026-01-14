@@ -7,6 +7,15 @@
 maxx
 build/bin/
 
+# Wails build artifacts
+build/bin/
+build/appimage/
+build/darwin/
+build/windows/
+build/linux/
+frontend/
+wails.build.log
+
 # Go build cache
 .gocache/
 .gomodcache/
@@ -19,6 +28,7 @@ build/bin/
 node_modules/
 web/node_modules/
 web/dist/
+web/wailsjs/runtime/
 web/src/wailsjs/
 
 # IDE
