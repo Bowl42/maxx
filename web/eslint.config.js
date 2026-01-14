@@ -30,6 +30,8 @@ export default defineConfig([
       '@typescript-eslint/ban-ts-comment': 'off',
       // 允许空接口
       '@typescript-eslint/no-empty-object-type': 'off',
+      // 允许使用 any 类型
+      '@typescript-eslint/no-explicit-any': 'off',
     },
   },
 ])
