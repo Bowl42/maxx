@@ -34,6 +34,8 @@ jobs:
           node-version: '22'
 
       - uses: pnpm/action-setup@v4
+        with:
+          package_json_file: web/package.json
 
       - name: Install Wails
         run: go install github.com/wailsapp/wails/v2/cmd/wails@latest
@@ -103,6 +105,8 @@ jobs:
           node-version: '22'
 
       - uses: pnpm/action-setup@v4
+        with:
+          package_json_file: web/package.json
 
       - name: Install Wails
         run: go install github.com/wailsapp/wails/v2/cmd/wails@latest
@@ -174,6 +178,8 @@ jobs:
             libwebkit2gtk-4.0-dev
 
       - uses: pnpm/action-setup@v4
+        with:
+          package_json_file: web/package.json
 
       - name: Install Wails
         run: go install github.com/wailsapp/wails/v2/cmd/wails@latest
