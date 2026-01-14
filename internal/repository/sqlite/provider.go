@@ -63,7 +63,7 @@ func (r *ProviderRepository) List() ([]*domain.Provider, error) {
 	}
 	defer rows.Close()
 
-	var providers []*domain.Provider
+	providers := make([]*domain.Provider, 0)
 	for rows.Next() {
 		p, err := r.scanProviderRows(rows)
 		if err != nil {

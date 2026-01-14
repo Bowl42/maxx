@@ -53,7 +53,7 @@ func (r *ProxyUpstreamAttemptRepository) ListByProxyRequestID(proxyRequestID uin
 	}
 	defer rows.Close()
 
-	var attempts []*domain.ProxyUpstreamAttempt
+	attempts := make([]*domain.ProxyUpstreamAttempt, 0)
 	for rows.Next() {
 		var a domain.ProxyUpstreamAttempt
 		var reqInfoJSON, respInfoJSON string

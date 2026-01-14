@@ -27,7 +27,7 @@ func (r *CooldownRepository) GetAll() ([]*domain.Cooldown, error) {
 	}
 	defer rows.Close()
 
-	var cooldowns []*domain.Cooldown
+	cooldowns := make([]*domain.Cooldown, 0)
 	for rows.Next() {
 		cd := &domain.Cooldown{}
 		var createdAt, updatedAt, untilTime string
@@ -57,7 +57,7 @@ func (r *CooldownRepository) GetByProvider(providerID uint64) ([]*domain.Cooldow
 	}
 	defer rows.Close()
 
-	var cooldowns []*domain.Cooldown
+	cooldowns := make([]*domain.Cooldown, 0)
 	for rows.Next() {
 		cd := &domain.Cooldown{}
 		var createdAt, updatedAt, untilTime string

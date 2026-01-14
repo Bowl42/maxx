@@ -82,7 +82,7 @@ func (r *ProxyRequestRepository) List(limit, offset int) ([]*domain.ProxyRequest
 	}
 	defer rows.Close()
 
-	var requests []*domain.ProxyRequest
+	requests := make([]*domain.ProxyRequest, 0)
 	for rows.Next() {
 		p, err := r.scanRequestRows(rows)
 		if err != nil {
@@ -121,7 +121,7 @@ func (r *ProxyRequestRepository) ListCursor(limit int, before, after uint64) ([]
 	}
 	defer rows.Close()
 
-	var requests []*domain.ProxyRequest
+	requests := make([]*domain.ProxyRequest, 0)
 	for rows.Next() {
 		p, err := r.scanRequestRowsLite(rows)
 		if err != nil {

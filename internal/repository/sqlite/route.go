@@ -84,7 +84,7 @@ func (r *RouteRepository) List() ([]*domain.Route, error) {
 	}
 	defer rows.Close()
 
-	var routes []*domain.Route
+	routes := make([]*domain.Route, 0)
 	for rows.Next() {
 		route, err := r.scanRouteRows(rows)
 		if err != nil {

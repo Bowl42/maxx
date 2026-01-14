@@ -1,6 +1,9 @@
 package desktop
 
 import (
+	"context"
+	"fmt"
+
 	"github.com/awsl-project/maxx/internal/domain"
 	"github.com/awsl-project/maxx/internal/service"
 )
@@ -199,55 +202,131 @@ func (a *DesktopApp) GetLogs(limit int) (*service.LogsResult, error) {
 
 // ===== Antigravity API =====
 
-// Note: These methods are not in AdminService yet, need to add them
-// For now, return placeholder implementations
-
 type AntigravityTokenValidationResult struct {
-	Valid  bool   `json:"valid"`
-	Email  string `json:"email,omitempty"`
-	Error  string `json:"error,omitempty"`
+	Valid     bool   `json:"valid"`
+	Email     string `json:"email,omitempty"`
+	Name      string `json:"name,omitempty"`
+	Picture   string `json:"picture,omitempty"`
+	ProjectID string `json:"projectId,omitempty"`
+	Error     string `json:"error,omitempty"`
 }
 
 type AntigravityBatchValidationResult struct {
-	Results []AntigravityTokenValidationResult `json:"results"`
+	Results []*AntigravityTokenValidationResult `json:"results"`
+	Total   int                                 `json:"total"`
 }
 
 type AntigravityQuotaData struct {
-	Email           string                        `json:"email"`
-	Name            string                        `json:"name"`
-	Picture         string                        `json:"picture"`
-	ProjectID       string                        `json:"projectId"`
-	SubscriptionTier string                        `json:"subscriptionTier"`
-	IsForbidden      bool                        `json:"isForbidden"`
-	Models          []domain.AntigravityModelQuota `json:"models"`
-	LastUpdated     int64                        `json:"lastUpdated"`
+	Email            string                         `json:"email"`
+	Name             string                         `json:"name"`
+	Picture          string                         `json:"picture"`
+	ProjectID        string                         `json:"projectId"`
+	SubscriptionTier string                         `json:"subscriptionTier"`
+	IsForbidden      bool                           `json:"isForbidden"`
+	Models           []domain.AntigravityModelQuota `json:"models"`
+	LastUpdated      int64                          `json:"lastUpdated"`
 }
 
 func (a *DesktopApp) ValidateAntigravityToken(refreshToken string) (*AntigravityTokenValidationResult, error) {
-	// Placeholder - will be implemented by adding to AdminService
-	return &AntigravityTokenValidationResult{
-		Valid: false,
-		Error: "not implemented",
-	}, nil
+	ctx := context.Background()
+	result, err := a.components.AntigravityHandler.ValidateToken(ctx, refreshToken)
+	if err != nil {
+		return nil, err
+	}
+
+	resp := &AntigravityTokenValidationResult{
+		Valid: result.Valid,
+		Error: result.Error,
+	}
+	if result.UserInfo != nil {
+		resp.Email = result.UserInfo.Email
+		resp.Name = result.UserInfo.Name
+		resp.Picture = result.UserInfo.Picture
+	}
+	resp.ProjectID = result.ProjectID
+
+	return resp, nil
 }
 
 func (a *DesktopApp) ValidateAntigravityTokens(tokens []string) (*AntigravityBatchValidationResult, error) {
-	// Placeholder - will be implemented by adding to AdminService
-	return &AntigravityBatchValidationResult{
-		Results: []AntigravityTokenValidationResult{},
-	}, nil
+	ctx := context.Background()
+	results, err := a.components.AntigravityHandler.ValidateTokens(ctx, tokens)
+	if err != nil {
+		return nil, err
+	}
+
+	resp := &AntigravityBatchValidationResult{
+		Results: make([]*AntigravityTokenValidationResult, len(results)),
+		Total:   len(results),
+	}
+	for i, r := range results {
+		item := &AntigravityTokenValidationResult{
+			Valid:     r.Valid,
+			Error:     r.Error,
+			ProjectID: r.ProjectID,
+		}
+		if r.UserInfo != nil {
+			item.Email = r.UserInfo.Email
+			item.Name = r.UserInfo.Name
+			item.Picture = r.UserInfo.Picture
+		}
+		resp.Results[i] = item
+	}
+
+	return resp, nil
 }
 
 func (a *DesktopApp) ValidateAntigravityTokenText(tokenText string) (*AntigravityBatchValidationResult, error) {
-	// Placeholder - will be implemented by adding to AdminService
-	return &AntigravityBatchValidationResult{
-		Results: []AntigravityTokenValidationResult{},
-	}, nil
+	ctx := context.Background()
+	results, err := a.components.AntigravityHandler.ValidateTokenText(ctx, tokenText)
+	if err != nil {
+		return nil, err
+	}
+
+	resp := &AntigravityBatchValidationResult{
+		Results: make([]*AntigravityTokenValidationResult, len(results)),
+		Total:   len(results),
+	}
+	for i, r := range results {
+		item := &AntigravityTokenValidationResult{
+			Valid:     r.Valid,
+			Error:     r.Error,
+			ProjectID: r.ProjectID,
+		}
+		if r.UserInfo != nil {
+			item.Email = r.UserInfo.Email
+			item.Name = r.UserInfo.Name
+			item.Picture = r.UserInfo.Picture
+		}
+		resp.Results[i] = item
+	}
+
+	return resp, nil
 }
 
 func (a *DesktopApp) GetAntigravityProviderQuota(providerID uint64, forceRefresh bool) (*AntigravityQuotaData, error) {
-	// Placeholder - will be implemented by adding to AdminService
-	return &AntigravityQuotaData{}, nil
+	ctx := context.Background()
+	quota, err := a.components.AntigravityHandler.GetProviderQuota(ctx, providerID, forceRefresh)
+	if err != nil {
+		return nil, err
+	}
+
+	// 转换为 Wails 返回类型
+	models := make([]domain.AntigravityModelQuota, len(quota.Models))
+	for i, m := range quota.Models {
+		models[i] = domain.AntigravityModelQuota{
+			Name:       m.Name,
+			Percentage: m.Percentage,
+			ResetTime:  m.ResetTime,
+		}
+	}
+
+	return &AntigravityQuotaData{
+		SubscriptionTier: quota.SubscriptionTier,
+		IsForbidden:      quota.IsForbidden,
+		Models:           models,
+		LastUpdated:      quota.LastUpdated,
+	}, nil
 }
 
 type AntigravityOAuthResult struct {
@@ -256,10 +335,17 @@ type AntigravityOAuthResult struct {
 }
 
 func (a *DesktopApp) StartAntigravityOAuth() (*AntigravityOAuthResult, error) {
-	// Placeholder - will be implemented by adding to AdminService
+	// 构建回调 URL，使用本地服务器地址
+	redirectURI := fmt.Sprintf("http://localhost%s/antigravity/oauth/callback", a.serverPort)
+
+	result, err := a.components.AntigravityHandler.StartOAuth(redirectURI)
+	if err != nil {
+		return nil, err
+	}
+
 	return &AntigravityOAuthResult{
-		AuthURL: "",
-		State:   "",
+		AuthURL: result.AuthURL,
+		State:   result.State,
 	}, nil
 }
 

@@ -71,7 +71,7 @@ func (r *SessionRepository) List() ([]*domain.Session, error) {
 	}
 	defer rows.Close()
 
-	var sessions []*domain.Session
+	sessions := make([]*domain.Session, 0)
 	for rows.Next() {
 		var s domain.Session
 		var rejectedAt sql.NullString

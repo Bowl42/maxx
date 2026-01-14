@@ -144,7 +144,7 @@ func (r *ProjectRepository) List() ([]*domain.Project, error) {
 	}
 	defer rows.Close()
 
-	var projects []*domain.Project
+	projects := make([]*domain.Project, 0)
 	for rows.Next() {
 		var p domain.Project
 		var enabledCustomRoutesJSON string
