@@ -92,7 +92,17 @@ build-desktop.bat
 
 ## Release
 
-创建新版本发布：
+创建新版本发布有两种方式：
+
+### GitHub Actions（推荐）
+
+1. 进入仓库的 [Actions](../../actions) 页面
+2. 选择 "Release" workflow
+3. 点击 "Run workflow"
+4. 输入版本号（如 `v1.0.0`）
+5. 点击 "Run workflow" 执行
+
+### 本地脚本
 
 ```bash
 ./release.sh <github_token> <version>
@@ -103,4 +113,4 @@ build-desktop.bat
 ./release.sh ghp_xxxx v1.0.0
 ```
 
-脚本会自动创建 tag 并推送到 GitHub，然后创建 Release（自动生成 release notes）。
+两种方式都会自动创建 tag 并生成 release notes。
