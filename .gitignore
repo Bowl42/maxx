@@ -15,6 +15,7 @@ build/windows/
 build/linux/
 frontend/
 wails.build.log
+web/package.json.md5
 
 # Go build cache
 .gocache/
