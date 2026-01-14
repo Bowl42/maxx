@@ -49,6 +49,9 @@ jobs:
           VERSION=${TAG#v}
           wails build -platform darwin/${{ matrix.arch }} -ldflags "-X github.com/awsl-project/maxx/internal/version.Version=$VERSION" -clean
 
+      - name: Install create-dmg
+        run: brew install create-dmg
+
       - name: Create DMG and generate checksum
         run: |
           cd build/bin
@@ -60,23 +63,30 @@ jobs:
             exit 1
           fi
           echo "Found app: $APP_NAME"
-          
-          # Create DMG
+
+          # Create DMG with Applications folder shortcut
           DMG_NAME="maxx-macOS-${{ matrix.arch }}.dmg"
-          hdiutil create -volname "maxx" \
-            -srcfolder "$APP_NAME" \
-            -ov -format UDZO \
-            "$DMG_NAME"
-          
+          create-dmg \
+            --volname "maxx" \
+            --volicon "../../build/appicon.png" \
+            --window-pos 200 120 \
+            --window-size 660 400 \
+            --icon-size 100 \
+            --icon "$APP_NAME" 180 170 \
+            --hide-extension "$APP_NAME" \
+            --app-drop-link 480 170 \
+            "$DMG_NAME" \
+            "$APP_NAME"
+
           # Generate SHA256
           shasum -a 256 "$DMG_NAME" | awk '{print $1}' > "${DMG_NAME}.sha256"
-          
+
           # Move to bin directory
           cd ../..
           mkdir -p bin
           mv "build/bin/$DMG_NAME" bin/
           mv "build/bin/${DMG_NAME}.sha256" bin/
-          
+
           echo "Created: bin/$DMG_NAME"
           ls -lh bin/
 
