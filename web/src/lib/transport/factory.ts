@@ -1,8 +1,8 @@
 /**
- * Transport 工厂函数和环境检测
+ * Transport 工厂函数
  *
- * 重要：Transport 必须通过 initializeTransport() 异步初始化
- * 不要在模块顶层调用 getTransport()，这会导致竞态条件
+ * 由于桌面客户端现在通过 HTTP Server 提供前端，
+ * 所有环境都使用 HttpTransport
  */
 
 import type { Transport, TransportType, TransportConfig } from './interface';
@@ -22,116 +22,16 @@ let initPromise: Promise<Transport> | null = null;
 
 /**
  * 检测当前运行环境
- * 最可靠的方式是检测 protocol，Wails 使用 wails:// 协议
+ * 现在所有环境都使用 HTTP
  */
 export function detectTransportType(): TransportType {
-  if (typeof window !== 'undefined') {
-    // 最可靠的检测：Wails webview 使用 wails:// 协议
-    if (window.location.protocol === 'wails:') {
-      return 'wails';
-    }
-    // Wails v3
-    if (window.__WAILS__) {
-      return 'wails';
-    }
-    // Wails v2 - 检测 window.go (Go bindings) 或 window.runtime (Wails runtime)
-    const win = window as unknown as { go?: unknown; runtime?: unknown };
-    if (win.go || win.runtime) {
-      return 'wails';
-    }
-  }
   return 'http';
 }
 
-/**
- * 检测是否在 Wails 环境中运行
- */
-export function isWailsEnvironment(): boolean {
-  return detectTransportType() === 'wails';
-}
-
-/**
- * 等待 Wails runtime 准备好
- * 在生产构建中，window.go 可能在脚本执行时还没有被注入
- */
-function waitForWailsRuntime(timeout = 5000): Promise<boolean> {
-  return new Promise((resolve) => {
-    // 最可靠的检测：通过协议判断是否在 Wails 环境
-    if (window.location.protocol === 'wails:') {
-      console.log('[Transport] Wails environment confirmed by protocol');
-      resolve(true);
-      return;
-    }
-
-    // 然后检查 Wails 对象
-    const win = window as unknown as { go?: unknown; runtime?: unknown };
-    if (win.go || win.runtime || window.__WAILS__) {
-      console.log('[Transport] Wails runtime already available');
-      resolve(true);
-      return;
-    }
-
-    console.log('[Transport] Waiting for Wails runtime...');
-    const startTime = Date.now();
-
-    // 使用 setInterval 更可靠地检测
-    const checkInterval = setInterval(() => {
-      const w = window as unknown as { go?: unknown; runtime?: unknown };
-      if (w.go || w.runtime || window.__WAILS__) {
-        console.log('[Transport] Wails runtime detected after wait');
-        clearInterval(checkInterval);
-        resolve(true);
-        return;
-      }
-
-      if (Date.now() - startTime > timeout) {
-        console.log(
-          '[Transport] Wails runtime wait timeout, window keys:',
-          Object.keys(window).filter(
-            (k) => k.includes('go') || k.includes('wails') || k.includes('runtime')
-          )
-        );
-        clearInterval(checkInterval);
-        resolve(false);
-        return;
-      }
-    }, 50); // 每 50ms 检查一次
-  });
-}
-
-/**
- * 创建 Transport 实例
- * 注意：Wails 环境下使用动态导入，避免在 web 模式下导入 @wailsio/runtime
- */
-async function createTransportAsync(
-  initialType: TransportType,
-  config?: TransportConfig
-): Promise<Transport> {
-  // 如果初始检测明确为 http（非 wails:// 协议），直接使用 HttpTransport
-  // 无需等待 Wails runtime
-  if (initialType === 'http') {
-    return new HttpTransport(config);
-  }
-
-  // 对于可能是 Wails 环境的情况，等待 runtime 准备好
-  const isWails = await waitForWailsRuntime();
-
-  if (isWails) {
-    // 动态导入 WailsTransport，只在 Wails 环境下加载
-    const { WailsTransport } = await import('./wails-transport');
-    console.log('[Transport] Using WailsTransport');
-    return new WailsTransport(config);
-  }
-
-  // Fallback to HTTP
-  return new HttpTransport(config);
-}
 
 /**
  * 初始化全局 Transport 单例（异步）
  * 在应用启动时调用一次
- *
- * 重要：必须在使用 getTransport() 之前调用此方法
  */
 export async function initializeTransport(config?: TransportConfig): Promise<Transport> {
   // 已经初始化完成
@@ -151,13 +51,13 @@ export async function initializeTransport(config?: TransportConfig): Promise<Tra
 
   // 开始初始化
   state = { status: 'initializing' };
-  const detectedType = detectTransportType();
-  console.log('[Transport] Initializing... detected type:', detectedType);
+  console.log('[Transport] Initializing HttpTransport...');
 
-  initPromise = createTransportAsync(detectedType, config)
-    .then((transport) => {
-      state = { status: 'ready', transport, type: detectedType };
-      console.log('[Transport] Ready:', transport.constructor.name);
+  initPromise = Promise.resolve()
+    .then(() => {
+      const transport = new HttpTransport(config);
+      state = { status: 'ready', transport, type: 'http' };
+      console.log('[Transport] Ready: HttpTransport');
       return transport;
     })
     .catch((error) => {

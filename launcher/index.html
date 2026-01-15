@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Maxx</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="launcher-container">
+        <!-- Logo 区域 -->
+        <div class="logo-container">
+            <div class="logo">
+                <svg class="logo-icon" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+                    <defs>
+                        <linearGradient id="logoGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                            <stop offset="0%" style="stop-color:#4f46e5"/>
+                            <stop offset="100%" style="stop-color:#7c3aed"/>
+                        </linearGradient>
+                    </defs>
+                    <circle cx="50" cy="50" r="45" fill="none" stroke="url(#logoGradient)" stroke-width="3"/>
+                    <text x="50" y="62" text-anchor="middle" font-size="32" font-weight="bold" fill="url(#logoGradient)">M</text>
+                </svg>
+            </div>
+            <h1 class="app-name">Maxx</h1>
+            <p class="app-tagline">AI API Proxy Gateway</p>
+        </div>
+
+        <!-- 状态区域 -->
+        <div id="status-container" class="status-container">
+            <div id="loading-spinner" class="spinner"></div>
+            <p id="status-text" class="status-text">正在启动服务...</p>
+        </div>
+
+        <!-- 错误区域（默认隐藏） -->
+        <div id="error-container" class="error-container hidden">
+            <div class="error-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="12" cy="12" r="10"/>
+                    <line x1="12" y1="8" x2="12" y2="12"/>
+                    <line x1="12" y1="16" x2="12.01" y2="16"/>
+                </svg>
+            </div>
+            <p id="error-message" class="error-message"></p>
+            <div class="button-group">
+                <button id="retry-button" class="button button-primary">重试</button>
+                <button id="quit-button" class="button button-secondary">退出</button>
+            </div>
+        </div>
+
+        <!-- 版本信息 -->
+        <div class="version-info">
+            <span id="version-text"></span>
+        </div>
+    </div>
+    <script src="script.js"></script>
+</body>
+</html>

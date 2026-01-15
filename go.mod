@@ -36,5 +36,3 @@ require (
 	golang.org/x/sys v0.30.0 // indirect
 	golang.org/x/text v0.22.0 // indirect
 )
-
-require github.com/emersion/go-autostart v0.0.0-20250403115856-34830d6457d2

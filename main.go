@@ -12,12 +12,12 @@ import (
 	"github.com/wailsapp/wails/v2/pkg/options/windows"
 )
 
-//go:embed all:web/dist
+//go:embed all:launcher
 var assets embed.FS
 
 func main() {
 	// Create desktop app instance
-	app, err := desktop.NewDesktopApp()
+	app, err := desktop.NewLauncherApp()
 	if err != nil {
 		log.Fatal("Failed to initialize desktop app:", err)
 	}
@@ -51,7 +51,7 @@ func main() {
 		},
 		Mac: &mac.Options{
 			TitleBar: &mac.TitleBar{
-				TitlebarAppearsTransparent: true,
+				TitlebarAppearsTransparent: false,
 				HideTitle:                  false,
 				HideTitleBar:               false,
 				FullSizeContent:            false,

@@ -165,11 +165,3 @@ export function useTransportType(): TransportType {
   return useTransport().type;
 }
 
-/**
- * useIsWails Hook
- *
- * 判断是否在 Wails 环境中运行
- */
-export function useIsWails(): boolean {
-  return useTransportType() === 'wails';
-}

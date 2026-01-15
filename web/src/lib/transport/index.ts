@@ -59,14 +59,12 @@ export type {
   TransportConfig,
 } from './interface';
 
-// 实现导出 - 只导出 HttpTransport
-// WailsTransport 通过动态导入加载，避免在 web 模式下导入 @wailsio/runtime
+// 实现导出
 export { HttpTransport } from './http-transport';
 
 // 工厂函数导出
 export {
   detectTransportType,
-  isWailsEnvironment,
   initializeTransport,
   getTransport,
   getTransportState,
@@ -80,5 +78,4 @@ export {
   TransportProvider,
   useTransport,
   useTransportType,
-  useIsWails,
 } from './context';

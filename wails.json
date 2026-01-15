@@ -3,12 +3,7 @@
   "name": "maxx",
   "outputfilename": "maxx",
   "tags": "desktop",
-  "frontend:install": "pnpm install",
-  "frontend:build": "pnpm build",
-  "frontend:dev:watcher": "pnpm dev",
-  "frontend:dev:serverUrl": "http://localhost:3000",
-  "frontend:dir": "./web",
-  "wailsjsdir": "./web/src",
+  "frontend:dir": "./launcher",
   "version": "2",
   "author": {
     "name": "awsl-project",
