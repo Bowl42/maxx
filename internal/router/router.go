@@ -105,12 +105,6 @@ func (r *Router) Match(clientType domain.ClientType, projectID uint64) ([]*Match
 
 	log.Printf("[Router] Match called: clientType=%s, projectID=%d, total routes in cache=%d", clientType, projectID, len(routes))
 
-	// Debug: print all routes in cache
-	for _, rt := range routes {
-		log.Printf("[Router] Route in cache: id=%d, clientType=%s, projectID=%d, providerID=%d, isEnabled=%v",
-			rt.ID, rt.ClientType, rt.ProjectID, rt.ProviderID, rt.IsEnabled)
-	}
-
 	// Check if ClientType has custom routes enabled for this project
 	useProjectRoutes := false
 	if projectID != 0 {

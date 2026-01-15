@@ -10,9 +10,10 @@ import (
 	"time"
 
 	"github.com/awsl-project/maxx/internal/adapter/client"
-	_ "github.com/awsl-project/maxx/internal/adapter/provider/antigravity" // Register antigravity adapter
-	_ "github.com/awsl-project/maxx/internal/adapter/provider/custom"      // Register custom adapter
+	"github.com/awsl-project/maxx/internal/adapter/provider/antigravity"
+	_ "github.com/awsl-project/maxx/internal/adapter/provider/custom" // Register custom adapter
 	"github.com/awsl-project/maxx/internal/cooldown"
+	"github.com/awsl-project/maxx/internal/domain"
 	"github.com/awsl-project/maxx/internal/executor"
 	"github.com/awsl-project/maxx/internal/handler"
 	"github.com/awsl-project/maxx/internal/repository/cached"
@@ -186,6 +187,18 @@ func main() {
 		*addr,
 		r, // Router implements ProviderAdapterRefresher interface
 	)
+
+	// Initialize Antigravity global settings getter
+	antigravity.SetGlobalSettingsGetter(func() (*antigravity.GlobalSettings, error) {
+		rulesJSON, _ := settingRepo.Get(domain.SettingKeyAntigravityModelMapping)
+		rules, err := antigravity.ParseModelMappingRules(rulesJSON)
+		if err != nil {
+			return nil, err
+		}
+		return &antigravity.GlobalSettings{
+			ModelMappingRules: rules,
+		}, nil
+	})
 
 	// Create handlers
 	proxyHandler := handler.NewProxyHandler(clientAdapter, exec, cachedSessionRepo)

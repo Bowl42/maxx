@@ -30,6 +30,7 @@ import type {
   AntigravityTokenValidationResult,
   AntigravityBatchValidationResult,
   AntigravityQuotaData,
+  AntigravityGlobalSettings,
   ImportResult,
   Cooldown,
 } from './types';
@@ -334,6 +335,21 @@ export class HttpTransport implements Transport {
     const { data } = await axios.post<{ authURL: string; state: string }>(
       '/antigravity/oauth/start'
     );
+    return data;
+  }
+
+  async getAntigravityGlobalSettings(): Promise<AntigravityGlobalSettings> {
+    const { data } = await this.client.get<AntigravityGlobalSettings>('/antigravity-settings');
+    return data;
+  }
+
+  async updateAntigravityGlobalSettings(settings: AntigravityGlobalSettings): Promise<AntigravityGlobalSettings> {
+    const { data } = await this.client.put<AntigravityGlobalSettings>('/antigravity-settings', settings);
+    return data;
+  }
+
+  async resetAntigravityGlobalSettings(): Promise<AntigravityGlobalSettings> {
+    const { data } = await this.client.post<AntigravityGlobalSettings>('/antigravity-settings-reset');
     return data;
   }
 

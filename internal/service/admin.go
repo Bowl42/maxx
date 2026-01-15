@@ -1,10 +1,12 @@
 package service
 
 import (
+	"encoding/json"
 	"strconv"
 	"strings"
 	"time"
 
+	"github.com/awsl-project/maxx/internal/adapter/provider/antigravity"
 	"github.com/awsl-project/maxx/internal/domain"
 	"github.com/awsl-project/maxx/internal/repository"
 )
@@ -402,6 +404,103 @@ func (s *AdminService) UpdateSetting(key, value string) error {
 
 func (s *AdminService) DeleteSetting(key string) error {
 	return s.settingRepo.Delete(key)
+}
+
+// ===== Antigravity Global Settings API =====
+
+// ModelMappingRule represents a single model mapping rule (for API)
+type ModelMappingRule struct {
+	Pattern string `json:"pattern"` // Source pattern, supports * wildcard
+	Target  string `json:"target"`  // Target model name
+}
+
+// AntigravityGlobalSettings represents the global Antigravity configuration
+type AntigravityGlobalSettings struct {
+	ModelMappingRules     []ModelMappingRule `json:"modelMappingRules"`
+	AvailableTargetModels []string           `json:"availableTargetModels"`
+}
+
+// GetAntigravityGlobalSettings retrieves the global Antigravity settings
+// If no custom mapping exists, returns the preset mapping as default
+func (s *AdminService) GetAntigravityGlobalSettings() (*AntigravityGlobalSettings, error) {
+	settings := &AntigravityGlobalSettings{
+		ModelMappingRules:     []ModelMappingRule{},
+		AvailableTargetModels: antigravity.GetAvailableTargetModels(),
+	}
+
+	// Get model mapping rules from database
+	rulesJSON, err := s.settingRepo.Get(domain.SettingKeyAntigravityModelMapping)
+	if err == nil && rulesJSON != "" {
+		// Use ParseModelMappingRules which handles both new array format and legacy map format
+		agRules, parseErr := antigravity.ParseModelMappingRules(rulesJSON)
+		if parseErr != nil {
+			return nil, parseErr
+		}
+		// Convert antigravity.ModelMappingRule to service.ModelMappingRule
+		settings.ModelMappingRules = make([]ModelMappingRule, len(agRules))
+		for i, r := range agRules {
+			settings.ModelMappingRules[i] = ModelMappingRule{Pattern: r.Pattern, Target: r.Target}
+		}
+	}
+
+	// If no rules exist, initialize with preset rules
+	if len(settings.ModelMappingRules) == 0 {
+		defaultRules := antigravity.GetDefaultModelMappingRules()
+		settings.ModelMappingRules = make([]ModelMappingRule, len(defaultRules))
+		for i, r := range defaultRules {
+			settings.ModelMappingRules[i] = ModelMappingRule{Pattern: r.Pattern, Target: r.Target}
+		}
+		// Save to database
+		if rulesJSON, err := json.Marshal(settings.ModelMappingRules); err == nil {
+			s.settingRepo.Set(domain.SettingKeyAntigravityModelMapping, string(rulesJSON))
+		}
+	}
+
+	return settings, nil
+}
+
+// UpdateAntigravityGlobalSettings updates the global Antigravity settings
+func (s *AdminService) UpdateAntigravityGlobalSettings(settings *AntigravityGlobalSettings) error {
+	// Update model mapping rules
+	if settings.ModelMappingRules != nil {
+		rulesJSON, err := json.Marshal(settings.ModelMappingRules)
+		if err != nil {
+			return err
+		}
+		if err := s.settingRepo.Set(domain.SettingKeyAntigravityModelMapping, string(rulesJSON)); err != nil {
+			return err
+		}
+	} else {
+		// Clear rules if nil
+		if err := s.settingRepo.Set(domain.SettingKeyAntigravityModelMapping, "[]"); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+// ResetAntigravityGlobalSettings resets the model mapping to preset defaults
+func (s *AdminService) ResetAntigravityGlobalSettings() (*AntigravityGlobalSettings, error) {
+	defaultRules := antigravity.GetDefaultModelMappingRules()
+	rules := make([]ModelMappingRule, len(defaultRules))
+	for i, r := range defaultRules {
+		rules[i] = ModelMappingRule{Pattern: r.Pattern, Target: r.Target}
+	}
+
+	rulesJSON, err := json.Marshal(rules)
+	if err != nil {
+		return nil, err
+	}
+
+	if err := s.settingRepo.Set(domain.SettingKeyAntigravityModelMapping, string(rulesJSON)); err != nil {
+		return nil, err
+	}
+
+	return &AntigravityGlobalSettings{
+		ModelMappingRules:     rules,
+		AvailableTargetModels: antigravity.GetAvailableTargetModels(),
+	}, nil
 }
 
 // ===== Proxy Status API =====

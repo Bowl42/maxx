@@ -4,10 +4,12 @@
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { getTransport } from '@/lib/transport';
+import type { AntigravityGlobalSettings } from '@/lib/transport';
 
 export const settingsKeys = {
   all: ['settings'] as const,
   detail: (key: string) => ['settings', key] as const,
+  antigravityGlobal: ['settings', 'antigravity-global'] as const,
 };
 
 export function useSettings() {
@@ -44,6 +46,38 @@ export function useDeleteSetting() {
     mutationFn: (key: string) => getTransport().deleteSetting(key),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: settingsKeys.all });
+    },
+  });
+}
+
+// ===== Antigravity Global Settings =====
+
+export function useAntigravityGlobalSettings() {
+  return useQuery({
+    queryKey: settingsKeys.antigravityGlobal,
+    queryFn: () => getTransport().getAntigravityGlobalSettings(),
+  });
+}
+
+export function useUpdateAntigravityGlobalSettings() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (settings: AntigravityGlobalSettings) =>
+      getTransport().updateAntigravityGlobalSettings(settings),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: settingsKeys.antigravityGlobal });
+    },
+  });
+}
+
+export function useResetAntigravityGlobalSettings() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: () => getTransport().resetAntigravityGlobalSettings(),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: settingsKeys.antigravityGlobal });
     },
   });
 }

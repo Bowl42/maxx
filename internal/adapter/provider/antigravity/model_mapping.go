@@ -1,56 +1,65 @@
 package antigravity
 
-import "strings"
+import (
+	"log"
+	"strings"
+)
 
-// Claude to Gemini model mapping (like Antigravity-Manager)
-var claudeToGeminiMap = map[string]string{
-	// 直接支持的模型
-	"claude-opus-4-5-thinking":   "claude-opus-4-5-thinking",
-	"claude-sonnet-4-5":          "claude-sonnet-4-5",
-	"claude-sonnet-4-5-thinking": "claude-sonnet-4-5-thinking",
+// ModelMappingRule represents a single model mapping rule
+// Rules are matched in order, first match wins
+type ModelMappingRule struct {
+	Pattern string // Source pattern, supports * wildcard
+	Target  string // Target model name
+}
 
-	// 别名映射
-	"claude-sonnet-4-5-20250929": "claude-sonnet-4-5-thinking",
-	"claude-3-5-sonnet-20241022": "claude-sonnet-4-5",
-	"claude-3-5-sonnet-20240620": "claude-sonnet-4-5",
-	"claude-opus-4":              "claude-opus-4-5-thinking",
-	"claude-opus-4-5-20251101":   "claude-opus-4-5-thinking",
+// defaultModelMappingRules is the ordered list of default mapping rules
+// Rules are matched in order, first match wins (higher priority first)
+// Supports wildcard patterns: * matches any characters
+// Note: gemini-* models pass through automatically without needing a mapping rule
+var defaultModelMappingRules = []ModelMappingRule{
+	// Claude 模型 - 按优先级排序
+	{"*opus*", "claude-opus-4-5-thinking"},  // 所有 opus 变体
+	{"*sonnet*", "claude-sonnet-4-5"},       // 所有 sonnet 变体
+	{"*haiku*", "gemini-2.5-flash-lite"},    // 所有 haiku 变体
 
-	// Haiku 映射: 默认使用 gemini-2.5-flash-lite (省钱)
-	// 可通过 Provider 配置 haikuTarget 覆盖为 "claude-sonnet-4-5" (更强)
-	"claude-haiku-4":            "gemini-2.5-flash-lite",
-	"claude-3-haiku-20240307":   "gemini-2.5-flash-lite",
-	"claude-haiku-4-5-20251001": "gemini-2.5-flash-lite",
+	// OpenAI 协议映射表 - gpt-4o-mini 优先于 gpt-4
+	{"gpt-4o-mini*", "gemini-2.5-flash"}, // gpt-4o-mini 系列
+	{"gpt-4*", "gemini-2.5-pro"},         // 所有 gpt-4 变体
+	{"gpt-3.5-*", "gemini-2.5-flash"},    // 所有 gpt-3.5 变体
+}
 
-	// OpenAI 协议映射表
-	"gpt-4":               "gemini-2.5-pro",
-	"gpt-4-turbo":         "gemini-2.5-pro",
-	"gpt-4-turbo-preview": "gemini-2.5-pro",
-	"gpt-4-0125-preview":  "gemini-2.5-pro",
-	"gpt-4-1106-preview":  "gemini-2.5-pro",
-	"gpt-4-0613":          "gemini-2.5-pro",
-	"gpt-4o":              "gemini-2.5-pro",
-	"gpt-4o-2024-05-13":   "gemini-2.5-pro",
-	"gpt-4o-2024-08-06":   "gemini-2.5-pro",
-	"gpt-4o-mini":         "gemini-2.5-flash",
-	"gpt-4o-mini-2024-07-18": "gemini-2.5-flash",
-	"gpt-3.5-turbo":       "gemini-2.5-flash",
-	"gpt-3.5-turbo-16k":   "gemini-2.5-flash",
-	"gpt-3.5-turbo-0125":  "gemini-2.5-flash",
-	"gpt-3.5-turbo-1106":  "gemini-2.5-flash",
-	"gpt-3.5-turbo-0613":  "gemini-2.5-flash",
+// GetDefaultModelMapping returns the default mapping as a map (for API compatibility)
+// Note: The map loses ordering, use defaultModelMappingRules for ordered matching
+func GetDefaultModelMapping() map[string]string {
+	result := make(map[string]string, len(defaultModelMappingRules))
+	for _, rule := range defaultModelMappingRules {
+		result[rule.Pattern] = rule.Target
+	}
+	return result
+}
 
-	// Gemini 协议映射表 (直接穿透)
-	"gemini-2.5-flash-lite":     "gemini-2.5-flash-lite",
-	"gemini-2.5-flash-thinking": "gemini-2.5-flash-thinking",
-	"gemini-3-pro-low":          "gemini-3-pro-low",
-	"gemini-3-pro-high":         "gemini-3-pro-high",
-	"gemini-3-pro-preview":      "gemini-3-pro-preview",
-	"gemini-3-pro":              "gemini-3-pro",
-	"gemini-2.5-flash":          "gemini-2.5-flash",
-	"gemini-2.5-pro":            "gemini-2.5-pro",
-	"gemini-3-flash":            "gemini-3-flash",
-	"gemini-3-pro-image":        "gemini-3-pro-image",
+// AvailableTargetModels is the list of valid target models for mapping
+var AvailableTargetModels = []string{
+	// Claude models
+	"claude-opus-4-5-thinking",
+	"claude-sonnet-4-5",
+	"claude-sonnet-4-5-thinking",
+	// Gemini models
+	"gemini-2.5-flash-lite",
+	"gemini-2.5-flash",
+	"gemini-2.5-flash-thinking",
+	"gemini-2.5-pro",
+	"gemini-3-flash",
+	"gemini-3-pro",
+	"gemini-3-pro-low",
+	"gemini-3-pro-high",
+	"gemini-3-pro-preview",
+	"gemini-3-pro-image",
+}
+
+// GetAvailableTargetModels returns the list of valid target models
+func GetAvailableTargetModels() []string {
+	return AvailableTargetModels
 }
 
 // MapClaudeModelToGemini maps Claude model names to Gemini model names
@@ -70,19 +79,98 @@ func MapClaudeModelToGeminiWithConfig(input string, haikuTarget string) string {
 		return haikuTarget
 	}
 
-	// 2. Check exact match in map
-	if mapped, ok := claudeToGeminiMap[cleanInput]; ok {
+	// 2. Check global settings first (highest priority for user customization)
+	// Rules are matched in order, first match wins
+	if globalSettings := GetGlobalSettings(); globalSettings != nil {
+		if len(globalSettings.ModelMappingRules) > 0 {
+			if mapped := MatchRulesInOrder(cleanInput, globalSettings.ModelMappingRules); mapped != "" {
+				return mapped
+			}
+		}
+	}
+
+	// 3. Check default rules in order
+	if mapped := MatchRulesInOrder(cleanInput, defaultModelMappingRules); mapped != "" {
 		return mapped
 	}
 
-	// 3. Pass-through known prefixes (gemini-, -thinking) to support dynamic suffixes
+	// 4. Pass-through known prefixes (gemini-, -thinking) to support dynamic suffixes
 	// (like Antigravity-Manager)
 	if strings.HasPrefix(cleanInput, "gemini-") || strings.Contains(cleanInput, "thinking") {
 		return cleanInput
 	}
 
-	// 4. Fallback to default
+	// 5. Fallback to default
 	return "claude-sonnet-4-5"
+}
+
+// MatchRulesInOrder matches input against rules in order, first match wins
+// Returns the target model or empty string if no match
+func MatchRulesInOrder(input string, rules []ModelMappingRule) string {
+	for i, rule := range rules {
+		matched := MatchWildcard(rule.Pattern, input)
+		log.Printf("[MatchRulesInOrder] Rule[%d]: pattern=%q, input=%q, matched=%v", i, rule.Pattern, input, matched)
+		if matched {
+			log.Printf("[MatchRulesInOrder] Matched! Returning target=%q", rule.Target)
+			return rule.Target
+		}
+	}
+	return ""
+}
+
+// MatchWildcard checks if input matches a wildcard pattern
+// Supports * as wildcard matching any characters
+// Examples:
+//   - "claude-3-5-sonnet-*" matches "claude-3-5-sonnet-20241022"
+//   - "*haiku*" matches "claude-haiku-4", "claude-3-haiku-20240307"
+//   - "gpt-4-*" matches "gpt-4-turbo", "gpt-4-0613"
+func MatchWildcard(pattern, input string) bool {
+	// Simple cases
+	if pattern == "*" {
+		return true
+	}
+	if !strings.Contains(pattern, "*") {
+		return pattern == input
+	}
+
+	parts := strings.Split(pattern, "*")
+
+	// Handle prefix-only pattern: "prefix*"
+	if len(parts) == 2 && parts[1] == "" {
+		return strings.HasPrefix(input, parts[0])
+	}
+
+	// Handle suffix-only pattern: "*suffix"
+	if len(parts) == 2 && parts[0] == "" {
+		return strings.HasSuffix(input, parts[1])
+	}
+
+	// Handle patterns with multiple wildcards
+	pos := 0
+	for i, part := range parts {
+		if part == "" {
+			continue
+		}
+
+		idx := strings.Index(input[pos:], part)
+		if idx < 0 {
+			return false
+		}
+
+		// First part must be at the beginning if pattern doesn't start with *
+		if i == 0 && idx != 0 {
+			return false
+		}
+
+		pos += idx + len(part)
+	}
+
+	// Last part must be at the end if pattern doesn't end with *
+	if parts[len(parts)-1] != "" && !strings.HasSuffix(input, parts[len(parts)-1]) {
+		return false
+	}
+
+	return true
 }
 
 // isHaikuModel checks if the model name is a Haiku variant

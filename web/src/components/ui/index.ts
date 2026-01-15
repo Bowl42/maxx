@@ -34,8 +34,22 @@ export { Input } from './input';
 export type { InputProps } from './input';
 
 // Select
-export { Select } from './select';
+export { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './select';
 export type { SelectProps } from './select';
+
+// Dialog
+export {
+  Dialog,
+  DialogClose,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogOverlay,
+  DialogPortal,
+  DialogTitle,
+  DialogTrigger,
+} from './dialog';
 
 // Switch
 export { Switch } from './switch';

@@ -46,6 +46,7 @@ export type {
   AntigravityTokenValidationResult,
   AntigravityBatchValidationResult,
   AntigravityOAuthResult,
+  AntigravityGlobalSettings,
   // Import
   ImportResult,
   // Cooldown

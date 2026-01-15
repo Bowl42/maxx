@@ -7,6 +7,7 @@ import {
   useProjects,
 } from '@/hooks/queries'
 import type { ClientType, Route } from '@/lib/transport'
+import { ModelMappingEditor } from '@/pages/providers/components/model-mapping-editor'
 
 interface RouteFormProps {
   route?: Route
@@ -34,6 +35,7 @@ export function RouteForm({
   )
   const [position, setPosition] = useState('1')
   const [isEnabled, setIsEnabled] = useState(true)
+  const [modelMapping, setModelMapping] = useState<Record<string, string>>({})
 
   useEffect(() => {
     if (route) {
@@ -42,6 +44,7 @@ export function RouteForm({
       setProjectID(String(route.projectID))
       setPosition(String(route.position))
       setIsEnabled(route.isEnabled)
+      setModelMapping(route.modelMapping || {})
     }
   }, [route])
 
@@ -65,6 +68,7 @@ export function RouteForm({
       isEnabled,
       isNative: route?.isNative ?? false, // 手动创建的 Route 默认为转换路由
       retryConfigID: route?.retryConfigID ?? 0,
+      modelMapping: Object.keys(modelMapping).length > 0 ? modelMapping : undefined,
     }
 
     if (isEditing) {
@@ -141,6 +145,21 @@ export function RouteForm({
             required
           />
         </div>
+      </div>
+
+      {/* Model Mapping (route-level override) */}
+      <div>
+        <label className="mb-1 block text-sm font-medium">
+          Model Mapping (Override)
+        </label>
+        <p className="mb-2 text-xs text-text-secondary">
+          Route-level model mappings take priority over provider and global settings.
+        </p>
+        <ModelMappingEditor
+          value={modelMapping}
+          onChange={setModelMapping}
+          disabled={isPending}
+        />
       </div>
 
       <div className="flex items-center gap-2">

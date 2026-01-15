@@ -6,9 +6,10 @@ import (
 	"time"
 
 	"github.com/awsl-project/maxx/internal/adapter/client"
-	_ "github.com/awsl-project/maxx/internal/adapter/provider/antigravity"
+	"github.com/awsl-project/maxx/internal/adapter/provider/antigravity"
 	_ "github.com/awsl-project/maxx/internal/adapter/provider/custom"
 	"github.com/awsl-project/maxx/internal/cooldown"
+	"github.com/awsl-project/maxx/internal/domain"
 	"github.com/awsl-project/maxx/internal/event"
 	"github.com/awsl-project/maxx/internal/executor"
 	"github.com/awsl-project/maxx/internal/handler"
@@ -233,6 +234,20 @@ func InitializeServerComponents(
 		addr,
 		r,
 	)
+
+	log.Printf("[Core] Initializing Antigravity global settings getter")
+	antigravity.SetGlobalSettingsGetter(func() (*antigravity.GlobalSettings, error) {
+		// Read model mapping rules from database
+		rulesJSON, _ := repos.SettingRepo.Get(domain.SettingKeyAntigravityModelMapping)
+		rules, err := antigravity.ParseModelMappingRules(rulesJSON)
+		if err != nil {
+			return nil, err
+		}
+
+		return &antigravity.GlobalSettings{
+			ModelMappingRules: rules,
+		}, nil
+	})
 
 	log.Printf("[Core] Creating handlers")
 	proxyHandler := handler.NewProxyHandler(clientAdapter, exec, repos.CachedSessionRepo)

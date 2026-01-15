@@ -349,6 +349,20 @@ func (a *DesktopApp) StartAntigravityOAuth() (*AntigravityOAuthResult, error) {
 	}, nil
 }
 
+// ===== Antigravity Global Settings API =====
+
+func (a *DesktopApp) GetAntigravityGlobalSettings() (*service.AntigravityGlobalSettings, error) {
+	return a.components.AdminService.GetAntigravityGlobalSettings()
+}
+
+func (a *DesktopApp) UpdateAntigravityGlobalSettings(settings *service.AntigravityGlobalSettings) error {
+	return a.components.AdminService.UpdateAntigravityGlobalSettings(settings)
+}
+
+func (a *DesktopApp) ResetAntigravityGlobalSettings() (*service.AntigravityGlobalSettings, error) {
+	return a.components.AdminService.ResetAntigravityGlobalSettings()
+}
+
 // ===== Cooldown API =====
 
 func (a *DesktopApp) GetCooldowns() ([]*domain.Cooldown, error) {

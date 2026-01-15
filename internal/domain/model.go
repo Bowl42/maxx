@@ -221,6 +221,14 @@ type ProxyUpstreamAttempt struct {
 	// 是否为 SSE 流式请求
 	IsStream bool `json:"isStream"`
 
+	// 模型信息
+	// RequestModel: 客户端请求的原始模型
+	// MappedModel: 经过映射后实际发送给上游的模型
+	// ResponseModel: 上游响应中返回的模型名称
+	RequestModel  string `json:"requestModel"`
+	MappedModel   string `json:"mappedModel"`
+	ResponseModel string `json:"responseModel"`
+
 	RequestInfo  *RequestInfo  `json:"requestInfo"`
 	ResponseInfo *ResponseInfo `json:"responseInfo"`
 
@@ -311,7 +319,8 @@ type SystemSetting struct {
 
 // 系统设置 Key 常量
 const (
-	SettingKeyProxyPort = "proxy_port" // 代理服务器端口，默认 9880
+	SettingKeyProxyPort               = "proxy_port"                 // 代理服务器端口，默认 9880
+	SettingKeyAntigravityModelMapping = "antigravity_model_mapping"  // Antigravity 全局模型映射 (JSON)
 )
 
 // Antigravity 模型配额
