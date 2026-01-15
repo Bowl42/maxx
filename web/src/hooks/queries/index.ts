@@ -81,4 +81,7 @@ export {
   useSetting,
   useUpdateSetting,
   useDeleteSetting,
+  useAntigravityGlobalSettings,
+  useUpdateAntigravityGlobalSettings,
+  useResetAntigravityGlobalSettings,
 } from './use-settings';

@@ -13,12 +13,14 @@ import (
 	_ "github.com/awsl-project/maxx/internal/adapter/provider/antigravity"
 	_ "github.com/awsl-project/maxx/internal/adapter/provider/custom"
 	"github.com/awsl-project/maxx/internal/cooldown"
+	"github.com/awsl-project/maxx/internal/event"
 	"github.com/awsl-project/maxx/internal/executor"
 	"github.com/awsl-project/maxx/internal/handler"
 	"github.com/awsl-project/maxx/internal/repository/cached"
 	"github.com/awsl-project/maxx/internal/repository/sqlite"
 	"github.com/awsl-project/maxx/internal/router"
 	"github.com/awsl-project/maxx/internal/service"
+	"github.com/awsl-project/maxx/internal/waiter"
 	"github.com/wailsapp/wails/v2/pkg/runtime"
 )
 
@@ -174,7 +176,13 @@ func (a *App) initializeServices() {
 
 	a.antigravitySvc = NewAntigravityService(antigravityQuotaRepo, a.wsHub, a.adminService)
 
-	exec := executor.NewExecutor(r, proxyRequestRepo, attemptRepo, cachedRetryConfigRepo, a.wsHub, "")
+	// Create broadcaster (wraps WebSocket hub)
+	broadcaster := event.NewWailsBroadcaster(a.wsHub)
+
+	// Create project waiter for force project binding
+	projectWaiter := waiter.NewProjectWaiter(cachedSessionRepo, settingRepo, broadcaster)
+
+	exec := executor.NewExecutor(r, proxyRequestRepo, attemptRepo, cachedRetryConfigRepo, cachedSessionRepo, broadcaster, projectWaiter, "")
 
 	proxyHandler := handler.NewProxyHandler(clientAdapter, exec, cachedSessionRepo)
 	projectProxyHandler := handler.NewProjectProxyHandler(proxyHandler, cachedProjectRepo)

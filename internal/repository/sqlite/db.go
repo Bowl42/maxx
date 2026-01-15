@@ -333,6 +333,34 @@ func (d *DB) migrate() error {
 		}
 	}
 
+	// Migration: Add request_model and mapped_model columns to proxy_upstream_attempts
+	var hasRequestModel bool
+	row = d.db.QueryRow(`SELECT COUNT(*) FROM pragma_table_info('proxy_upstream_attempts') WHERE name='request_model'`)
+	row.Scan(&hasRequestModel)
+
+	if !hasRequestModel {
+		_, err = d.db.Exec(`ALTER TABLE proxy_upstream_attempts ADD COLUMN request_model TEXT DEFAULT ''`)
+		if err != nil {
+			return err
+		}
+		_, err = d.db.Exec(`ALTER TABLE proxy_upstream_attempts ADD COLUMN mapped_model TEXT DEFAULT ''`)
+		if err != nil {
+			return err
+		}
+	}
+
+	// Migration: Add response_model column to proxy_upstream_attempts
+	var hasResponseModel bool
+	row = d.db.QueryRow(`SELECT COUNT(*) FROM pragma_table_info('proxy_upstream_attempts') WHERE name='response_model'`)
+	row.Scan(&hasResponseModel)
+
+	if !hasResponseModel {
+		_, err = d.db.Exec(`ALTER TABLE proxy_upstream_attempts ADD COLUMN response_model TEXT DEFAULT ''`)
+		if err != nil {
+			return err
+		}
+	}
+
 	return nil
 }
 

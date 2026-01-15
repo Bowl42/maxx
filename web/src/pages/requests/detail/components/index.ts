@@ -1,4 +1,5 @@
 export { CopyButton } from './CopyButton'
+export { CopyAsCurlButton } from './CopyAsCurlButton'
 export { DiffModal } from './DiffModal'
 export { DiffButton } from './DiffButton'
 export { EmptyState } from './EmptyState'

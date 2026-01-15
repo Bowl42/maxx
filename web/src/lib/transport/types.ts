@@ -188,6 +188,10 @@ export interface ProxyUpstreamAttempt {
   status: ProxyUpstreamAttemptStatus;
   proxyRequestID: number;
   isStream: boolean; // 是否为 SSE 流式请求
+  // 模型信息
+  requestModel: string;  // 客户端请求的原始模型
+  mappedModel: string;   // 映射后实际发送的模型
+  responseModel: string; // 上游响应中返回的模型名称
   requestInfo: RequestInfo | null;
   responseInfo: ResponseInfo | null;
   routeID: number;
@@ -323,6 +327,18 @@ export interface AntigravityOAuthResult {
   userInfo?: AntigravityUserInfo;
   quota?: AntigravityQuotaData;
   error?: string;
+}
+
+// Antigravity 模型映射规则
+export interface ModelMappingRule {
+  pattern: string; // 源模式，支持 * 通配符
+  target: string;  // 目标模型名
+}
+
+// Antigravity 全局设置
+export interface AntigravityGlobalSettings {
+  modelMappingRules: ModelMappingRule[];
+  availableTargetModels?: string[]; // 只在响应中返回，更新时不需要
 }
 
 // ===== 回调类型 =====

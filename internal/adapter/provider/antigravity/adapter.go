@@ -57,7 +57,7 @@ func (a *AntigravityAdapter) Execute(ctx context.Context, w http.ResponseWriter,
 	clientType := ctxutil.GetClientType(ctx)
 	baseCtx := ctx
 	requestModel := ctxutil.GetRequestModel(ctx) // Original model from request (e.g., "claude-3-5-sonnet-20241022-online")
-	mappedModel := ctxutil.GetMappedModel(ctx)   // Mapped model after route resolution
+	mappedModel := ctxutil.GetMappedModel(ctx)   // Mapped model after executor's unified mapping
 	requestBody := ctxutil.GetRequestBody(ctx)
 	backgroundDowngrade := false
 	backgroundModel := ""
@@ -72,7 +72,6 @@ func (a *AntigravityAdapter) Execute(ctx context.Context, w http.ResponseWriter,
 		}
 	}
 
-	// [Model Mapping] Apply Antigravity model mapping (like Antigravity-Manager)
 	// We'll attempt at most twice: original + retry without thinking on signature errors
 	retriedWithoutThinking := false
 
@@ -80,21 +79,16 @@ func (a *AntigravityAdapter) Execute(ctx context.Context, w http.ResponseWriter,
 		ctx = ctxutil.WithRequestModel(baseCtx, requestModel)
 		ctx = ctxutil.WithRequestBody(ctx, requestBody)
 
-		// Only map if route didn't provide a mapping (mappedModel empty or same as request)
+		// Apply background downgrade override if needed
 		config := provider.Config.Antigravity
-		if mappedModel == "" || mappedModel == requestModel {
-			// Route didn't provide mapping, use our internal mapping with haikuTarget config
-			haikuTarget := ""
-			if config != nil {
-				haikuTarget = config.HaikuTarget
-			}
-			mappedModel = MapClaudeModelToGeminiWithConfig(requestModel, haikuTarget)
-		}
 		if backgroundDowngrade && backgroundModel != "" {
 			mappedModel = backgroundModel
 		}
-		// If route provided a different mappedModel, trust it and don't re-map
-		// (user/route has explicitly configured the target model)
+
+		// Update attempt record with the final mapped model (in case of background downgrade)
+		if attempt := ctxutil.GetUpstreamAttempt(ctx); attempt != nil {
+			attempt.MappedModel = mappedModel
+		}
 
 		// Get streaming flag from context (already detected correctly for Gemini URL path)
 		stream := ctxutil.GetIsStream(ctx)
@@ -538,6 +532,9 @@ func (a *AntigravityAdapter) handleNonStreamResponse(ctx context.Context, w http
 			attempt.Cache1hWriteCount = metrics.Cache1hCreationCount
 		}
 
+		// Extract modelVersion from Gemini response
+		attempt.ResponseModel = extractModelVersion(unwrappedBody)
+
 		// Broadcast attempt update with token info
 		if bc := ctxutil.GetBroadcaster(ctx); bc != nil {
 			bc.BroadcastProxyUpstreamAttempt(attempt)
@@ -628,6 +625,12 @@ func (a *AntigravityAdapter) handleStreamResponse(ctx context.Context, w http.Re
 				attempt.CacheWriteCount = metrics.CacheCreationCount
 				attempt.Cache5mWriteCount = metrics.Cache5mCreationCount
 				attempt.Cache1hWriteCount = metrics.Cache1hCreationCount
+			}
+			// Extract responseModel from claudeState (for Claude clients) or SSE content
+			if claudeState != nil {
+				attempt.ResponseModel = claudeState.GetModelVersion()
+			} else {
+				attempt.ResponseModel = extractModelVersionFromSSE(sseBuffer.String())
 			}
 			// Broadcast attempt update with token info
 			if bc := ctxutil.GetBroadcaster(ctx); bc != nil {
@@ -846,6 +849,12 @@ func (a *AntigravityAdapter) handleCollectedStreamResponse(ctx context.Context, 
 			attempt.Cache5mWriteCount = metrics.Cache5mCreationCount
 			attempt.Cache1hWriteCount = metrics.Cache1hCreationCount
 		}
+		// Extract responseModel from claudeState (for Claude clients) or SSE content
+		if claudeState != nil {
+			attempt.ResponseModel = claudeState.GetModelVersion()
+		} else {
+			attempt.ResponseModel = extractModelVersionFromSSE(upstreamSSE.String())
+		}
 		if bc := ctxutil.GetBroadcaster(ctx); bc != nil {
 			bc.BroadcastProxyUpstreamAttempt(attempt)
 		}
@@ -997,4 +1006,34 @@ func (a *AntigravityAdapter) parseRateLimitInfo(ctx context.Context, body []byte
 		RetryHintMessage: errResp.Error.Message,
 		ClientType:       "", // Global cooldown
 	}, updateChan
+}
+
+// extractModelVersion extracts modelVersion from Gemini response JSON
+func extractModelVersion(body []byte) string {
+	var resp struct {
+		ModelVersion string `json:"modelVersion"`
+	}
+	if err := json.Unmarshal(body, &resp); err != nil {
+		return ""
+	}
+	return resp.ModelVersion
+}
+
+// extractModelVersionFromSSE extracts modelVersion from SSE content
+// Looks for the last "modelVersion" field in the SSE data
+func extractModelVersionFromSSE(sseContent string) string {
+	var lastModelVersion string
+	for _, line := range strings.Split(sseContent, "\n") {
+		if !strings.HasPrefix(line, "data: ") {
+			continue
+		}
+		data := strings.TrimPrefix(line, "data: ")
+		var chunk struct {
+			ModelVersion string `json:"modelVersion"`
+		}
+		if err := json.Unmarshal([]byte(data), &chunk); err == nil && chunk.ModelVersion != "" {
+			lastModelVersion = chunk.ModelVersion
+		}
+	}
+	return lastModelVersion
 }

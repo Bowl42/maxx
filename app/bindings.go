@@ -285,3 +285,20 @@ func (a *App) StartAntigravityOAuth(ctx context.Context) (map[string]interface{}
 	redirectURI := "http://localhost:19380/antigravity/oauth/callback"
 	return a.antigravitySvc.StartOAuth(ctx, redirectURI)
 }
+
+// Antigravity Global Settings methods
+
+//wails:bind
+func (a *App) GetAntigravityGlobalSettings() (*service.AntigravityGlobalSettings, error) {
+	return a.adminService.GetAntigravityGlobalSettings()
+}
+
+//wails:bind
+func (a *App) UpdateAntigravityGlobalSettings(settings *service.AntigravityGlobalSettings) error {
+	return a.adminService.UpdateAntigravityGlobalSettings(settings)
+}
+
+//wails:bind
+func (a *App) ResetAntigravityGlobalSettings() (*service.AntigravityGlobalSettings, error) {
+	return a.adminService.ResetAntigravityGlobalSettings()
+}

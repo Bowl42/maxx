@@ -61,6 +61,11 @@ func NewClaudeStreamingStateWithSession(_ string, requestModel string) *ClaudeSt
 	}
 }
 
+// GetModelVersion returns the upstream model version captured during streaming
+func (s *ClaudeStreamingState) GetModelVersion() string {
+	return s.modelVersion
+}
+
 // GeminiPart represents a part in Gemini response
 type GeminiPart struct {
 	Text             string              `json:"text,omitempty"`

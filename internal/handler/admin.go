@@ -68,6 +68,10 @@ func (h *AdminHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		h.handleCooldowns(w, r, id)
 	case "logs":
 		h.handleLogs(w, r)
+	case "antigravity-settings":
+		h.handleAntigravitySettings(w, r)
+	case "antigravity-settings-reset":
+		h.handleAntigravitySettingsReset(w, r)
 	default:
 		writeJSON(w, http.StatusNotFound, map[string]string{"error": "not found"})
 	}
@@ -852,6 +856,51 @@ func (h *AdminHandler) handleCooldowns(w http.ResponseWriter, r *http.Request, p
 	default:
 		writeJSON(w, http.StatusMethodNotAllowed, map[string]string{"error": "method not allowed"})
 	}
+}
+
+// Antigravity global settings handler
+// GET /admin/antigravity-settings - get global Antigravity settings
+// PUT /admin/antigravity-settings - update global Antigravity settings
+func (h *AdminHandler) handleAntigravitySettings(w http.ResponseWriter, r *http.Request) {
+	switch r.Method {
+	case http.MethodGet:
+		settings, err := h.svc.GetAntigravityGlobalSettings()
+		if err != nil {
+			writeJSON(w, http.StatusInternalServerError, map[string]string{"error": err.Error()})
+			return
+		}
+		writeJSON(w, http.StatusOK, settings)
+
+	case http.MethodPut:
+		var settings service.AntigravityGlobalSettings
+		if err := json.NewDecoder(r.Body).Decode(&settings); err != nil {
+			writeJSON(w, http.StatusBadRequest, map[string]string{"error": err.Error()})
+			return
+		}
+		if err := h.svc.UpdateAntigravityGlobalSettings(&settings); err != nil {
+			writeJSON(w, http.StatusInternalServerError, map[string]string{"error": err.Error()})
+			return
+		}
+		writeJSON(w, http.StatusOK, settings)
+
+	default:
+		writeJSON(w, http.StatusMethodNotAllowed, map[string]string{"error": "method not allowed"})
+	}
+}
+
+// POST /admin/antigravity-settings-reset - reset to preset defaults
+func (h *AdminHandler) handleAntigravitySettingsReset(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		writeJSON(w, http.StatusMethodNotAllowed, map[string]string{"error": "method not allowed"})
+		return
+	}
+
+	settings, err := h.svc.ResetAntigravityGlobalSettings()
+	if err != nil {
+		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": err.Error()})
+		return
+	}
+	writeJSON(w, http.StatusOK, settings)
 }
 
 func writeJSON(w http.ResponseWriter, status int, data interface{}) {

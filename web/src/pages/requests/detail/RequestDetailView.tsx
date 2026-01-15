@@ -17,7 +17,7 @@ import {
   getClientName,
   getClientColor,
 } from '@/components/icons/client-icons'
-import { CopyButton, EmptyState } from './components'
+import { CopyButton, CopyAsCurlButton, EmptyState } from './components'
 
 interface RequestDetailViewProps {
   request: ProxyRequest
@@ -101,6 +101,7 @@ export function RequestDetailView({
               <code className="flex-1 font-mono text-xs text-text-primary break-all">
                 {request.requestInfo.url}
               </code>
+              <CopyAsCurlButton requestInfo={request.requestInfo} />
             </div>
 
             <div className="flex flex-col min-h-0 flex-1 gap-6">

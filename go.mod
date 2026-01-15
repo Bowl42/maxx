@@ -37,9 +37,4 @@ require (
 	golang.org/x/text v0.22.0 // indirect
 )
 
-require (
-	github.com/emersion/go-autostart v0.0.0-20250403115856-34830d6457d2
-	github.com/google/uuid v1.6.0
-	github.com/gorilla/websocket v1.5.3
-	github.com/wailsapp/wails/v2 v2.11.0
-)
+require github.com/emersion/go-autostart v0.0.0-20250403115856-34830d6457d2

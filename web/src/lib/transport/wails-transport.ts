@@ -30,6 +30,7 @@ import type {
   AntigravityTokenValidationResult,
   AntigravityBatchValidationResult,
   AntigravityQuotaData,
+  AntigravityGlobalSettings,
   Cooldown,
   ImportResult,
 } from './types';
@@ -299,6 +300,19 @@ export class WailsTransport implements Transport {
 
   async startAntigravityOAuth(): Promise<{ authURL: string; state: string }> {
     return DesktopApp.StartAntigravityOAuth() as Promise<{ authURL: string; state: string }>;
+  }
+
+  async getAntigravityGlobalSettings(): Promise<AntigravityGlobalSettings> {
+    return DesktopApp.GetAntigravityGlobalSettings() as Promise<AntigravityGlobalSettings>;
+  }
+
+  async updateAntigravityGlobalSettings(settings: AntigravityGlobalSettings): Promise<AntigravityGlobalSettings> {
+    await DesktopApp.UpdateAntigravityGlobalSettings(settings as any);
+    return settings;
+  }
+
+  async resetAntigravityGlobalSettings(): Promise<AntigravityGlobalSettings> {
+    return DesktopApp.ResetAntigravityGlobalSettings() as Promise<AntigravityGlobalSettings>;
   }
 
   // ===== Cooldown API =====

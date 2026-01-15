@@ -12,7 +12,7 @@ import {
 import { Server, Code, Database, Info, Zap } from 'lucide-react'
 import type { ProxyUpstreamAttempt, ProxyRequest } from '@/lib/transport'
 import { cn } from '@/lib/utils'
-import { CopyButton, DiffButton, EmptyState } from './components'
+import { CopyButton, CopyAsCurlButton, DiffButton, EmptyState } from './components'
 import { RequestDetailView } from './RequestDetailView'
 
 // Selection type: either the main request or an attempt
@@ -114,6 +114,13 @@ export function RequestDetailPanel({
             </h3>
             <div className="flex items-center gap-3 text-xs text-text-secondary mt-0.5">
               <span>Attempt #{selectedAttempt.id}</span>
+              {selectedAttempt.mappedModel && selectedAttempt.requestModel !== selectedAttempt.mappedModel && (
+                <span className="text-text-muted">
+                  <span className="text-text-secondary">{selectedAttempt.requestModel}</span>
+                  <span className="mx-1">→</span>
+                  <span className="text-text-primary">{selectedAttempt.mappedModel}</span>
+                </span>
+              )}
               {selectedAttempt.cost > 0 && (
                 <span className="text-blue-400 font-medium">
                   Cost: {formatCost(selectedAttempt.cost)}
@@ -148,6 +155,7 @@ export function RequestDetailPanel({
                 <code className="flex-1 font-mono text-xs text-text-primary break-all">
                   {selectedAttempt.requestInfo.url}
                 </code>
+                <CopyAsCurlButton requestInfo={selectedAttempt.requestInfo} />
               </div>
 
               <div className="flex flex-col min-h-0 flex-1 gap-6">
@@ -361,33 +369,25 @@ export function RequestDetailPanel({
                 <CardHeader className="pb-2 border-b border-border/50">
                   <CardTitle className="text-sm font-medium flex items-center gap-2">
                     <Info size={16} className="text-info" />
-                    Request Info
+                    Attempt Info
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="pt-4">
                   <dl className="space-y-4">
                     <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 items-center">
                       <dt className="text-xs font-medium text-text-secondary uppercase tracking-wider">
-                        Request ID
+                        Attempt ID
                       </dt>
                       <dd className="sm:col-span-2 font-mono text-xs text-text-primary bg-surface-secondary px-2 py-1 rounded select-all break-all">
-                        {request.requestID || '-'}
+                        #{selectedAttempt.id}
                       </dd>
                     </div>
                     <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 items-center">
                       <dt className="text-xs font-medium text-text-secondary uppercase tracking-wider">
-                        Session ID
+                        Provider
                       </dt>
-                      <dd className="sm:col-span-2 font-mono text-xs text-text-primary bg-surface-secondary px-2 py-1 rounded select-all break-all">
-                        {request.sessionID || '-'}
-                      </dd>
-                    </div>
-                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 items-center">
-                      <dt className="text-xs font-medium text-text-secondary uppercase tracking-wider">
-                        Instance ID
-                      </dt>
-                      <dd className="sm:col-span-2 font-mono text-xs text-text-primary bg-surface-secondary px-2 py-1 rounded select-all break-all">
-                        {request.instanceID || '-'}
+                      <dd className="sm:col-span-2 font-mono text-xs text-text-primary bg-surface-secondary px-2 py-1 rounded">
+                        {providerMap.get(selectedAttempt.providerID) || `Provider #${selectedAttempt.providerID}`}
                       </dd>
                     </div>
                     <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 items-center">
@@ -395,15 +395,43 @@ export function RequestDetailPanel({
                         Request Model
                       </dt>
                       <dd className="sm:col-span-2 font-mono text-xs text-text-primary bg-surface-secondary px-2 py-1 rounded">
-                        {request.requestModel || '-'}
+                        {selectedAttempt.requestModel || '-'}
                       </dd>
                     </div>
                     <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 items-center">
                       <dt className="text-xs font-medium text-text-secondary uppercase tracking-wider">
-                        Response Model
+                        Mapped Model
                       </dt>
                       <dd className="sm:col-span-2 font-mono text-xs text-text-primary bg-surface-secondary px-2 py-1 rounded">
-                        {request.responseModel || '-'}
+                        {selectedAttempt.mappedModel || '-'}
+                        {selectedAttempt.mappedModel && selectedAttempt.requestModel !== selectedAttempt.mappedModel && (
+                          <span className="ml-2 text-text-muted text-[10px]">
+                            (converted)
+                          </span>
+                        )}
+                      </dd>
+                    </div>
+                    {selectedAttempt.responseModel && (
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 items-center">
+                        <dt className="text-xs font-medium text-text-secondary uppercase tracking-wider">
+                          Response Model
+                        </dt>
+                        <dd className="sm:col-span-2 font-mono text-xs text-text-primary bg-surface-secondary px-2 py-1 rounded">
+                          {selectedAttempt.responseModel}
+                          {selectedAttempt.responseModel !== selectedAttempt.mappedModel && (
+                            <span className="ml-2 text-text-muted text-[10px]">
+                              (upstream)
+                            </span>
+                          )}
+                        </dd>
+                      </div>
+                    )}
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 items-center">
+                      <dt className="text-xs font-medium text-text-secondary uppercase tracking-wider">
+                        Status
+                      </dt>
+                      <dd className="sm:col-span-2 font-mono text-xs text-text-primary bg-surface-secondary px-2 py-1 rounded">
+                        {selectedAttempt.status}
                       </dd>
                     </div>
                   </dl>
