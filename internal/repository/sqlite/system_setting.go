@@ -44,7 +44,7 @@ func (r *SystemSettingRepository) GetAll() ([]*domain.SystemSetting, error) {
 	}
 	defer rows.Close()
 
-	var settings []*domain.SystemSetting
+	settings := make([]*domain.SystemSetting, 0)
 	for rows.Next() {
 		s := &domain.SystemSetting{}
 		var createdAt, updatedAt sql.NullTime

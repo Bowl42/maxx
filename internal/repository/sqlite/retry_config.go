@@ -76,7 +76,7 @@ func (r *RetryConfigRepository) List() ([]*domain.RetryConfig, error) {
 	}
 	defer rows.Close()
 
-	var configs []*domain.RetryConfig
+	configs := make([]*domain.RetryConfig, 0)
 	for rows.Next() {
 		c, err := r.scanConfigRows(rows)
 		if err != nil {

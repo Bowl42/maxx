@@ -10,15 +10,24 @@ Multi-provider AI proxy with a built-in admin UI, routing, and usage tracking.
 
 ## Features
 - Proxy endpoints for Claude, OpenAI, Gemini, and Codex formats
+- Compatible with Claude Code, Codex CLI, and other AI coding tools as a unified API proxy gateway
 - Admin API and Web UI
 - Provider routing, retries, and quotas
 - SQLite-backed storage
 
 ## Getting Started
 
-### 1. Start the Service
+Maxx supports three deployment methods:
 
-Start the service using Docker Compose (recommended):
+| Method | Description | Best For |
+|--------|-------------|----------|
+| **Docker** | Containerized deployment | Server/production use |
+| **Desktop App** | Native application with GUI | Personal use, easy setup |
+| **Local Build** | Build from source | Development |
+
+### Method 1: Docker (Recommended for Server)
+
+Start the service using Docker Compose:
 
 ```bash
 docker compose up -d
@@ -26,7 +35,8 @@ docker compose up -d
 
 The service will run at `http://localhost:9880`.
 
-**Full docker-compose.yml example:**
+<details>
+<summary>Full docker-compose.yml example</summary>
 
 ```yaml
 services:
@@ -50,21 +60,37 @@ volumes:
     driver: local
 ```
 
-Service data is stored in the `/data` directory and persisted via volume.
+</details>
 
-### 2. Access Admin UI
+### Method 2: Desktop App (Recommended for Personal Use)
 
-Open your browser and visit [http://localhost:9880](http://localhost:9880) to access the Web admin interface.
+Download pre-built desktop applications from [GitHub Releases](https://github.com/awsl-project/maxx/releases).
 
-### 3. Configure Claude Code
+| Platform | File | Notes |
+|----------|------|-------|
+| Windows | `maxx.exe` | Run directly |
+| macOS (ARM) | `maxx-macOS-arm64.dmg` | Apple Silicon (M1/M2/M3) |
+| macOS (Intel) | `maxx-macOS-amd64.dmg` | Intel chips |
+| Linux | `maxx` | Native binary |
 
-#### 3.1 Get API Key
+### Method 3: Local Build
 
-Create a project in the maxx admin interface and generate an API key.
+```bash
+# Run server mode
+go run cmd/maxx/main.go
 
-#### 3.2 Configure Environment Variables
+# Or run desktop mode with Wails
+go install github.com/wailsapp/wails/v2/cmd/wails@latest
+wails dev
+```
 
-**settings.json Configuration (Recommended, Permanent)**
+## Configure AI Coding Tools
+
+### Claude Code
+
+Create a project in the maxx admin interface and generate an API key, then configure Claude Code using one of the following methods:
+
+**settings.json (Recommended)**
 
 Configuration location: `~/.claude/settings.json` or `.claude/settings.json`
 
@@ -77,13 +103,37 @@ Configuration location: `~/.claude/settings.json` or `.claude/settings.json`
 }
 ```
 
-**Important Notes:**
-- `ANTHROPIC_AUTH_TOKEN`: Can be any value (no real key required for local deployment)
-- `ANTHROPIC_BASE_URL`: Use `http://localhost:9880` for local deployment
+**Shell Function (Alternative)**
 
-#### 3.3 Start Using
+Add to your shell profile (`~/.bashrc`, `~/.zshrc`, etc.):
 
-After configuration, Claude Code will access AI services through the maxx proxy. You can view usage and quotas in the admin interface.
+```bash
+claude_maxx() {
+    export ANTHROPIC_BASE_URL="http://localhost:9880"
+    export ANTHROPIC_AUTH_TOKEN="your-api-key-here"
+    claude "$@"
+}
+```
+
+Then use `claude_maxx` instead of `claude` to run Claude Code through maxx.
+
+> **Note:** `ANTHROPIC_AUTH_TOKEN` can be any value for local deployment.
+
+### Codex CLI
+
+Add the following to your `~/.codex/config.toml`:
+
+```toml
+[model_providers.maxx]
+name = "maxx"
+base_url = "http://localhost:9880"
+wire_api = "responses"
+request_max_retries = 4
+stream_max_retries = 10
+stream_idle_timeout_ms = 300000
+```
+
+Then use `--provider maxx` when running Codex CLI.
 
 ## Local Development
 
@@ -96,8 +146,8 @@ go run cmd/maxx/main.go
 Frontend:
 ```bash
 cd web
-npm install
-npm run dev
+pnpm install
+pnpm dev
 ```
 
 ### Desktop Mode (Wails)
@@ -128,43 +178,14 @@ build-desktop.bat
 - Project proxy: http://localhost:9880/{project-slug}/v1/messages (etc.)
 
 ## Data
-Default database path (non-Docker): `~/.config/maxx/maxx.db`
-Docker data directory: `/data` (mounted via `docker-compose.yml`)
 
-## Desktop App
-
-Maxx also provides a native desktop application built with Wails.
-
-### Build Desktop App
-
-```bash
-# Development mode
-task wails:dev
-# or
-wails dev
-
-# Production build
-task wails:build
-# or
-wails build
-```
-
-The built executable will be in `build/bin/`.
-
-### Data Directory (Desktop App)
-
-The desktop app stores data in the following locations:
-- **Windows**: `%USERPROFILE%\AppData\Local\maxx\`
-- **macOS**: `~/Library/Application Support/maxx/`
-- **Linux**: `~/.local/share/maxx/`
-
-### Download
-
-You can download pre-built desktop applications from [GitHub Releases](https://github.com/Bowl42/maxx-next/releases).
-
-- Desktop mode (Windows): `%APPDATA%\maxx`
-- Server mode (non-Docker): `~/.config/maxx/maxx.db`
-- Docker data directory: `/data` (mounted via `docker-compose.yml`)
+| Deployment | Data Location |
+|------------|---------------|
+| Docker | `/data` (mounted via volume) |
+| Desktop (Windows) | `%USERPROFILE%\AppData\Local\maxx\` |
+| Desktop (macOS) | `~/Library/Application Support/maxx/` |
+| Desktop (Linux) | `~/.local/share/maxx/` |
+| Server (non-Docker) | `~/.config/maxx/maxx.db` |
 
 ## Release
 

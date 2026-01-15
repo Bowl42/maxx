@@ -72,7 +72,7 @@ func (r *RoutingStrategyRepository) List() ([]*domain.RoutingStrategy, error) {
     }
     defer rows.Close()
 
-    var strategies []*domain.RoutingStrategy
+    strategies := make([]*domain.RoutingStrategy, 0)
     for rows.Next() {
         var s domain.RoutingStrategy
         var configJSON string

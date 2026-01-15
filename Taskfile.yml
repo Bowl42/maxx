@@ -111,3 +111,29 @@ tasks:
       - task: build:desktop:darwin
       - task: build:desktop:windows
       - task: build:desktop:linux
+
+  build:dmg:
+    desc: Build macOS DMG installer with Applications shortcut
+    platforms: [darwin]
+    cmds:
+      - wails build -ldflags '{{.LDFLAGS}}'
+      - |
+        cd build/bin
+        APP_NAME=$(ls -d *.app | head -n 1)
+        if [ -z "$APP_NAME" ]; then
+          echo "Error: App bundle not found"
+          exit 1
+        fi
+        rm -f maxx.dmg
+        create-dmg \
+          --volname "maxx" \
+          --volicon "../../build/appicon.png" \
+          --window-pos 200 120 \
+          --window-size 660 400 \
+          --icon-size 100 \
+          --icon "$APP_NAME" 180 170 \
+          --hide-extension "$APP_NAME" \
+          --app-drop-link 480 170 \
+          "maxx.dmg" \
+          "$APP_NAME"
+        echo "Created: build/bin/maxx.dmg"

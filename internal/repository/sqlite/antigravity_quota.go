@@ -73,7 +73,7 @@ func (r *AntigravityQuotaRepository) List() ([]*domain.AntigravityQuota, error) 
 	}
 	defer rows.Close()
 
-	var quotas []*domain.AntigravityQuota
+	quotas := make([]*domain.AntigravityQuota, 0)
 	for rows.Next() {
 		quota, err := r.scanQuotaRow(rows)
 		if err != nil {

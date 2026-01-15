@@ -52,7 +52,7 @@ func (r *FailureCountRepository) GetAll() ([]*domain.FailureCount, error) {
 	}
 	defer rows.Close()
 
-	var failureCounts []*domain.FailureCount
+	failureCounts := make([]*domain.FailureCount, 0)
 	for rows.Next() {
 		fc := &domain.FailureCount{}
 		var createdAt, updatedAt, lastFailureAt string
