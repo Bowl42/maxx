@@ -28,11 +28,20 @@ type TokenCache struct {
 	ExpiresAt   time.Time
 }
 
+// UsageCache caches usage limits to reduce API calls
+type UsageCache struct {
+	UsageLimits *UsageLimits
+	CachedAt    time.Time
+	ExpiresAt   time.Time
+}
+
 // KiroAdapter handles communication with AWS CodeWhisperer/Q Developer
 type KiroAdapter struct {
 	provider   *domain.Provider
 	tokenCache *TokenCache
 	tokenMu    sync.RWMutex
+	usageCache *UsageCache
+	usageMu    sync.RWMutex
 	httpClient *http.Client
 }
 
@@ -44,6 +53,7 @@ func NewAdapter(p *domain.Provider) (provider.ProviderAdapter, error) {
 	return &KiroAdapter{
 		provider:   p,
 		tokenCache: &TokenCache{},
+		usageCache: &UsageCache{},
 		httpClient: newKiroHTTPClient(),
 	}, nil
 }

@@ -12,11 +12,45 @@ import (
 const (
 	// GetUsageLimitsURL 获取使用限制的 API URL
 	GetUsageLimitsURL = "https://codewhisperer.us-east-1.amazonaws.com/getUsageLimits"
+
+	// UsageCacheTTL usage 缓存有效期（5 分钟）
+	// 参考 kiro-account-manager: 减少 API 调用频率，降低被检测风险
+	UsageCacheTTL = 5 * time.Minute
 )
 
-// CheckUsageLimits 检查 token 的使用限制
+// CheckUsageLimits 检查 token 的使用限制（带缓存）
 // 匹配 kiro2api/auth/usage_checker.go:27-86
+// 优化：添加 5 分钟缓存，减少 API 调用频率（参考 kiro-account-manager）
 func (a *KiroAdapter) CheckUsageLimits(ctx context.Context) (*UsageLimits, error) {
+	// 检查缓存
+	a.usageMu.RLock()
+	if a.usageCache.UsageLimits != nil && time.Now().Before(a.usageCache.ExpiresAt) {
+		cached := a.usageCache.UsageLimits
+		a.usageMu.RUnlock()
+		return cached, nil
+	}
+	a.usageMu.RUnlock()
+
+	// 缓存过期，重新获取
+	limits, err := a.fetchUsageLimits(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	// 更新缓存
+	a.usageMu.Lock()
+	a.usageCache = &UsageCache{
+		UsageLimits: limits,
+		CachedAt:    time.Now(),
+		ExpiresAt:   time.Now().Add(UsageCacheTTL),
+	}
+	a.usageMu.Unlock()
+
+	return limits, nil
+}
+
+// fetchUsageLimits 实际获取 usage limits（不带缓存）
+func (a *KiroAdapter) fetchUsageLimits(ctx context.Context) (*UsageLimits, error) {
 	// 获取 access token
 	accessToken, err := a.getAccessToken(ctx)
 	if err != nil {
@@ -80,6 +114,33 @@ func (a *KiroAdapter) GetUsageInfo(ctx context.Context) (*UsageInfo, error) {
 	}
 
 	return CalculateUsageInfo(limits), nil
+}
+
+// RefreshUsageCache 强制刷新 usage 缓存（用于手动刷新）
+// 参考 kiro-account-manager: 分离快速刷新（只刷新 token）和完整刷新（token + usage）
+func (a *KiroAdapter) RefreshUsageCache(ctx context.Context) (*UsageLimits, error) {
+	limits, err := a.fetchUsageLimits(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	// 更新缓存
+	a.usageMu.Lock()
+	a.usageCache = &UsageCache{
+		UsageLimits: limits,
+		CachedAt:    time.Now(),
+		ExpiresAt:   time.Now().Add(UsageCacheTTL),
+	}
+	a.usageMu.Unlock()
+
+	return limits, nil
+}
+
+// InvalidateUsageCache 清除 usage 缓存
+func (a *KiroAdapter) InvalidateUsageCache() {
+	a.usageMu.Lock()
+	a.usageCache = &UsageCache{}
+	a.usageMu.Unlock()
 }
 
 // generateUsageInvocationID 生成请求 ID
