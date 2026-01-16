@@ -291,7 +291,7 @@ func (d *DB) migrate() error {
 // runMigrations runs all pending migrations based on schema version
 func (d *DB) runMigrations() error {
 	// Current schema version - increment when adding new migrations
-	const currentVersion = 12
+	const currentVersion = 13
 
 	// Get stored version
 	var storedVersion int
