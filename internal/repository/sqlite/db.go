@@ -335,6 +335,7 @@ func (d *DB) runMigrations() error {
 		{10, "AddAPITokenIDToProxyRequests", d.migration010AddAPITokenIDToProxyRequests},
 		{11, "AddProviderTypeToModelMappings", d.migration011AddProviderTypeToModelMappings},
 		{12, "SeedModelMappingsV2", d.migration012SeedModelMappingsV2},
+		{13, "AddDeletedAtToProjects", d.migration013AddDeletedAtToProjects},
 	}
 
 	for _, m := range migrations {
@@ -685,6 +686,18 @@ func (d *DB) migration012SeedModelMappingsV2() error {
 		}
 	}
 
+	return nil
+}
+
+func (d *DB) migration013AddDeletedAtToProjects() error {
+	var has bool
+	d.db.QueryRow(`SELECT COUNT(*) FROM pragma_table_info('projects') WHERE name='deleted_at'`).Scan(&has)
+	if !has {
+		_, err := d.db.Exec(`ALTER TABLE projects ADD COLUMN deleted_at DATETIME`)
+		if err != nil {
+			return err
+		}
+	}
 	return nil
 }
 
