@@ -137,7 +137,7 @@ type ToolUseEvent struct {
 // 匹配 kiro2api/parser 中的 SSEEvent 定义
 type SSEEvent struct {
 	Event string         // 事件类型 (content_block_delta, content_block_start, etc.)
-	Data  map[string]any // 事件数据
+	Data  any            // 事件数据
 }
 
 // KiroEventTypes 事件类型常量
@@ -154,11 +154,11 @@ var KiroEventTypes = struct {
 	END_OF_TURN_EVENT        string
 }{
 	COMPLETION:               "completion",
-	COMPLETION_CHUNK:         "completionChunk",
-	TOOL_CALL_REQUEST:        "toolCallRequest",
-	TOOL_CALL_ERROR:          "toolCallError",
-	SESSION_START:            "sessionStart",
-	SESSION_END:              "sessionEnd",
+	COMPLETION_CHUNK:         "completion_chunk",
+	TOOL_CALL_REQUEST:        "tool_call_request",
+	TOOL_CALL_ERROR:          "tool_call_error",
+	SESSION_START:            "session_start",
+	SESSION_END:              "session_end",
 	ASSISTANT_RESPONSE_EVENT: "assistantResponseEvent",
 	TOOL_USE_EVENT:           "toolUseEvent",
 	END_OF_TURN_EVENT:        "endOfTurnEvent",

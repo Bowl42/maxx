@@ -337,78 +337,39 @@ func (a *KiroAdapter) handleStreamResponse(ctx context.Context, w http.ResponseW
 	w.Header().Set("Connection", "keep-alive")
 	w.Header().Set("X-Accel-Buffering", "no")
 
-	flusher, ok := w.(http.Flusher)
-	if !ok {
+	// Capture SSE output for attempt record
+	var sseBuffer strings.Builder
+	tee := &teeWriter{primary: w, buffer: &sseBuffer}
+
+	streamCtx, err := newStreamProcessorContext(w, requestModel, inputTokens, tee)
+	if err != nil {
 		return domain.NewProxyErrorWithMessage(domain.ErrUpstreamError, false, "streaming not supported")
 	}
 
-	// Create streaming state
-	streamState := NewClaudeStreamingState(requestModel, inputTokens)
+	if err := streamCtx.sendInitialEvents(); err != nil {
+		a.updateAttemptBody(ctx, attempt, sseBuffer.String())
+		return domain.NewProxyErrorWithMessage(err, false, "failed to send initial events")
+	}
 
-	// Capture SSE output for attempt record
-	var sseBuffer strings.Builder
-
-	// Read and process EventStream data
-	buf := make([]byte, 4096)
-	for {
-		select {
-		case <-ctx.Done():
-			// Update attempt with captured body before returning
+	err = streamCtx.processEventStream(ctx, resp.Body)
+	if err != nil {
+		if ctx.Err() != nil {
 			a.updateAttemptBody(ctx, attempt, sseBuffer.String())
 			return domain.NewProxyErrorWithMessage(ctx.Err(), false, "client disconnected")
-		default:
 		}
 
-		n, err := resp.Body.Read(buf)
-		if n > 0 {
-			// Process EventStream data and convert to Claude SSE
-			output := streamState.ProcessEventStreamData(buf[:n])
-			if len(output) > 0 {
-				// Capture for attempt record
-				sseBuffer.Write(output)
-
-				_, writeErr := w.Write(output)
-				if writeErr != nil {
-					a.updateAttemptBody(ctx, attempt, sseBuffer.String())
-					return domain.NewProxyErrorWithMessage(writeErr, false, "client disconnected")
-				}
-				flusher.Flush()
-			}
-		}
-
-		if err != nil {
-			if err == io.EOF {
-				// Send force stop if needed
-				if forceStop := streamState.EmitForceStop(); len(forceStop) > 0 {
-					sseBuffer.Write(forceStop)
-					_, _ = w.Write(forceStop)
-					flusher.Flush()
-				}
-				// Update attempt with captured body
-				a.updateAttemptBody(ctx, attempt, sseBuffer.String())
-				return nil
-			}
-			// Upstream connection closed
-			if ctx.Err() != nil {
-				if forceStop := streamState.EmitForceStop(); len(forceStop) > 0 {
-					sseBuffer.Write(forceStop)
-					_, _ = w.Write(forceStop)
-					flusher.Flush()
-				}
-				a.updateAttemptBody(ctx, attempt, sseBuffer.String())
-				return domain.NewProxyErrorWithMessage(ctx.Err(), false, "client disconnected")
-			}
-			// Send force stop
-			if forceStop := streamState.EmitForceStop(); len(forceStop) > 0 {
-				sseBuffer.Write(forceStop)
-				_, _ = w.Write(forceStop)
-				flusher.Flush()
-			}
-			// Update attempt with captured body
-			a.updateAttemptBody(ctx, attempt, sseBuffer.String())
-			return nil
-		}
+		_ = streamCtx.sendFinalEvents()
+		a.updateAttemptBody(ctx, attempt, sseBuffer.String())
+		return nil
 	}
+
+	if err := streamCtx.sendFinalEvents(); err != nil {
+		a.updateAttemptBody(ctx, attempt, sseBuffer.String())
+		return domain.NewProxyErrorWithMessage(err, false, "failed to send final events")
+	}
+
+	a.updateAttemptBody(ctx, attempt, sseBuffer.String())
+	return nil
 }
 
 // updateAttemptBody updates the attempt record with the captured response body
@@ -433,53 +394,98 @@ func (a *KiroAdapter) handleCollectedStreamResponse(ctx context.Context, w http.
 		}
 	}
 
-	// Create streaming state
-	streamState := NewClaudeStreamingState(requestModel, inputTokens)
-
-	// Collect all SSE events
-	var sseBuffer strings.Builder
-	buf := make([]byte, 4096)
-
-	for {
-		select {
-		case <-ctx.Done():
-			return domain.NewProxyErrorWithMessage(ctx.Err(), false, "client disconnected")
-		default:
-		}
-
-		n, err := resp.Body.Read(buf)
-		if n > 0 {
-			output := streamState.ProcessEventStreamData(buf[:n])
-			if len(output) > 0 {
-				sseBuffer.Write(output)
-			}
-		}
-
-		if err != nil {
-			if err == io.EOF {
-				break
-			}
-			return domain.NewProxyErrorWithMessage(domain.ErrUpstreamError, true, "failed to read upstream stream")
-		}
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return domain.NewProxyErrorWithMessage(domain.ErrUpstreamError, true, "failed to read upstream stream")
 	}
 
-	// Send force stop if needed
-	if forceStop := streamState.EmitForceStop(); len(forceStop) > 0 {
-		sseBuffer.Write(forceStop)
+	parser := NewCompliantEventStreamParser()
+	result, parseErr := parser.ParseResponse(body)
+	if parseErr != nil {
+		return domain.NewProxyErrorWithMessage(domain.ErrFormatConversion, false, "failed to parse upstream stream")
 	}
 
-	// Update attempt with collected body
 	if attempt != nil && attempt.ResponseInfo != nil {
-		attempt.ResponseInfo.Body = sseBuffer.String()
+		attempt.ResponseInfo.Body = string(body)
 		if bc := ctxutil.GetBroadcaster(ctx); bc != nil {
 			bc.BroadcastProxyUpstreamAttempt(attempt)
 		}
 	}
 
-	// Convert collected SSE to JSON response
-	responseBody, err := collectClaudeSSEToJSON(sseBuffer.String())
+	var contexts []map[string]any
+	textAgg := result.GetCompletionText()
+
+	toolManager := parser.GetToolManager()
+	allTools := make([]*ToolExecution, 0)
+	for _, tool := range toolManager.GetActiveTools() {
+		allTools = append(allTools, tool)
+	}
+	for _, tool := range toolManager.GetCompletedTools() {
+		allTools = append(allTools, tool)
+	}
+
+	sawToolUse := len(allTools) > 0
+
+	if textAgg != "" {
+		contexts = append(contexts, map[string]any{
+			"type": "text",
+			"text": textAgg,
+		})
+	}
+
+	for _, tool := range allTools {
+		toolUseBlock := map[string]any{
+			"type":  "tool_use",
+			"id":    tool.ID,
+			"name":  tool.Name,
+			"input": tool.Arguments,
+		}
+		if tool.Arguments == nil {
+			toolUseBlock["input"] = map[string]any{}
+		}
+		contexts = append(contexts, toolUseBlock)
+	}
+
+	stopReasonManager := NewStopReasonManager()
+	outputTokens := 0
+	estimator := NewTokenEstimator()
+	for _, contentBlock := range contexts {
+		blockType, _ := contentBlock["type"].(string)
+		switch blockType {
+		case "text":
+			if text, ok := contentBlock["text"].(string); ok {
+				outputTokens += estimator.EstimateTextTokens(text)
+			}
+		case "tool_use":
+			toolName, _ := contentBlock["name"].(string)
+			toolInput, _ := contentBlock["input"].(map[string]any)
+			outputTokens += estimator.EstimateToolUseTokens(toolName, toolInput)
+		}
+	}
+
+	if outputTokens < 1 && len(contexts) > 0 {
+		outputTokens = 1
+	}
+
+	stopReasonManager.UpdateToolCallStatus(sawToolUse, sawToolUse)
+	stopReason := stopReasonManager.DetermineStopReason()
+
+	anthropicResp := map[string]any{
+		"content":       contexts,
+		"model":         requestModel,
+		"role":          "assistant",
+		"stop_reason":   stopReason,
+		"stop_sequence": nil,
+		"type":          "message",
+		"usage": map[string]any{
+			"input_tokens":  inputTokens,
+			"output_tokens": outputTokens,
+		},
+	}
+
+	responseBody, err := json.Marshal(anthropicResp)
 	if err != nil {
-		return domain.NewProxyErrorWithMessage(domain.ErrFormatConversion, false, "failed to collect streamed response")
+		return domain.NewProxyErrorWithMessage(domain.ErrFormatConversion, false, "failed to encode response")
 	}
 
 	w.Header().Set("Content-Type", "application/json")
@@ -605,6 +611,17 @@ func calculateInputTokens(requestBody []byte) int {
 	var claudeReq converter.ClaudeRequest
 	if err := json.Unmarshal(requestBody, &claudeReq); err != nil {
 		return 0
+	}
+
+	if len(claudeReq.Tools) > 0 {
+		filtered := make([]converter.ClaudeTool, 0, len(claudeReq.Tools))
+		for _, tool := range claudeReq.Tools {
+			if tool.IsWebSearch() {
+				continue
+			}
+			filtered = append(filtered, tool)
+		}
+		claudeReq.Tools = filtered
 	}
 
 	estimator := NewTokenEstimator()
