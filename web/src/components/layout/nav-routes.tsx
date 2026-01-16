@@ -1,4 +1,5 @@
 import { NavLink, useLocation } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import {
   ClientIcon,
   allClientTypes,
@@ -54,9 +55,11 @@ function ClientNavItem({ clientType }: { clientType: ClientType }) {
 }
 
 export function NavRoutes() {
+  const { t } = useTranslation()
+
   return (
     <SidebarGroup>
-      <SidebarGroupLabel>ROUTES</SidebarGroupLabel>
+      <SidebarGroupLabel>{t('nav.routes')}</SidebarGroupLabel>
       <SidebarGroupContent>
         <SidebarMenu>
           {allClientTypes.map(clientType => (
