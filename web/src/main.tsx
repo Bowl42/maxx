@@ -58,7 +58,7 @@ function ErrorFallback(error: Error) {
 // Render the app
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    <ThemeProvider defaultTheme="light" storageKey="maxx-ui-theme">
+    <ThemeProvider defaultTheme="system" storageKey="maxx-ui-theme">
       <TransportProvider fallback={<LoadingFallback />} errorFallback={ErrorFallback}>
         <QueryClientProvider client={queryClient}>
           <App />
