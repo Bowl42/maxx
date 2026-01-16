@@ -16,7 +16,7 @@ data.db
 
 # Frontend
 web/node_modules
-web/dist
+# web/dist - needed for CI builds
 web/.vite
 
 # IDE
