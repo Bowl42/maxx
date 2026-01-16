@@ -39,6 +39,16 @@ func main() {
 		log.Fatal("Failed to initialize desktop app:", err)
 	}
 
+	// 初始化托盘（在 goroutine 中运行，避免阻塞主线程）
+	go func() {
+		// 等待 app context 初始化
+		for appCtx == nil {
+			// 等待 OnStartup 设置 appCtx
+		}
+		tray := desktop.NewTrayManager(appCtx, app)
+		tray.Start()
+	}()
+
 	// Create application menu
 	appMenu := menu.NewMenu()
 
@@ -69,11 +79,12 @@ func main() {
 
 	// Run Wails application
 	err = wails.Run(&options.App{
-		Title:     "Maxx",
-		Width:     1280,
-		Height:    800,
-		MinWidth:  1024,
-		MinHeight: 768,
+		Title:              "Maxx",
+		Width:              1280,
+		Height:             800,
+		MinWidth:           1024,
+		MinHeight:          768,
+		HideWindowOnClose:  true,
 		AssetServer: &assetserver.Options{
 			Assets: assets,
 		},
