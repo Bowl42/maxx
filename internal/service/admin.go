@@ -3,14 +3,11 @@ package service
 import (
 	"crypto/rand"
 	"encoding/hex"
-	"encoding/json"
 	"fmt"
 	"strconv"
 	"strings"
 	"time"
 
-	"github.com/awsl-project/maxx/internal/adapter/provider/antigravity"
-	"github.com/awsl-project/maxx/internal/adapter/provider/kiro"
 	"github.com/awsl-project/maxx/internal/domain"
 	"github.com/awsl-project/maxx/internal/repository"
 )
@@ -35,6 +32,7 @@ type AdminService struct {
 	attemptRepo         repository.ProxyUpstreamAttemptRepository
 	settingRepo         repository.SystemSettingRepository
 	apiTokenRepo        repository.APITokenRepository
+	modelMappingRepo    repository.ModelMappingRepository
 	serverAddr          string
 	adapterRefresher    ProviderAdapterRefresher
 }
@@ -51,6 +49,7 @@ func NewAdminService(
 	attemptRepo repository.ProxyUpstreamAttemptRepository,
 	settingRepo repository.SystemSettingRepository,
 	apiTokenRepo repository.APITokenRepository,
+	modelMappingRepo repository.ModelMappingRepository,
 	serverAddr string,
 	adapterRefresher ProviderAdapterRefresher,
 ) *AdminService {
@@ -65,6 +64,7 @@ func NewAdminService(
 		attemptRepo:         attemptRepo,
 		settingRepo:         settingRepo,
 		apiTokenRepo:        apiTokenRepo,
+		modelMappingRepo:    modelMappingRepo,
 		serverAddr:          serverAddr,
 		adapterRefresher:    adapterRefresher,
 	}
@@ -413,194 +413,6 @@ func (s *AdminService) DeleteSetting(key string) error {
 	return s.settingRepo.Delete(key)
 }
 
-// ===== Antigravity Global Settings API =====
-
-// ModelMappingRule represents a single model mapping rule (for API)
-type ModelMappingRule struct {
-	Pattern string `json:"pattern"` // Source pattern, supports * wildcard
-	Target  string `json:"target"`  // Target model name
-}
-
-// AntigravityGlobalSettings represents the global Antigravity configuration
-type AntigravityGlobalSettings struct {
-	ModelMappingRules     []ModelMappingRule `json:"modelMappingRules"`
-	AvailableTargetModels []string           `json:"availableTargetModels"`
-}
-
-// GetAntigravityGlobalSettings retrieves the global Antigravity settings
-// If no custom mapping exists, returns the preset mapping as default
-func (s *AdminService) GetAntigravityGlobalSettings() (*AntigravityGlobalSettings, error) {
-	settings := &AntigravityGlobalSettings{
-		ModelMappingRules:     []ModelMappingRule{},
-		AvailableTargetModels: antigravity.GetAvailableTargetModels(),
-	}
-
-	// Get model mapping rules from database
-	rulesJSON, err := s.settingRepo.Get(domain.SettingKeyAntigravityModelMapping)
-	if err == nil && rulesJSON != "" {
-		// Use ParseModelMappingRules which handles both new array format and legacy map format
-		agRules, parseErr := antigravity.ParseModelMappingRules(rulesJSON)
-		if parseErr != nil {
-			return nil, parseErr
-		}
-		// Convert antigravity.ModelMappingRule to service.ModelMappingRule
-		settings.ModelMappingRules = make([]ModelMappingRule, len(agRules))
-		for i, r := range agRules {
-			settings.ModelMappingRules[i] = ModelMappingRule{Pattern: r.Pattern, Target: r.Target}
-		}
-	}
-
-	// If no rules exist, initialize with preset rules
-	if len(settings.ModelMappingRules) == 0 {
-		defaultRules := antigravity.GetDefaultModelMappingRules()
-		settings.ModelMappingRules = make([]ModelMappingRule, len(defaultRules))
-		for i, r := range defaultRules {
-			settings.ModelMappingRules[i] = ModelMappingRule{Pattern: r.Pattern, Target: r.Target}
-		}
-		// Save to database
-		if rulesJSON, err := json.Marshal(settings.ModelMappingRules); err == nil {
-			s.settingRepo.Set(domain.SettingKeyAntigravityModelMapping, string(rulesJSON))
-		}
-	}
-
-	return settings, nil
-}
-
-// UpdateAntigravityGlobalSettings updates the global Antigravity settings
-func (s *AdminService) UpdateAntigravityGlobalSettings(settings *AntigravityGlobalSettings) error {
-	// Update model mapping rules
-	if settings.ModelMappingRules != nil {
-		rulesJSON, err := json.Marshal(settings.ModelMappingRules)
-		if err != nil {
-			return err
-		}
-		if err := s.settingRepo.Set(domain.SettingKeyAntigravityModelMapping, string(rulesJSON)); err != nil {
-			return err
-		}
-	} else {
-		// Clear rules if nil
-		if err := s.settingRepo.Set(domain.SettingKeyAntigravityModelMapping, "[]"); err != nil {
-			return err
-		}
-	}
-
-	return nil
-}
-
-// ResetAntigravityGlobalSettings resets the model mapping to preset defaults
-func (s *AdminService) ResetAntigravityGlobalSettings() (*AntigravityGlobalSettings, error) {
-	defaultRules := antigravity.GetDefaultModelMappingRules()
-	rules := make([]ModelMappingRule, len(defaultRules))
-	for i, r := range defaultRules {
-		rules[i] = ModelMappingRule{Pattern: r.Pattern, Target: r.Target}
-	}
-
-	rulesJSON, err := json.Marshal(rules)
-	if err != nil {
-		return nil, err
-	}
-
-	if err := s.settingRepo.Set(domain.SettingKeyAntigravityModelMapping, string(rulesJSON)); err != nil {
-		return nil, err
-	}
-
-	return &AntigravityGlobalSettings{
-		ModelMappingRules:     rules,
-		AvailableTargetModels: antigravity.GetAvailableTargetModels(),
-	}, nil
-}
-
-// ===== Kiro Global Settings API =====
-
-// KiroGlobalSettings contains global Kiro settings
-type KiroGlobalSettings struct {
-	ModelMappingRules     []ModelMappingRule `json:"modelMappingRules"`
-	AvailableTargetModels []string           `json:"availableTargetModels"`
-}
-
-// GetKiroGlobalSettings retrieves the global Kiro settings
-// If no custom mapping exists, returns the preset mapping as default
-func (s *AdminService) GetKiroGlobalSettings() (*KiroGlobalSettings, error) {
-	settings := &KiroGlobalSettings{
-		ModelMappingRules:     []ModelMappingRule{},
-		AvailableTargetModels: kiro.AvailableTargetModels,
-	}
-
-	// Get model mapping rules from database
-	rulesJSON, err := s.settingRepo.Get(domain.SettingKeyKiroModelMapping)
-	if err == nil && rulesJSON != "" {
-		// Use ParseModelMappingRules which handles both new array format and legacy map format
-		kiroRules, parseErr := kiro.ParseModelMappingRules(rulesJSON)
-		if parseErr != nil {
-			return nil, parseErr
-		}
-		// Convert kiro.ModelMappingRule to service.ModelMappingRule
-		settings.ModelMappingRules = make([]ModelMappingRule, len(kiroRules))
-		for i, r := range kiroRules {
-			settings.ModelMappingRules[i] = ModelMappingRule{Pattern: r.Pattern, Target: r.Target}
-		}
-	}
-
-	// If no rules exist, initialize with preset rules
-	if len(settings.ModelMappingRules) == 0 {
-		defaultRules := kiro.GetDefaultModelMappingRules()
-		settings.ModelMappingRules = make([]ModelMappingRule, len(defaultRules))
-		for i, r := range defaultRules {
-			settings.ModelMappingRules[i] = ModelMappingRule{Pattern: r.Pattern, Target: r.Target}
-		}
-		// Save to database
-		if rulesJSON, err := json.Marshal(settings.ModelMappingRules); err == nil {
-			s.settingRepo.Set(domain.SettingKeyKiroModelMapping, string(rulesJSON))
-		}
-	}
-
-	return settings, nil
-}
-
-// UpdateKiroGlobalSettings updates the global Kiro settings
-func (s *AdminService) UpdateKiroGlobalSettings(settings *KiroGlobalSettings) error {
-	// Update model mapping rules
-	if settings.ModelMappingRules != nil {
-		rulesJSON, err := json.Marshal(settings.ModelMappingRules)
-		if err != nil {
-			return err
-		}
-		if err := s.settingRepo.Set(domain.SettingKeyKiroModelMapping, string(rulesJSON)); err != nil {
-			return err
-		}
-	} else {
-		// Clear rules if nil
-		if err := s.settingRepo.Set(domain.SettingKeyKiroModelMapping, "[]"); err != nil {
-			return err
-		}
-	}
-
-	return nil
-}
-
-// ResetKiroGlobalSettings resets the model mapping to preset defaults
-func (s *AdminService) ResetKiroGlobalSettings() (*KiroGlobalSettings, error) {
-	defaultRules := kiro.GetDefaultModelMappingRules()
-	rules := make([]ModelMappingRule, len(defaultRules))
-	for i, r := range defaultRules {
-		rules[i] = ModelMappingRule{Pattern: r.Pattern, Target: r.Target}
-	}
-
-	rulesJSON, err := json.Marshal(rules)
-	if err != nil {
-		return nil, err
-	}
-
-	if err := s.settingRepo.Set(domain.SettingKeyKiroModelMapping, string(rulesJSON)); err != nil {
-		return nil, err
-	}
-
-	return &KiroGlobalSettings{
-		ModelMappingRules:     rules,
-		AvailableTargetModels: kiro.AvailableTargetModels,
-	}, nil
-}
-
 // ===== Proxy Status API =====
 
 type ProxyStatus struct {
@@ -738,4 +550,41 @@ func generateAPIToken() (plain string, prefix string, err error) {
 	}
 
 	return plain, prefix, nil
+}
+
+// ===== Model Mapping API =====
+
+// GetModelMappings returns all model mappings
+func (s *AdminService) GetModelMappings() ([]*domain.ModelMapping, error) {
+	return s.modelMappingRepo.List()
+}
+
+// GetModelMapping returns a model mapping by ID
+func (s *AdminService) GetModelMapping(id uint64) (*domain.ModelMapping, error) {
+	return s.modelMappingRepo.GetByID(id)
+}
+
+// CreateModelMapping creates a new model mapping
+func (s *AdminService) CreateModelMapping(mapping *domain.ModelMapping) error {
+	return s.modelMappingRepo.Create(mapping)
+}
+
+// UpdateModelMapping updates an existing model mapping
+func (s *AdminService) UpdateModelMapping(mapping *domain.ModelMapping) error {
+	return s.modelMappingRepo.Update(mapping)
+}
+
+// DeleteModelMapping deletes a model mapping by ID
+func (s *AdminService) DeleteModelMapping(id uint64) error {
+	return s.modelMappingRepo.Delete(id)
+}
+
+// GetAvailableClientTypes returns all available client types for model mapping
+func (s *AdminService) GetAvailableClientTypes() []domain.ClientType {
+	return []domain.ClientType{
+		"",                       // Empty means applies to all
+		domain.ClientTypeClaude,
+		domain.ClientTypeOpenAI,
+		domain.ClientTypeGemini,
+	}
 }

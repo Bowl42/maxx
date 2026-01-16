@@ -46,7 +46,9 @@ export type {
   AntigravityTokenValidationResult,
   AntigravityBatchValidationResult,
   AntigravityOAuthResult,
-  AntigravityGlobalSettings,
+  // Model Mapping
+  ModelMapping,
+  ModelMappingInput,
   // Kiro
   KiroTokenValidationResult,
   KiroQuotaData,

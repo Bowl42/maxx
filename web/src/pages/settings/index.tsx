@@ -17,8 +17,8 @@ import {
 } from '@/components/ui'
 import { ModelInput } from '@/components/ui/model-input'
 import { PageHeader } from '@/components/layout/page-header'
-import { useSettings, useUpdateSetting, useAntigravityGlobalSettings, useUpdateAntigravityGlobalSettings, useResetAntigravityGlobalSettings } from '@/hooks/queries'
-import type { ModelMappingRule } from '@/lib/transport/types'
+import { useSettings, useUpdateSetting, useModelMappings, useCreateModelMapping, useUpdateModelMapping, useDeleteModelMapping } from '@/hooks/queries'
+import type { ModelMapping } from '@/lib/transport/types'
 
 type Theme = 'light' | 'dark' | 'system'
 
@@ -39,7 +39,7 @@ export function SettingsPage() {
           <AppearanceSection />
           <LanguageSection />
           <ForceProjectSection />
-          <AntigravityModelMappingSection />
+          <ModelMappingSection />
         </div>
       </div>
     </div>
@@ -202,7 +202,7 @@ function ForceProjectSection() {
 interface SortableRuleItemProps {
   id: string
   index: number
-  rule: ModelMappingRule
+  rule: ModelMapping
   onRemove: () => void
   onUpdate: (pattern: string, target: string) => void
   disabled: boolean
@@ -266,15 +266,16 @@ function SortableRuleItem({ id, index, rule, onRemove, onUpdate, disabled }: Sor
   )
 }
 
-function AntigravityModelMappingSection() {
-  const { data: settings, isLoading } = useAntigravityGlobalSettings()
-  const updateSettings = useUpdateAntigravityGlobalSettings()
-  const resetSettings = useResetAntigravityGlobalSettings()
+function ModelMappingSection() {
+  const { data: mappings, isLoading } = useModelMappings()
+  const createMapping = useCreateModelMapping()
+  const updateMapping = useUpdateModelMapping()
+  const deleteMapping = useDeleteModelMapping()
   const [newPattern, setNewPattern] = useState('')
   const [newTarget, setNewTarget] = useState('')
   const { t } = useTranslation()
 
-  const rules = settings?.modelMappingRules || []
+  const rules = mappings || []
 
   const sensors = useSensors(
     useSensor(PointerSensor),
@@ -287,53 +288,69 @@ function AntigravityModelMappingSection() {
     const { active, over } = event
     if (!over || active.id === over.id) return
 
-    const oldIndex = rules.findIndex((_, i) => `rule-${i}` === active.id)
-    const newIndex = rules.findIndex((_, i) => `rule-${i}` === over.id)
+    const oldIndex = rules.findIndex(r => `rule-${r.id}` === active.id)
+    const newIndex = rules.findIndex(r => `rule-${r.id}` === over.id)
 
     if (oldIndex !== -1 && newIndex !== -1) {
-      const newRules = arrayMove(rules, oldIndex, newIndex)
-      await updateSettings.mutateAsync({
-        modelMappingRules: newRules,
-      })
+      const reordered = arrayMove(rules, oldIndex, newIndex)
+      // Update priorities based on new order
+      for (let i = 0; i < reordered.length; i++) {
+        const rule = reordered[i]
+        if (rule.priority !== i * 10) {
+          await updateMapping.mutateAsync({
+            id: rule.id,
+            data: {
+              pattern: rule.pattern,
+              target: rule.target,
+              priority: i * 10,
+              isEnabled: rule.isEnabled,
+            },
+          })
+        }
+      }
     }
   }
 
   const handleAddRule = async () => {
     if (!newPattern.trim() || !newTarget.trim()) return
 
-    const newRule: ModelMappingRule = {
+    await createMapping.mutateAsync({
       pattern: newPattern.trim(),
       target: newTarget.trim(),
-    }
-    await updateSettings.mutateAsync({
-      modelMappingRules: [...rules, newRule],
+      clientType: 'claude',
+      priority: rules.length * 10 + 1000, // Add at end
+      isEnabled: true,
     })
     setNewPattern('')
     setNewTarget('')
   }
 
-  const handleRemoveRule = async (index: number) => {
-    const newRules = rules.filter((_, i) => i !== index)
-    await updateSettings.mutateAsync({
-      modelMappingRules: newRules,
-    })
+  const handleRemoveRule = async (id: number) => {
+    await deleteMapping.mutateAsync(id)
   }
 
-  const handleUpdateRule = async (index: number, pattern: string, target: string) => {
-    const newRules = [...rules]
-    newRules[index] = { pattern, target }
-    await updateSettings.mutateAsync({
-      modelMappingRules: newRules,
+  const handleUpdateRule = async (rule: ModelMapping, pattern: string, target: string) => {
+    await updateMapping.mutateAsync({
+      id: rule.id,
+      data: {
+        pattern,
+        target,
+        priority: rule.priority,
+        isEnabled: rule.isEnabled,
+      },
     })
   }
 
   const handleReset = async () => {
-    await resetSettings.mutateAsync()
+    // Delete all existing mappings, then the backend will re-seed defaults on next load
+    for (const rule of rules) {
+      await deleteMapping.mutateAsync(rule.id)
+    }
   }
 
   if (isLoading) return null
 
-  const isPending = updateSettings.isPending || resetSettings.isPending
+  const isPending = createMapping.isPending || updateMapping.isPending || deleteMapping.isPending
 
   return (
     <Card className="border-border bg-card">
@@ -347,7 +364,7 @@ function AntigravityModelMappingSection() {
             variant="outline"
             size="sm"
             onClick={handleReset}
-            disabled={isPending}
+            disabled={isPending || rules.length === 0}
           >
             <RotateCcw className="h-4 w-4 mr-1" />
             {t('settings.resetToPreset')}
@@ -366,18 +383,18 @@ function AntigravityModelMappingSection() {
             onDragEnd={handleDragEnd}
           >
             <SortableContext
-              items={rules.map((_, i) => `rule-${i}`)}
+              items={rules.map(r => `rule-${r.id}`)}
               strategy={verticalListSortingStrategy}
             >
               <div className="space-y-1.5">
                 {rules.map((rule, index) => (
                   <SortableRuleItem
-                    key={`rule-${index}`}
-                    id={`rule-${index}`}
+                    key={`rule-${rule.id}`}
+                    id={`rule-${rule.id}`}
                     index={index}
                     rule={rule}
-                    onRemove={() => handleRemoveRule(index)}
-                    onUpdate={(pattern, target) => handleUpdateRule(index, pattern, target)}
+                    onRemove={() => handleRemoveRule(rule.id)}
+                    onUpdate={(pattern, target) => handleUpdateRule(rule, pattern, target)}
                     disabled={isPending}
                   />
                 ))}

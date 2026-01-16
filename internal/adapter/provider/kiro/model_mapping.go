@@ -33,7 +33,8 @@ var AvailableTargetModels = []string{
 }
 
 // MapModel 将 Anthropic 模型名映射到 CodeWhisperer 模型 ID
-// 优先级: customMapping > globalSettings > defaultModelMappingRules
+// DEPRECATED: Model mapping is now handled centrally in executor.mapModel().
+// This function only checks customMapping (provider-level) for backward compatibility.
 func MapModel(model string, customMapping map[string]string) string {
 	cleanInput := strings.TrimSpace(strings.ToLower(model))
 
@@ -48,21 +49,8 @@ func MapModel(model string, customMapping map[string]string) string {
 		}
 	}
 
-	// 2. 检查全局设置（用户自定义规则）
-	if globalSettings := GetGlobalSettings(); globalSettings != nil {
-		if len(globalSettings.ModelMappingRules) > 0 {
-			if mapped := MatchRulesInOrder(cleanInput, globalSettings.ModelMappingRules); mapped != "" {
-				return mapped
-			}
-		}
-	}
-
-	// 3. 检查默认规则
-	if mapped := MatchRulesInOrder(cleanInput, defaultModelMappingRules); mapped != "" {
-		return mapped
-	}
-
-	// 4. 未找到映射，返回空字符串
+	// 2. Pass-through: model mapping is now handled in executor.mapModel()
+	// Return empty string to indicate no mapping found at provider level
 	return ""
 }
 

@@ -218,6 +218,26 @@ func (d *DB) migrate() error {
 		deleted_at DATETIME
 	);
 	CREATE INDEX IF NOT EXISTS idx_api_tokens_token ON api_tokens(token);
+
+	CREATE TABLE IF NOT EXISTS model_mappings (
+		id INTEGER PRIMARY KEY AUTOINCREMENT,
+		created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+		updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+		client_type TEXT DEFAULT '',
+		provider_id INTEGER DEFAULT 0,
+		project_id INTEGER DEFAULT 0,
+		route_id INTEGER DEFAULT 0,
+		api_token_id INTEGER DEFAULT 0,
+		pattern TEXT NOT NULL,
+		target TEXT NOT NULL,
+		priority INTEGER DEFAULT 0,
+		is_enabled INTEGER DEFAULT 1,
+		is_builtin INTEGER DEFAULT 0
+	);
+	CREATE INDEX IF NOT EXISTS idx_model_mappings_client_type ON model_mappings(client_type);
+	CREATE INDEX IF NOT EXISTS idx_model_mappings_provider_id ON model_mappings(provider_id);
+	CREATE INDEX IF NOT EXISTS idx_model_mappings_project_id ON model_mappings(project_id);
+	CREATE INDEX IF NOT EXISTS idx_model_mappings_priority ON model_mappings(priority);
 	`
 
 	_, err := d.db.Exec(schema)
@@ -391,6 +411,11 @@ func (d *DB) migrate() error {
 		}
 	}
 
+	// Migration: Seed default model mappings if table is empty
+	if err := d.seedDefaultModelMappings(); err != nil {
+		return err
+	}
+
 	return nil
 }
 
@@ -562,4 +587,58 @@ func nullTime(t time.Time) sql.NullTime {
 		return sql.NullTime{}
 	}
 	return sql.NullTime{Time: t, Valid: true}
+}
+
+// seedDefaultModelMappings seeds the default model mappings if the table is empty
+func (d *DB) seedDefaultModelMappings() error {
+	// Check if table has any rows
+	var count int
+	if err := d.db.QueryRow(`SELECT COUNT(*) FROM model_mappings`).Scan(&count); err != nil {
+		return err
+	}
+
+	// Only seed if table is empty
+	if count > 0 {
+		return nil
+	}
+
+	// Default mapping rules for Claude client type (Antigravity compatible)
+	defaultRules := []struct {
+		clientType string
+		pattern    string
+		target     string
+		priority   int
+	}{
+		// OpenAI models -> Gemini (for claude client type)
+		{"claude", "gpt-4o-mini*", "gemini-2.5-flash", 10},
+		{"claude", "gpt-4o*", "gemini-3-flash", 20},
+		{"claude", "gpt-4*", "gemini-3-pro-high", 30},
+		{"claude", "gpt-3.5*", "gemini-2.5-flash", 40},
+		{"claude", "o1-*", "gemini-3-pro-high", 50},
+		{"claude", "o3-*", "gemini-3-pro-high", 60},
+
+		// Claude models - specific patterns first
+		{"claude", "claude-3-5-sonnet-*", "claude-sonnet-4-5", 100},
+		{"claude", "claude-3-opus-*", "claude-opus-4-5-thinking", 110},
+		{"claude", "claude-opus-4-*", "claude-opus-4-5-thinking", 120},
+		{"claude", "claude-haiku-*", "gemini-2.5-flash-lite", 130},
+		{"claude", "claude-3-haiku-*", "gemini-2.5-flash-lite", 140},
+
+		// Generic Claude fallbacks (broad wildcards last)
+		{"claude", "*opus*", "claude-opus-4-5-thinking", 200},
+		{"claude", "*sonnet*", "claude-sonnet-4-5", 210},
+		{"claude", "*haiku*", "gemini-2.5-flash-lite", 220},
+	}
+
+	for _, rule := range defaultRules {
+		_, err := d.db.Exec(
+			`INSERT INTO model_mappings (client_type, pattern, target, priority, is_enabled, is_builtin) VALUES (?, ?, ?, ?, 1, 1)`,
+			rule.clientType, rule.pattern, rule.target, rule.priority,
+		)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
 }

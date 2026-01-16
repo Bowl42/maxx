@@ -73,45 +73,30 @@ func GetAvailableTargetModels() []string {
 }
 
 // MapClaudeModelToGemini maps Claude model names to Gemini model names
-// (like Antigravity-Manager's map_claude_model_to_gemini)
+// DEPRECATED: Model mapping is now handled centrally in executor.mapModel().
+// This function is kept for backward compatibility but should not be used.
+// It simply returns the input as-is since mapping is done elsewhere.
 func MapClaudeModelToGemini(input string) string {
 	return MapClaudeModelToGeminiWithConfig(input, "")
 }
 
 // MapClaudeModelToGeminiWithConfig maps Claude model names with optional haikuTarget override
-// haikuTarget: "" = use default (gemini-2.5-flash-lite), "claude-sonnet-4-5" = stronger model
+// DEPRECATED: Model mapping is now handled centrally in executor.mapModel().
+// This function only handles haikuTarget override and pass-through logic.
+// The actual mapping rules (global settings, default rules) are applied in executor.mapModel().
 func MapClaudeModelToGeminiWithConfig(input string, haikuTarget string) string {
 	// Strip -online suffix for mapping lookup (will be re-added by resolveRequestConfig)
 	cleanInput := strings.TrimSuffix(input, "-online")
 
 	// 1. Check if this is a Haiku model and apply haikuTarget override
+	// This is the only mapping logic that should remain here, as it's provider-specific
 	if haikuTarget != "" && isHaikuModel(cleanInput) {
 		return haikuTarget
 	}
 
-	// 2. Check global settings first (highest priority for user customization)
-	// Rules are matched in order, first match wins
-	if globalSettings := GetGlobalSettings(); globalSettings != nil {
-		if len(globalSettings.ModelMappingRules) > 0 {
-			if mapped := MatchRulesInOrder(cleanInput, globalSettings.ModelMappingRules); mapped != "" {
-				return mapped
-			}
-		}
-	}
-
-	// 3. Check default rules in order
-	if mapped := MatchRulesInOrder(cleanInput, defaultModelMappingRules); mapped != "" {
-		return mapped
-	}
-
-	// 4. Pass-through known prefixes (gemini-, -thinking) to support dynamic suffixes
-	// (like Antigravity-Manager)
-	if strings.HasPrefix(cleanInput, "gemini-") || strings.Contains(cleanInput, "thinking") {
-		return cleanInput
-	}
-
-	// 5. Fallback to default
-	return "claude-sonnet-4-5"
+	// 2. Pass-through: model mapping is now handled in executor.mapModel()
+	// Just return the input as-is
+	return cleanInput
 }
 
 // MatchRulesInOrder matches input against rules in order, first match wins

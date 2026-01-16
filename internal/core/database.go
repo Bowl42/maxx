@@ -6,11 +6,8 @@ import (
 	"time"
 
 	"github.com/awsl-project/maxx/internal/adapter/client"
-	"github.com/awsl-project/maxx/internal/adapter/provider/antigravity"
-	"github.com/awsl-project/maxx/internal/adapter/provider/kiro"
 	_ "github.com/awsl-project/maxx/internal/adapter/provider/custom"
 	"github.com/awsl-project/maxx/internal/cooldown"
-	"github.com/awsl-project/maxx/internal/domain"
 	"github.com/awsl-project/maxx/internal/event"
 	"github.com/awsl-project/maxx/internal/executor"
 	"github.com/awsl-project/maxx/internal/handler"
@@ -52,6 +49,8 @@ type DatabaseRepos struct {
 	CachedProjectRepo        *cached.ProjectRepository
 	APITokenRepo             repository.APITokenRepository
 	CachedAPITokenRepo       *cached.APITokenRepository
+	ModelMappingRepo         repository.ModelMappingRepository
+	CachedModelMappingRepo   *cached.ModelMappingRepository
 }
 
 // ServerComponents 包含服务器运行所需的所有组件
@@ -91,6 +90,7 @@ func InitializeDatabase(config *DatabaseConfig) (*DatabaseRepos, error) {
 	cooldownRepo := sqlite.NewCooldownRepository(db)
 	failureCountRepo := sqlite.NewFailureCountRepository(db)
 	apiTokenRepo := sqlite.NewAPITokenRepository(db)
+	modelMappingRepo := sqlite.NewModelMappingRepository(db)
 
 	log.Printf("[Core] Creating cached repositories")
 
@@ -101,6 +101,7 @@ func InitializeDatabase(config *DatabaseConfig) (*DatabaseRepos, error) {
 	cachedSessionRepo := cached.NewSessionRepository(sessionRepo)
 	cachedProjectRepo := cached.NewProjectRepository(projectRepo)
 	cachedAPITokenRepo := cached.NewAPITokenRepository(apiTokenRepo)
+	cachedModelMappingRepo := cached.NewModelMappingRepository(modelMappingRepo)
 
 	repos := &DatabaseRepos{
 		DB:                       db,
@@ -124,6 +125,8 @@ func InitializeDatabase(config *DatabaseConfig) (*DatabaseRepos, error) {
 		CachedProjectRepo:        cachedProjectRepo,
 		APITokenRepo:             apiTokenRepo,
 		CachedAPITokenRepo:       cachedAPITokenRepo,
+		ModelMappingRepo:         modelMappingRepo,
+		CachedModelMappingRepo:   cachedModelMappingRepo,
 	}
 
 	log.Printf("[Core] Database initialized successfully")
@@ -171,6 +174,9 @@ func InitializeServerComponents(
 	}
 	if err := repos.CachedAPITokenRepo.Load(); err != nil {
 		log.Printf("[Core] Warning: Failed to load api tokens cache: %v", err)
+	}
+	if err := repos.CachedModelMappingRepo.Load(); err != nil {
+		log.Printf("[Core] Warning: Failed to load model mappings cache: %v", err)
 	}
 
 	log.Printf("[Core] Creating router")
@@ -223,6 +229,7 @@ func InitializeServerComponents(
 		repos.AttemptRepo,
 		repos.CachedRetryConfigRepo,
 		repos.CachedSessionRepo,
+		repos.CachedModelMappingRepo,
 		wailsBroadcaster,
 		projectWaiter,
 		instanceID,
@@ -243,37 +250,10 @@ func InitializeServerComponents(
 		repos.AttemptRepo,
 		repos.SettingRepo,
 		repos.CachedAPITokenRepo,
+		repos.CachedModelMappingRepo,
 		addr,
 		r,
 	)
-
-	log.Printf("[Core] Initializing Antigravity global settings getter")
-	antigravity.SetGlobalSettingsGetter(func() (*antigravity.GlobalSettings, error) {
-		// Read model mapping rules from database
-		rulesJSON, _ := repos.SettingRepo.Get(domain.SettingKeyAntigravityModelMapping)
-		rules, err := antigravity.ParseModelMappingRules(rulesJSON)
-		if err != nil {
-			return nil, err
-		}
-
-		return &antigravity.GlobalSettings{
-			ModelMappingRules: rules,
-		}, nil
-	})
-
-	log.Printf("[Core] Initializing Kiro global settings getter")
-	kiro.SetGlobalSettingsGetter(func() (*kiro.GlobalSettings, error) {
-		// Read model mapping rules from database
-		rulesJSON, _ := repos.SettingRepo.Get(domain.SettingKeyKiroModelMapping)
-		rules, err := kiro.ParseModelMappingRules(rulesJSON)
-		if err != nil {
-			return nil, err
-		}
-
-		return &kiro.GlobalSettings{
-			ModelMappingRules: rules,
-		}, nil
-	})
 
 	log.Printf("[Core] Creating handlers")
 	tokenAuthMiddleware := handler.NewTokenAuthMiddleware(repos.CachedAPITokenRepo, repos.SettingRepo)

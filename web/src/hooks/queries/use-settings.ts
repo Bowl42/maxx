@@ -4,12 +4,12 @@
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { getTransport } from '@/lib/transport';
-import type { AntigravityGlobalSettings } from '@/lib/transport';
+import type { ModelMappingInput } from '@/lib/transport';
 
 export const settingsKeys = {
   all: ['settings'] as const,
   detail: (key: string) => ['settings', key] as const,
-  antigravityGlobal: ['settings', 'antigravity-global'] as const,
+  modelMappings: ['model-mappings'] as const,
 };
 
 export function useSettings() {
@@ -50,34 +50,46 @@ export function useDeleteSetting() {
   });
 }
 
-// ===== Antigravity Global Settings =====
+// ===== Model Mapping =====
 
-export function useAntigravityGlobalSettings() {
+export function useModelMappings() {
   return useQuery({
-    queryKey: settingsKeys.antigravityGlobal,
-    queryFn: () => getTransport().getAntigravityGlobalSettings(),
+    queryKey: settingsKeys.modelMappings,
+    queryFn: () => getTransport().getModelMappings(),
   });
 }
 
-export function useUpdateAntigravityGlobalSettings() {
+export function useCreateModelMapping() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (settings: AntigravityGlobalSettings) =>
-      getTransport().updateAntigravityGlobalSettings(settings),
+    mutationFn: (data: ModelMappingInput) =>
+      getTransport().createModelMapping(data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: settingsKeys.antigravityGlobal });
+      queryClient.invalidateQueries({ queryKey: settingsKeys.modelMappings });
     },
   });
 }
 
-export function useResetAntigravityGlobalSettings() {
+export function useUpdateModelMapping() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: () => getTransport().resetAntigravityGlobalSettings(),
+    mutationFn: ({ id, data }: { id: number; data: ModelMappingInput }) =>
+      getTransport().updateModelMapping(id, data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: settingsKeys.antigravityGlobal });
+      queryClient.invalidateQueries({ queryKey: settingsKeys.modelMappings });
+    },
+  });
+}
+
+export function useDeleteModelMapping() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (id: number) => getTransport().deleteModelMapping(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: settingsKeys.modelMappings });
     },
   });
 }

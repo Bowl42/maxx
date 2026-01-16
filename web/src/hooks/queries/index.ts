@@ -82,9 +82,10 @@ export {
   useSetting,
   useUpdateSetting,
   useDeleteSetting,
-  useAntigravityGlobalSettings,
-  useUpdateAntigravityGlobalSettings,
-  useResetAntigravityGlobalSettings,
+  useModelMappings,
+  useCreateModelMapping,
+  useUpdateModelMapping,
+  useDeleteModelMapping,
 } from './use-settings';
 
 // API Token hooks

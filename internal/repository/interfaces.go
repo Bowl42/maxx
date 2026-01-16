@@ -104,3 +104,17 @@ type APITokenRepository interface {
 	List() ([]*domain.APIToken, error)
 	IncrementUseCount(id uint64) error
 }
+
+type ModelMappingRepository interface {
+	Create(mapping *domain.ModelMapping) error
+	Update(mapping *domain.ModelMapping) error
+	Delete(id uint64) error
+	GetByID(id uint64) (*domain.ModelMapping, error)
+	List() ([]*domain.ModelMapping, error)
+	ListEnabled() ([]*domain.ModelMapping, error)
+	ListByClientType(clientType domain.ClientType) ([]*domain.ModelMapping, error)
+	ListByQuery(query *domain.ModelMappingQuery) ([]*domain.ModelMapping, error)
+	Count() (int, error)
+	DeleteAll() error
+	DeleteBuiltin() error
+}

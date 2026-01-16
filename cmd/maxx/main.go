@@ -10,11 +10,9 @@ import (
 	"time"
 
 	"github.com/awsl-project/maxx/internal/adapter/client"
-	"github.com/awsl-project/maxx/internal/adapter/provider/antigravity"
 	_ "github.com/awsl-project/maxx/internal/adapter/provider/custom" // Register custom adapter
 	_ "github.com/awsl-project/maxx/internal/adapter/provider/kiro"   // Register kiro adapter
 	"github.com/awsl-project/maxx/internal/cooldown"
-	"github.com/awsl-project/maxx/internal/domain"
 	"github.com/awsl-project/maxx/internal/executor"
 	"github.com/awsl-project/maxx/internal/handler"
 	"github.com/awsl-project/maxx/internal/repository/cached"
@@ -93,6 +91,7 @@ func main() {
 	cooldownRepo := sqlite.NewCooldownRepository(db)
 	failureCountRepo := sqlite.NewFailureCountRepository(db)
 	apiTokenRepo := sqlite.NewAPITokenRepository(db)
+	modelMappingRepo := sqlite.NewModelMappingRepository(db)
 
 	// Initialize cooldown manager with database persistence
 	cooldown.Default().SetRepository(cooldownRepo)
@@ -117,6 +116,7 @@ func main() {
 	cachedSessionRepo := cached.NewSessionRepository(sessionRepo)
 	cachedProjectRepo := cached.NewProjectRepository(projectRepo)
 	cachedAPITokenRepo := cached.NewAPITokenRepository(apiTokenRepo)
+	cachedModelMappingRepo := cached.NewModelMappingRepository(modelMappingRepo)
 
 	// Load cached data
 	if err := cachedProviderRepo.Load(); err != nil {
@@ -133,6 +133,9 @@ func main() {
 	}
 	if err := cachedProjectRepo.Load(); err != nil {
 		log.Printf("Warning: Failed to load projects cache: %v", err)
+	}
+	if err := cachedModelMappingRepo.Load(); err != nil {
+		log.Printf("Warning: Failed to load model mappings cache: %v", err)
 	}
 
 	// Create router
@@ -171,7 +174,7 @@ func main() {
 	projectWaiter := waiter.NewProjectWaiter(cachedSessionRepo, settingRepo, wsHub)
 
 	// Create executor
-	exec := executor.NewExecutor(r, proxyRequestRepo, attemptRepo, cachedRetryConfigRepo, cachedSessionRepo, wsHub, projectWaiter, instanceID)
+	exec := executor.NewExecutor(r, proxyRequestRepo, attemptRepo, cachedRetryConfigRepo, cachedSessionRepo, cachedModelMappingRepo, wsHub, projectWaiter, instanceID)
 
 	// Create client adapter
 	clientAdapter := client.NewAdapter()
@@ -188,21 +191,10 @@ func main() {
 		attemptRepo,
 		settingRepo,
 		cachedAPITokenRepo,
+		cachedModelMappingRepo,
 		*addr,
 		r, // Router implements ProviderAdapterRefresher interface
 	)
-
-	// Initialize Antigravity global settings getter
-	antigravity.SetGlobalSettingsGetter(func() (*antigravity.GlobalSettings, error) {
-		rulesJSON, _ := settingRepo.Get(domain.SettingKeyAntigravityModelMapping)
-		rules, err := antigravity.ParseModelMappingRules(rulesJSON)
-		if err != nil {
-			return nil, err
-		}
-		return &antigravity.GlobalSettings{
-			ModelMappingRules: rules,
-		}, nil
-	})
 
 	// Create auth middleware
 	authMiddleware := handler.NewAuthMiddleware()

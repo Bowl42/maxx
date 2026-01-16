@@ -4,10 +4,8 @@ import (
 	"context"
 	"log"
 	"net/http"
-	"strings"
 	"time"
 
-	"github.com/awsl-project/maxx/internal/adapter/provider/antigravity"
 	"github.com/awsl-project/maxx/internal/cooldown"
 	ctxutil "github.com/awsl-project/maxx/internal/context"
 	"github.com/awsl-project/maxx/internal/domain"
@@ -20,14 +18,15 @@ import (
 
 // Executor handles request execution with retry logic
 type Executor struct {
-	router           *router.Router
-	proxyRequestRepo repository.ProxyRequestRepository
-	attemptRepo      repository.ProxyUpstreamAttemptRepository
-	retryConfigRepo  repository.RetryConfigRepository
-	sessionRepo      repository.SessionRepository
-	broadcaster      event.Broadcaster
-	projectWaiter    *waiter.ProjectWaiter
-	instanceID       string
+	router             *router.Router
+	proxyRequestRepo   repository.ProxyRequestRepository
+	attemptRepo        repository.ProxyUpstreamAttemptRepository
+	retryConfigRepo    repository.RetryConfigRepository
+	sessionRepo        repository.SessionRepository
+	modelMappingRepo   repository.ModelMappingRepository
+	broadcaster        event.Broadcaster
+	projectWaiter      *waiter.ProjectWaiter
+	instanceID         string
 }
 
 // NewExecutor creates a new executor
@@ -37,19 +36,21 @@ func NewExecutor(
 	ar repository.ProxyUpstreamAttemptRepository,
 	rcr repository.RetryConfigRepository,
 	sessionRepo repository.SessionRepository,
+	modelMappingRepo repository.ModelMappingRepository,
 	bc event.Broadcaster,
 	projectWaiter *waiter.ProjectWaiter,
 	instanceID string,
 ) *Executor {
 	return &Executor{
-		router:           r,
-		proxyRequestRepo: prr,
-		attemptRepo:      ar,
-		retryConfigRepo:  rcr,
-		sessionRepo:      sessionRepo,
-		broadcaster:      bc,
-		projectWaiter:    projectWaiter,
-		instanceID:       instanceID,
+		router:             r,
+		proxyRequestRepo:   prr,
+		attemptRepo:        ar,
+		retryConfigRepo:    rcr,
+		sessionRepo:        sessionRepo,
+		modelMappingRepo:   modelMappingRepo,
+		broadcaster:        bc,
+		projectWaiter:      projectWaiter,
+		instanceID:         instanceID,
 	}
 }
 
@@ -259,7 +260,8 @@ func (e *Executor) Execute(ctx context.Context, w http.ResponseWriter, req *http
 		}
 
 		// Determine model mapping
-		mappedModel := e.mapModel(requestModel, matchedRoute.Route, matchedRoute.Provider)
+		clientType := ctxutil.GetClientType(ctx)
+		mappedModel := e.mapModel(requestModel, matchedRoute.Route, matchedRoute.Provider, clientType, projectID, apiTokenID)
 		ctx = ctxutil.WithMappedModel(ctx, mappedModel)
 
 		// Get retry config
@@ -496,150 +498,38 @@ func (e *Executor) Execute(ctx context.Context, w http.ResponseWriter, req *http
 	return domain.NewProxyErrorWithMessage(domain.ErrAllRoutesFailed, false, "all routes exhausted")
 }
 
-func (e *Executor) mapModel(requestModel string, route *domain.Route, provider *domain.Provider) string {
-	log.Printf("[ModelMapping] Input: requestModel=%q, routeID=%d, providerID=%d", requestModel, route.ID, provider.ID)
+func (e *Executor) mapModel(requestModel string, route *domain.Route, provider *domain.Provider, clientType domain.ClientType, projectID uint64, apiTokenID uint64) string {
+	log.Printf("[ModelMapping] Input: requestModel=%q, routeID=%d, providerID=%d, clientType=%s, projectID=%d, apiTokenID=%d",
+		requestModel, route.ID, provider.ID, clientType, projectID, apiTokenID)
 
-	// Route mapping takes precedence (supports wildcard patterns)
-	if route.ModelMapping != nil {
-		log.Printf("[ModelMapping] Route has mapping: %v", route.ModelMapping)
-		if mapped := matchModelMapping(requestModel, route.ModelMapping); mapped != "" {
-			log.Printf("[ModelMapping] Route mapping matched: %q -> %q", requestModel, mapped)
-			return mapped
-		}
-		log.Printf("[ModelMapping] Route mapping: no match")
-	} else {
-		log.Printf("[ModelMapping] Route has no mapping")
+	// Database model mapping with full query conditions
+	query := &domain.ModelMappingQuery{
+		ClientType: clientType,
+		ProviderID: provider.ID,
+		ProjectID:  projectID,
+		RouteID:    route.ID,
+		APITokenID: apiTokenID,
 	}
-
-	// Provider mapping (supports wildcard patterns)
-	if provider.Config != nil {
-		if provider.Config.Custom != nil && provider.Config.Custom.ModelMapping != nil {
-			log.Printf("[ModelMapping] Provider Custom has mapping: %v", provider.Config.Custom.ModelMapping)
-			if mapped := matchModelMapping(requestModel, provider.Config.Custom.ModelMapping); mapped != "" {
-				log.Printf("[ModelMapping] Provider Custom mapping matched: %q -> %q", requestModel, mapped)
-				return mapped
+	mappings, err := e.modelMappingRepo.ListByQuery(query)
+	if err != nil {
+		log.Printf("[ModelMapping] Failed to get mappings: %v", err)
+	} else if len(mappings) > 0 {
+		log.Printf("[ModelMapping] Database mappings found: %d rules matching query", len(mappings))
+		for _, m := range mappings {
+			if domain.MatchWildcard(m.Pattern, requestModel) {
+				log.Printf("[ModelMapping] Database mapping matched: id=%d, pattern=%q, target=%q (clientType=%s, providerID=%d, projectID=%d, routeID=%d, apiTokenID=%d)",
+					m.ID, m.Pattern, m.Target, m.ClientType, m.ProviderID, m.ProjectID, m.RouteID, m.APITokenID)
+				return m.Target
 			}
-			log.Printf("[ModelMapping] Provider Custom mapping: no match")
 		}
-		if provider.Config.Antigravity != nil && provider.Config.Antigravity.ModelMapping != nil {
-			log.Printf("[ModelMapping] Provider Antigravity has mapping: %v", provider.Config.Antigravity.ModelMapping)
-			if mapped := matchModelMapping(requestModel, provider.Config.Antigravity.ModelMapping); mapped != "" {
-				log.Printf("[ModelMapping] Provider Antigravity mapping matched: %q -> %q", requestModel, mapped)
-				return mapped
-			}
-			log.Printf("[ModelMapping] Provider Antigravity mapping: no match")
-		}
+		log.Printf("[ModelMapping] Database mapping: no pattern match")
 	} else {
-		log.Printf("[ModelMapping] Provider has no config")
-	}
-
-	// Global Antigravity model mapping rules (lowest priority fallback)
-	// This applies the global settings configured in Settings page
-	if globalSettings := antigravity.GetGlobalSettings(); globalSettings != nil {
-		log.Printf("[ModelMapping] Global settings found, rules count: %d", len(globalSettings.ModelMappingRules))
-		if len(globalSettings.ModelMappingRules) > 0 {
-			for i, rule := range globalSettings.ModelMappingRules {
-				log.Printf("[ModelMapping] Global rule[%d]: pattern=%q, target=%q", i, rule.Pattern, rule.Target)
-			}
-			if mapped := antigravity.MatchRulesInOrder(requestModel, globalSettings.ModelMappingRules); mapped != "" {
-				log.Printf("[ModelMapping] Global mapping matched: %q -> %q", requestModel, mapped)
-				return mapped
-			}
-			log.Printf("[ModelMapping] Global mapping: no match")
-		}
-	} else {
-		log.Printf("[ModelMapping] No global settings found")
-	}
-
-	// Fallback to default model mapping rules
-	defaultRules := antigravity.GetDefaultModelMappingRules()
-	log.Printf("[ModelMapping] Trying default rules, count: %d", len(defaultRules))
-	if mapped := antigravity.MatchRulesInOrder(requestModel, defaultRules); mapped != "" {
-		log.Printf("[ModelMapping] Default mapping matched: %q -> %q", requestModel, mapped)
-		return mapped
+		log.Printf("[ModelMapping] No database mappings found for query")
 	}
 
 	// No mapping, use original
 	log.Printf("[ModelMapping] No mapping found, using original: %q", requestModel)
 	return requestModel
-}
-
-// matchModelMapping matches requestModel against mapping rules with wildcard support
-// Returns the mapped model or empty string if no match
-func matchModelMapping(requestModel string, mapping map[string]string) string {
-	// First try exact match (fast path)
-	if mapped, ok := mapping[requestModel]; ok {
-		log.Printf("[matchModelMapping] Exact match: %q -> %q", requestModel, mapped)
-		return mapped
-	}
-
-	// Then try wildcard patterns
-	for pattern, target := range mapping {
-		if strings.Contains(pattern, "*") {
-			matched := matchWildcard(pattern, requestModel)
-			log.Printf("[matchModelMapping] Wildcard check: pattern=%q, input=%q, matched=%v", pattern, requestModel, matched)
-			if matched {
-				return target
-			}
-		}
-	}
-
-	return ""
-}
-
-// matchWildcard checks if input matches a wildcard pattern
-// Supports * as wildcard matching any characters
-// Examples:
-//   - "*sonnet*" matches "claude-sonnet-4-20250514"
-//   - "gpt-4*" matches "gpt-4-turbo"
-//   - "*-20241022" matches "claude-3-5-sonnet-20241022"
-func matchWildcard(pattern, input string) bool {
-	// Simple cases
-	if pattern == "*" {
-		return true
-	}
-	if !strings.Contains(pattern, "*") {
-		return pattern == input
-	}
-
-	parts := strings.Split(pattern, "*")
-
-	// Handle prefix-only pattern: "prefix*"
-	if len(parts) == 2 && parts[1] == "" {
-		return strings.HasPrefix(input, parts[0])
-	}
-
-	// Handle suffix-only pattern: "*suffix"
-	if len(parts) == 2 && parts[0] == "" {
-		return strings.HasSuffix(input, parts[1])
-	}
-
-	// Handle patterns with multiple wildcards
-	pos := 0
-	for i, part := range parts {
-		if part == "" {
-			continue
-		}
-
-		idx := strings.Index(input[pos:], part)
-		if idx < 0 {
-			return false
-		}
-
-		// First part must be at the beginning if pattern doesn't start with *
-		if i == 0 && idx != 0 {
-			return false
-		}
-
-		pos += idx + len(part)
-	}
-
-	// Last part must be at the end if pattern doesn't end with *
-	if parts[len(parts)-1] != "" && !strings.HasSuffix(input, parts[len(parts)-1]) {
-		return false
-	}
-
-	return true
 }
 
 func (e *Executor) getRetryConfig(config *domain.RetryConfig) *domain.RetryConfig {

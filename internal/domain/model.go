@@ -345,9 +345,7 @@ type SystemSetting struct {
 
 // 系统设置 Key 常量
 const (
-	SettingKeyProxyPort               = "proxy_port"                 // 代理服务器端口，默认 9880
-	SettingKeyAntigravityModelMapping = "antigravity_model_mapping"  // Antigravity 全局模型映射 (JSON)
-	SettingKeyKiroModelMapping        = "kiro_model_mapping"         // Kiro 全局模型映射 (JSON)
+	SettingKeyProxyPort = "proxy_port" // 代理服务器端口，默认 9880
 )
 
 // Antigravity 模型配额
@@ -450,4 +448,137 @@ type APIToken struct {
 type APITokenCreateResult struct {
 	Token    string    `json:"token"`    // 明文 Token（仅创建时返回）
 	APIToken *APIToken `json:"apiToken"` // Token 元数据
+}
+
+// ModelMapping 模型映射规则
+// 支持多种条件筛选，类似 Route 的配置方式
+type ModelMapping struct {
+	ID        uint64    `json:"id"`
+	CreatedAt time.Time `json:"createdAt"`
+	UpdatedAt time.Time `json:"updatedAt"`
+
+	// 作用域条件（全部为空表示全局规则）
+	ClientType ClientType `json:"clientType,omitempty"` // 客户端类型，空表示所有
+	ProviderID uint64     `json:"providerID,omitempty"` // 供应商 ID，0 表示所有
+	ProjectID  uint64     `json:"projectID,omitempty"`  // 项目 ID，0 表示所有
+	RouteID    uint64     `json:"routeID,omitempty"`    // 路由 ID，0 表示所有
+	APITokenID uint64     `json:"apiTokenID,omitempty"` // Token ID，0 表示所有
+
+	// 映射规则
+	Pattern string `json:"pattern"` // 源模式，支持通配符 *
+	Target  string `json:"target"`  // 目标模型
+
+	// 优先级，数字越小优先级越高
+	Priority int `json:"priority"`
+
+	// 是否启用
+	IsEnabled bool `json:"isEnabled"`
+
+	// 是否为内置规则（内置规则不可删除，但可以禁用）
+	IsBuiltin bool `json:"isBuiltin"`
+}
+
+// ModelMappingRule 简化的映射规则（用于 API 和内部逻辑）
+type ModelMappingRule struct {
+	Pattern string `json:"pattern"` // 源模式，支持通配符 *
+	Target  string `json:"target"`  // 目标模型
+}
+
+// ModelMappingQuery 查询条件
+type ModelMappingQuery struct {
+	ClientType ClientType
+	ProviderID uint64
+	ProjectID  uint64
+	RouteID    uint64
+	APITokenID uint64
+}
+
+// MatchWildcard 检查输入是否匹配通配符模式
+func MatchWildcard(pattern, input string) bool {
+	// 简单情况
+	if pattern == "*" {
+		return true
+	}
+	if !containsWildcard(pattern) {
+		return pattern == input
+	}
+
+	parts := splitByWildcard(pattern)
+
+	// 处理 prefix* 模式
+	if len(parts) == 2 && parts[1] == "" {
+		return hasPrefix(input, parts[0])
+	}
+
+	// 处理 *suffix 模式
+	if len(parts) == 2 && parts[0] == "" {
+		return hasSuffix(input, parts[1])
+	}
+
+	// 处理多通配符模式
+	pos := 0
+	for i, part := range parts {
+		if part == "" {
+			continue
+		}
+
+		idx := indexOf(input[pos:], part)
+		if idx < 0 {
+			return false
+		}
+
+		// 第一部分必须在开头（如果模式不以 * 开头）
+		if i == 0 && idx != 0 {
+			return false
+		}
+
+		pos += idx + len(part)
+	}
+
+	// 最后一部分必须在结尾（如果模式不以 * 结尾）
+	if parts[len(parts)-1] != "" && !hasSuffix(input, parts[len(parts)-1]) {
+		return false
+	}
+
+	return true
+}
+
+// 辅助函数
+func containsWildcard(s string) bool {
+	for i := 0; i < len(s); i++ {
+		if s[i] == '*' {
+			return true
+		}
+	}
+	return false
+}
+
+func splitByWildcard(s string) []string {
+	var parts []string
+	start := 0
+	for i := 0; i < len(s); i++ {
+		if s[i] == '*' {
+			parts = append(parts, s[start:i])
+			start = i + 1
+		}
+	}
+	parts = append(parts, s[start:])
+	return parts
+}
+
+func hasPrefix(s, prefix string) bool {
+	return len(s) >= len(prefix) && s[:len(prefix)] == prefix
+}
+
+func hasSuffix(s, suffix string) bool {
+	return len(s) >= len(suffix) && s[len(s)-len(suffix):] == suffix
+}
+
+func indexOf(s, substr string) int {
+	for i := 0; i <= len(s)-len(substr); i++ {
+		if s[i:i+len(substr)] == substr {
+			return i
+		}
+	}
+	return -1
 }

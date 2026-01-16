@@ -30,7 +30,8 @@ import type {
   AntigravityTokenValidationResult,
   AntigravityBatchValidationResult,
   AntigravityQuotaData,
-  AntigravityGlobalSettings,
+  ModelMapping,
+  ModelMappingInput,
   ImportResult,
   Cooldown,
   KiroTokenValidationResult,
@@ -354,19 +355,25 @@ export class HttpTransport implements Transport {
     return data;
   }
 
-  async getAntigravityGlobalSettings(): Promise<AntigravityGlobalSettings> {
-    const { data } = await this.client.get<AntigravityGlobalSettings>('/antigravity-settings');
+  // ===== Model Mapping API =====
+
+  async getModelMappings(): Promise<ModelMapping[]> {
+    const { data } = await this.client.get<ModelMapping[]>('/model-mappings');
+    return data ?? [];
+  }
+
+  async createModelMapping(input: ModelMappingInput): Promise<ModelMapping> {
+    const { data } = await this.client.post<ModelMapping>('/model-mappings', input);
     return data;
   }
 
-  async updateAntigravityGlobalSettings(settings: AntigravityGlobalSettings): Promise<AntigravityGlobalSettings> {
-    const { data } = await this.client.put<AntigravityGlobalSettings>('/antigravity-settings', settings);
+  async updateModelMapping(id: number, input: ModelMappingInput): Promise<ModelMapping> {
+    const { data } = await this.client.put<ModelMapping>(`/model-mappings/${id}`, input);
     return data;
   }
 
-  async resetAntigravityGlobalSettings(): Promise<AntigravityGlobalSettings> {
-    const { data } = await this.client.post<AntigravityGlobalSettings>('/antigravity-settings-reset');
-    return data;
+  async deleteModelMapping(id: number): Promise<void> {
+    await this.client.delete(`/model-mappings/${id}`);
   }
 
   // ===== Kiro API =====
