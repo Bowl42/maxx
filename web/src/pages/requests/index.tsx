@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import {
   useProxyRequests,
   useProxyRequestUpdates,
@@ -47,6 +48,7 @@ export const statusVariant: Record<
 }
 
 export function RequestsPage() {
+  const { t } = useTranslation()
   const navigate = useNavigate()
   // 使用游标分页：存储每页的 lastId 用于向后翻页
   const [cursors, setCursors] = useState<(number | undefined)[]>([undefined])
@@ -107,12 +109,12 @@ export function RequestsPage() {
       <PageHeader
         icon={Activity}
         iconClassName="text-emerald-500"
-        title="Requests"
-        description={`${total} total requests`}
+        title={t('requests.title')}
+        description={t('requests.description', { count: total })}
       >
         <Button onClick={handleRefresh} disabled={isLoading}>
           <RefreshCw size={14} className={isLoading ? 'animate-spin' : ''} />
-          <span>Refresh</span>
+          <span>{t('requests.refresh')}</span>
         </Button>
       </PageHeader>
 
@@ -124,12 +126,12 @@ export function RequestsPage() {
           </div>
         ) : requests.length === 0 ? (
           <div className="flex-1 flex flex-col items-center justify-center text-text-muted">
-            <div className="p-4 bg-surface-secondary rounded-full mb-4">
+            <div className="p-4 bg-muted rounded-full mb-4">
               <Activity size={32} className="opacity-50" />
             </div>
-            <p className="text-body font-medium">No requests recorded</p>
+            <p className="text-body font-medium">{t('requests.noRequests')}</p>
             <p className="text-caption mt-1">
-              Requests will appear here automatically
+              {t('requests.noRequestsHint')}
             </p>
           </div>
         ) : (
@@ -137,56 +139,56 @@ export function RequestsPage() {
             <Table>
               <TableHeader className="bg-surface-primary/80 backdrop-blur-md sticky top-0 z-10 shadow-sm border-b border-border">
                 <TableRow className="hover:bg-transparent border-none text-sm">
-                  <TableHead className="w-[180px] font-medium">Time</TableHead>
+                  <TableHead className="w-[180px] font-medium">{t('requests.time')}</TableHead>
                   <TableHead className="w-[120px] font-medium">
-                    Client
+                    {t('requests.client')}
                   </TableHead>
-                  <TableHead className="w-[180px] font-medium">Model</TableHead>
+                  <TableHead className="w-[180px] font-medium">{t('requests.model')}</TableHead>
                   <TableHead className="w-[100px] font-medium">
-                    Project
+                    {t('requests.project')}
                   </TableHead>
                   <TableHead className="w-[120px] font-medium">
-                    Provider
+                    {t('requests.provider')}
                   </TableHead>
                   <TableHead className="w-[100px] font-medium">
-                    Status
+                    {t('common.status')}
                   </TableHead>
-                  <TableHead className="w-[60px] font-medium">Code</TableHead>
+                  <TableHead className="w-[60px] font-medium">{t('requests.code')}</TableHead>
                   <TableHead className="w-[80px] text-right font-medium">
-                    Duration
+                    {t('requests.duration')}
                   </TableHead>
                   <TableHead className="w-[80px] text-right font-medium">
-                    Cost
+                    {t('requests.cost')}
                   </TableHead>
                   <TableHead
                     className="w-[45px] text-center font-medium"
-                    title="Attempts"
+                    title={t('requests.attempts')}
                   >
-                    Att.
+                    {t('requests.attShort')}
                   </TableHead>
                   <TableHead
                     className="w-[65px] text-right font-medium"
-                    title="Input Tokens"
+                    title={t('requests.inputTokens')}
                   >
-                    In
+                    {t('requests.inShort')}
                   </TableHead>
                   <TableHead
                     className="w-[65px] text-right font-medium"
-                    title="Output Tokens"
+                    title={t('requests.outputTokens')}
                   >
-                    Out
+                    {t('requests.outShort')}
                   </TableHead>
                   <TableHead
                     className="w-[65px] text-right font-medium"
-                    title="Cache Read"
+                    title={t('requests.cacheRead')}
                   >
-                    CacheR
+                    {t('requests.cacheRShort')}
                   </TableHead>
                   <TableHead
                     className="w-[65px] text-right font-medium"
-                    title="Cache Write"
+                    title={t('requests.cacheWrite')}
                   >
-                    CacheW
+                    {t('requests.cacheWShort')}
                   </TableHead>
                 </TableRow>
               </TableHeader>
@@ -210,21 +212,9 @@ export function RequestsPage() {
       <div className="h-[53px] flex items-center justify-between px-6 border-t border-border bg-surface-primary shrink-0">
         <span className="text-xs text-text-secondary">
           {total > 0 ? (
-            <>
-              Page{' '}
-              <span className="font-medium text-text-primary">
-                {pageIndex + 1}
-              </span>
-              , showing{' '}
-              <span className="font-medium text-text-primary">
-                {requests.length}
-              </span>{' '}
-              items of{' '}
-              <span className="font-medium text-text-primary">{total}</span>{' '}
-              total
-            </>
+            t('requests.pageInfo', { page: pageIndex + 1, count: requests.length, total })
           ) : (
-            'No items'
+            t('requests.noItems')
           )}
         </span>
         <div className="flex items-center gap-1">
@@ -236,7 +226,7 @@ export function RequestsPage() {
             <ChevronLeft size={16} />
           </Button>
           <span className="text-xs text-text-secondary min-w-[60px] text-center font-medium">
-            Page {pageIndex + 1}
+            {t('requests.page', { current: pageIndex + 1 })}
           </span>
           <Button
             onClick={goToNextPage}
@@ -253,42 +243,43 @@ export function RequestsPage() {
 
 // Request Status Badge Component
 function RequestStatusBadge({ status }: { status: ProxyRequestStatus }) {
+  const { t } = useTranslation()
   const getStatusConfig = () => {
     switch (status) {
       case 'PENDING':
         return {
           variant: 'default' as const,
-          label: 'Pending',
+          label: t('requests.status.pending'),
           icon: <Loader2 size={10} className="mr-1 shrink-0" />,
         }
       case 'IN_PROGRESS':
         return {
           variant: 'info' as const,
-          label: 'Streaming',
+          label: t('requests.status.streaming'),
           icon: <Loader2 size={10} className="mr-1 shrink-0 animate-spin" />,
         }
       case 'COMPLETED':
         return {
           variant: 'success' as const,
-          label: 'Completed',
+          label: t('requests.status.completed'),
           icon: <CheckCircle size={10} className="mr-1 shrink-0" />,
         }
       case 'FAILED':
         return {
           variant: 'danger' as const,
-          label: 'Failed',
+          label: t('requests.status.failed'),
           icon: <AlertTriangle size={10} className="mr-1 shrink-0" />,
         }
       case 'CANCELLED':
         return {
           variant: 'warning' as const,
-          label: 'Cancelled',
+          label: t('requests.status.cancelled'),
           icon: <Ban size={10} className="mr-1 shrink-0" />,
         }
       case 'REJECTED':
         return {
           variant: 'danger' as const,
-          label: 'Rejected',
+          label: t('requests.status.rejected'),
           icon: <Ban size={10} className="mr-1 flex-shrink-0" />,
         }
     }
@@ -472,7 +463,7 @@ function LogRow({
       {/* Client */}
       <TableCell className="py-1">
         <div className="flex items-center gap-2">
-          <div className="p-1 rounded bg-surface-secondary text-text-secondary">
+          <div className="p-1 rounded bg-muted text-text-secondary">
             <ClientIcon type={request.clientType} size={16} />
           </div>
           <span className="text-sm text-text-primary capitalize font-medium truncate max-w-[100px]">

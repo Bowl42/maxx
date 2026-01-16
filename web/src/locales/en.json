@@ -22,7 +22,8 @@
     "updated": "Updated",
     "reset": "Reset",
     "import": "Import",
-    "export": "Export"
+    "export": "Export",
+    "refresh": "Refresh"
   },
   "nav": {
     "dashboard": "Dashboard",
@@ -66,6 +67,7 @@
     "description": "{{count}} total requests",
     "noRequests": "No requests recorded",
     "noRequestsHint": "Requests will appear here automatically",
+    "refresh": "Refresh",
     "time": "Time",
     "client": "Client",
     "model": "Model",
@@ -74,8 +76,18 @@
     "code": "Code",
     "duration": "Duration",
     "cost": "Cost",
+    "attempts": "Attempts",
+    "attShort": "Att.",
+    "inputTokens": "Input Tokens",
+    "inShort": "In",
+    "outputTokens": "Output Tokens",
+    "outShort": "Out",
+    "cacheRead": "Cache Read",
+    "cacheRShort": "CacheR",
+    "cacheWrite": "Cache Write",
+    "cacheWShort": "CacheW",
     "page": "Page {{current}}",
-    "showing": "showing {{count}} items of {{total}} total",
+    "pageInfo": "Page {{page}}, showing {{count}} items of {{total}} total",
     "noItems": "No items",
     "status": {
       "pending": "Pending",
@@ -93,7 +105,8 @@
     "noProviders": "No providers configured",
     "noProvidersHint": "Click \"Add Provider\" to create one",
     "importProviders": "Import Providers",
-    "exportProviders": "Export Providers"
+    "exportProviders": "Export Providers",
+    "importCompleted": "Import completed: {{imported}} imported, {{skipped}} skipped"
   },
   "projects": {
     "title": "Projects",
@@ -101,6 +114,11 @@
     "addProject": "Add Project",
     "projectName": "Project Name",
     "projectNamePlaceholder": "e.g., Production, Staging, Experiment-A",
+    "createProject": "Create Project",
+    "noProjects": "No projects found",
+    "noProjectsHint": "Create a new project to get started",
+    "created": "Created",
+    "manage": "Manage",
     "projectInfo": "Project Information",
     "slug": "Slug",
     "slugPlaceholder": "project-slug"
@@ -110,26 +128,73 @@
     "description": "These routes apply to all projects. Project-specific routes can be configured in each project's settings.",
     "addRoute": "Add Route",
     "editRoute": "Edit Route",
-    "newRoute": "New Route"
+    "newRoute": "New Route",
+    "allGlobalRoutes": "All Global Routes",
+    "noRoutes": "No global routes configured",
+    "deleteConfirm": "Are you sure you want to delete this route?",
+    "id": "ID",
+    "client": "Client",
+    "provider": "Provider",
+    "position": "Position"
   },
   "console": {
     "title": "Console",
     "description": "{{count}} events",
     "pause": "Pause",
     "resume": "Resume",
-    "clear": "Clear"
+    "clear": "Clear",
+    "waitingForLogs": "Waiting for logs...",
+    "waitingForLogsHint": "Real-time events from the proxy will appear here automatically."
   },
   "sessions": {
     "title": "Sessions",
-    "description": "Manage active sessions"
+    "description": "Manage active sessions",
+    "activeCount": "{{count}} active sessions",
+    "client": "Client",
+    "sessionId": "Session ID",
+    "project": "Project",
+    "noSessions": "No active sessions",
+    "unassigned": "Unassigned",
+    "sessionDetails": "Session Details",
+    "projectBinding": "Project Binding",
+    "projectBindingHint": "Changing the project will also update all requests associated with this session.",
+    "updatedRequests": "Updated {{count}} requests",
+    "updateFailed": "Failed to update session project"
   },
   "retryConfigs": {
-    "title": "Retry Configs",
-    "description": "Configure retry policies",
+    "title": "Retry Policy",
+    "description": "Configure global retry behavior for failed requests",
+    "discardChanges": "Discard Changes",
+    "saveChanges": "Save Changes",
+    "noDefaultPolicy": "No Default Policy Found",
+    "noDefaultPolicyHint": "There is currently no default retry policy configured. Saving the settings below will create a new global default policy.",
+    "globalSettings": "Global Settings",
+    "default": "Default",
     "maxRetries": "Max Retries",
-    "initialInterval": "Initial Interval (ms)",
+    "maxRetriesDesc": "Maximum number of retry attempts to make before giving up.",
+    "attempts": "attempts",
+    "initialInterval": "Initial Interval",
+    "initialIntervalDesc": "Delay before the first retry attempt.",
     "backoffRate": "Backoff Rate",
-    "maxInterval": "Max Interval (ms)"
+    "backoffRateDesc": "Multiplier applied to the interval after each retry.",
+    "maxInterval": "Max Interval",
+    "maxIntervalDesc": "Maximum delay between retry attempts.",
+    "totalAttempts": "Total attempts",
+    "initialPlusRetries": "1 initial + {{retries}} retries",
+    "initialRequest": "Initial request",
+    "executeImmediately": "Execute immediately",
+    "retry": "Retry {{num}}",
+    "waitMs": "Wait {{ms}}ms",
+    "moreRetries": "... and {{count}} more retries"
+  },
+  "login": {
+    "title": "Maxx Admin",
+    "description": "Enter password to access the admin panel",
+    "passwordPlaceholder": "Password",
+    "submit": "Login",
+    "verifying": "Verifying...",
+    "invalidPassword": "Invalid password",
+    "verifyFailed": "Failed to verify password"
   },
   "routingStrategies": {
     "title": "Routing Strategies",

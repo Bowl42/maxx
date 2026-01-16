@@ -22,7 +22,8 @@
     "updated": "更新时间",
     "reset": "重置",
     "import": "导入",
-    "export": "导出"
+    "export": "导出",
+    "refresh": "刷新"
   },
   "nav": {
     "dashboard": "仪表板",
@@ -66,6 +67,7 @@
     "description": "共 {{count}} 个请求",
     "noRequests": "暂无请求记录",
     "noRequestsHint": "请求将自动显示在这里",
+    "refresh": "刷新",
     "time": "时间",
     "client": "客户端",
     "model": "模型",
@@ -74,8 +76,18 @@
     "code": "状态码",
     "duration": "耗时",
     "cost": "费用",
+    "attempts": "尝试次数",
+    "attShort": "尝试",
+    "inputTokens": "输入 Token",
+    "inShort": "输入",
+    "outputTokens": "输出 Token",
+    "outShort": "输出",
+    "cacheRead": "缓存读取",
+    "cacheRShort": "缓存读",
+    "cacheWrite": "缓存写入",
+    "cacheWShort": "缓存写",
     "page": "第 {{current}} 页",
-    "showing": "显示 {{count}} 条，共 {{total}} 条",
+    "pageInfo": "第 {{page}} 页，显示 {{count}} 条，共 {{total}} 条",
     "noItems": "暂无数据",
     "status": {
       "pending": "等待中",
@@ -93,7 +105,8 @@
     "noProviders": "暂无提供商配置",
     "noProvidersHint": "点击「添加提供商」创建一个",
     "importProviders": "导入提供商",
-    "exportProviders": "导出提供商"
+    "exportProviders": "导出提供商",
+    "importCompleted": "导入完成：{{imported}} 个已导入，{{skipped}} 个已跳过"
   },
   "projects": {
     "title": "项目",
@@ -101,6 +114,11 @@
     "addProject": "添加项目",
     "projectName": "项目名称",
     "projectNamePlaceholder": "例如：Production、Staging、Experiment-A",
+    "createProject": "创建项目",
+    "noProjects": "暂无项目",
+    "noProjectsHint": "创建一个新项目开始使用",
+    "created": "创建于",
+    "manage": "管理",
     "projectInfo": "项目信息",
     "slug": "标识符",
     "slugPlaceholder": "project-slug"
@@ -110,26 +128,73 @@
     "description": "这些路由适用于所有项目。项目特定的路由可以在每个项目的设置中配置。",
     "addRoute": "添加路由",
     "editRoute": "编辑路由",
-    "newRoute": "新建路由"
+    "newRoute": "新建路由",
+    "allGlobalRoutes": "所有全局路由",
+    "noRoutes": "暂无全局路由配置",
+    "deleteConfirm": "确定要删除此路由吗？",
+    "id": "ID",
+    "client": "客户端",
+    "provider": "提供商",
+    "position": "位置"
   },
   "console": {
     "title": "控制台",
     "description": "{{count}} 个事件",
     "pause": "暂停",
     "resume": "继续",
-    "clear": "清空"
+    "clear": "清空",
+    "waitingForLogs": "等待日志...",
+    "waitingForLogsHint": "代理的实时事件将自动显示在这里。"
   },
   "sessions": {
     "title": "会话",
-    "description": "管理活动会话"
+    "description": "管理活动会话",
+    "activeCount": "{{count}} 个活动会话",
+    "client": "客户端",
+    "sessionId": "会话 ID",
+    "project": "项目",
+    "noSessions": "暂无活动会话",
+    "unassigned": "未分配",
+    "sessionDetails": "会话详情",
+    "projectBinding": "项目绑定",
+    "projectBindingHint": "更改项目将同时更新与此会话关联的所有请求。",
+    "updatedRequests": "已更新 {{count}} 个请求",
+    "updateFailed": "更新会话项目失败"
   },
   "retryConfigs": {
-    "title": "重试配置",
-    "description": "配置重试策略",
+    "title": "重试策略",
+    "description": "配置失败请求的全局重试行为",
+    "discardChanges": "放弃更改",
+    "saveChanges": "保存更改",
+    "noDefaultPolicy": "未找到默认策略",
+    "noDefaultPolicyHint": "当前没有配置默认重试策略。保存以下设置将创建新的全局默认策略。",
+    "globalSettings": "全局设置",
+    "default": "默认",
     "maxRetries": "最大重试次数",
-    "initialInterval": "初始间隔（毫秒）",
+    "maxRetriesDesc": "放弃前的最大重试尝试次数。",
+    "attempts": "次",
+    "initialInterval": "初始间隔",
+    "initialIntervalDesc": "首次重试前的延迟时间。",
     "backoffRate": "退避倍率",
-    "maxInterval": "最大间隔（毫秒）"
+    "backoffRateDesc": "每次重试后应用于间隔的乘数。",
+    "maxInterval": "最大间隔",
+    "maxIntervalDesc": "重试尝试之间的最大延迟。",
+    "totalAttempts": "总尝试次数",
+    "initialPlusRetries": "1 次初始 + {{retries}} 次重试",
+    "initialRequest": "初始请求",
+    "executeImmediately": "立即执行",
+    "retry": "重试 {{num}}",
+    "waitMs": "等待 {{ms}}ms",
+    "moreRetries": "... 还有 {{count}} 次重试"
+  },
+  "login": {
+    "title": "Maxx 管理后台",
+    "description": "输入密码访问管理面板",
+    "passwordPlaceholder": "密码",
+    "submit": "登录",
+    "verifying": "验证中...",
+    "invalidPassword": "密码错误",
+    "verifyFailed": "验证密码失败"
   },
   "routingStrategies": {
     "title": "路由策略",

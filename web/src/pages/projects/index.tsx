@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import {
   Button,
   Card,
@@ -22,6 +23,7 @@ import {
 import { PageHeader } from '@/components/layout'
 
 export function ProjectsPage() {
+  const { t } = useTranslation()
   const navigate = useNavigate()
   const { data: projects, isLoading } = useProjects()
   const createProject = useCreateProject()
@@ -52,8 +54,8 @@ export function ProjectsPage() {
       <PageHeader
         icon={FolderKanban}
         iconClassName="text-amber-500"
-        title="Projects"
-        description="Manage your projects and environments"
+        title={t('projects.title')}
+        description={t('projects.description')}
       >
         <Button
           onClick={() => setShowForm(!showForm)}
@@ -64,7 +66,7 @@ export function ProjectsPage() {
           ) : (
             <Plus className="mr-2 h-4 w-4" />
           )}
-          {showForm ? 'Cancel' : 'Add Project'}
+          {showForm ? t('common.cancel') : t('projects.addProject')}
         </Button>
       </PageHeader>
 
@@ -75,12 +77,12 @@ export function ProjectsPage() {
               <form onSubmit={handleSubmit} className="flex gap-4 items-end">
                 <div className="flex-1 space-y-2">
                   <label className="text-xs font-medium text-text-secondary uppercase tracking-wider">
-                    Project Name
+                    {t('projects.projectName')}
                   </label>
                   <Input
                     value={name}
                     onChange={e => setName(e.target.value)}
-                    placeholder="e.g., Production, Staging, Experiment-A"
+                    placeholder={t('projects.projectNamePlaceholder')}
                     required
                     className="bg-surface-secondary border-border"
                     autoFocus
@@ -90,7 +92,7 @@ export function ProjectsPage() {
                   {createProject.isPending ? (
                     <Loader2 className="h-4 w-4 animate-spin" />
                   ) : (
-                    'Create Project'
+                    t('projects.createProject')
                   )}
                 </Button>
               </form>
@@ -107,36 +109,34 @@ export function ProjectsPage() {
             {projects.map(project => (
               <Card
                 key={project.id}
-                className="group border-border bg-surface-primary cursor-pointer hover:border-accent/50 hover:shadow-md transition-all duration-200 flex flex-col"
+                className="group border-border bg-surface-primary cursor-pointer hover:border-accent/50 hover:shadow-card-hover transition-all duration-200 flex flex-col"
                 onClick={() => handleRowClick(project.slug)}
               >
-                <CardHeader className="pb-3 space-y-0">
-                  <div className="flex justify-between items-start">
-                    <div className="p-2 bg-surface-secondary rounded-md text-text-secondary group-hover:text-accent group-hover:bg-accent/10 transition-colors">
-                      <FolderKanban size={20} />
+                <CardHeader className="pb-4">
+                  <div className="flex items-center gap-3 mb-2">
+                    <div className="p-2 rounded-lg text-amber-500 bg-amber-500/10 group-hover:bg-amber-500/20 transition-colors">
+                      <FolderKanban size={18} />
+                    </div>
+                    <div className="flex items-center gap-1.5 text-xs font-mono px-2 py-1 rounded bg-muted text-muted-foreground">
+                      <Hash size={10} />
+                      <span className="truncate">{project.slug}</span>
                     </div>
                   </div>
-                  <CardTitle className="pt-3 text-base font-semibold text-text-primary leading-tight truncate">
+                  <CardTitle className="text-base font-semibold leading-tight truncate">
                     {project.name}
                   </CardTitle>
                 </CardHeader>
-                <CardContent className="pb-3 flex-1">
-                  <div className="flex items-center gap-2 text-xs text-text-secondary bg-surface-secondary/50 p-2 rounded border border-transparent group-hover:border-border transition-colors">
-                    <Hash size={12} className="opacity-50" />
-                    <span className="font-mono truncate">{project.slug}</span>
-                  </div>
-                </CardContent>
-                <CardFooter className="pt-0 text-xs text-text-muted flex justify-between items-center border-t border-border/50 mt-auto p-4 bg-surface-secondary/20">
-                  <span>
-                    Created{' '}
-                    {new Date(project.createdAt).toLocaleDateString(undefined, {
-                      month: 'short',
-                      day: 'numeric',
-                      year: 'numeric',
-                    })}
-                  </span>
-                  <div className="flex items-center text-accent opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 transition-all duration-200 font-medium">
-                    Manage <ArrowRight size={12} className="ml-1" />
+                <CardContent className="pt-0 flex-1" />
+                <CardFooter className="pt-0 pb-4 text-xs flex justify-between items-center text-muted-foreground">
+                  <div className="flex items-center gap-1.5">
+                    <Calendar size={12} />
+                    <span>
+                      {new Date(project.createdAt).toLocaleDateString(undefined, {
+                        month: 'short',
+                        day: 'numeric',
+                        year: 'numeric',
+                      })}
+                    </span>
                   </div>
                 </CardFooter>
               </Card>
@@ -145,8 +145,8 @@ export function ProjectsPage() {
         ) : (
           <div className="flex flex-col items-center justify-center h-64 text-text-muted border-2 border-dashed border-border rounded-lg bg-surface-primary/50">
             <Calendar className="h-12 w-12 opacity-20 mb-4" />
-            <p className="text-lg font-medium">No projects found</p>
-            <p className="text-sm">Create a new project to get started</p>
+            <p className="text-lg font-medium">{t('projects.noProjects')}</p>
+            <p className="text-sm">{t('projects.noProjectsHint')}</p>
           </div>
         )}
       </div>

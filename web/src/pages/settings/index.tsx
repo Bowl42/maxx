@@ -232,7 +232,7 @@ function SortableRuleItem({ id, index, rule, onRemove, onUpdate, disabled }: Sor
       <button
         {...attributes}
         {...listeners}
-        className="cursor-grab active:cursor-grabbing p-1 hover:bg-muted rounded"
+        className="cursor-grab active:cursor-grabbing p-1 hover:bg-accent rounded"
         disabled={disabled}
       >
         <GripVertical className="h-4 w-4 text-text-muted" />

@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { useTranslation } from 'react-i18next'
 import {
   Button,
   Card,
@@ -17,6 +18,7 @@ import { Save, RefreshCw, AlertTriangle, ShieldCheck } from 'lucide-react'
 import type { RetryConfig } from '@/lib/transport'
 
 export function RetryConfigsPage() {
+  const { t } = useTranslation()
   const { data: configs, isLoading, refetch } = useRetryConfigs()
   const updateConfig = useUpdateRetryConfig()
   const createConfig = useCreateRetryConfig()
@@ -100,7 +102,7 @@ export function RetryConfigsPage() {
         <div className="flex flex-col items-center gap-2">
           <RefreshCw className="h-8 w-8 animate-spin text-accent" />
           <p className="text-sm text-text-secondary">
-            Loading configuration...
+            {t('common.loading')}
           </p>
         </div>
       </div>
@@ -117,17 +119,17 @@ export function RetryConfigsPage() {
           </div>
           <div>
             <h2 className="text-lg font-semibold text-text-primary leading-tight">
-              Retry Policy
+              {t('retryConfigs.title')}
             </h2>
             <p className="text-xs text-text-secondary">
-              Configure global retry behavior for failed requests
+              {t('retryConfigs.description')}
             </p>
           </div>
         </div>
         <div className="flex items-center gap-2">
           {hasChanges && (
             <Button variant="ghost" onClick={handleReset} disabled={isSaving}>
-              Discard Changes
+              {t('retryConfigs.discardChanges')}
             </Button>
           )}
           <Button
@@ -140,7 +142,7 @@ export function RetryConfigsPage() {
             ) : (
               <Save className="h-4 w-4" />
             )}
-            Save Changes
+            {t('retryConfigs.saveChanges')}
           </Button>
         </div>
       </div>
@@ -153,11 +155,10 @@ export function RetryConfigsPage() {
               <AlertTriangle className="h-5 w-5 text-warning shrink-0 mt-0.5" />
               <div>
                 <h3 className="text-sm font-medium text-warning">
-                  No Default Policy Found
+                  {t('retryConfigs.noDefaultPolicy')}
                 </h3>
                 <p className="text-xs text-warning/80 mt-1">
-                  There is currently no default retry policy configured. Saving
-                  the settings below will create a new global default policy.
+                  {t('retryConfigs.noDefaultPolicyHint')}
                 </p>
               </div>
             </div>
@@ -167,19 +168,19 @@ export function RetryConfigsPage() {
             <CardHeader className="border-b border-border pb-4">
               <div className="flex items-center justify-between">
                 <CardTitle className="text-base font-medium">
-                  Global Settings
+                  {t('retryConfigs.globalSettings')}
                 </CardTitle>
-                <Badge variant="info">Default</Badge>
+                <Badge variant="info">{t('retryConfigs.default')}</Badge>
               </div>
             </CardHeader>
             <CardContent className="pt-6 space-y-8">
               {/* Max Retries */}
               <div className="grid gap-2">
                 <label className="text-sm font-medium text-text-primary">
-                  Max Retries
+                  {t('retryConfigs.maxRetries')}
                 </label>
                 <p className="text-xs text-text-secondary mb-2">
-                  Maximum number of retry attempts to make before giving up.
+                  {t('retryConfigs.maxRetriesDesc')}
                 </p>
                 <div className="flex items-center gap-4">
                   <Input
@@ -192,7 +193,7 @@ export function RetryConfigsPage() {
                     max="10"
                     className="max-w-[120px] font-mono"
                   />
-                  <span className="text-xs text-text-muted">attempts</span>
+                  <span className="text-xs text-text-muted">{t('retryConfigs.attempts')}</span>
                 </div>
               </div>
 
@@ -202,10 +203,10 @@ export function RetryConfigsPage() {
               <div className="grid md:grid-cols-3 gap-6">
                 <div className="space-y-2">
                   <label className="text-sm font-medium text-text-primary">
-                    Initial Interval
+                    {t('retryConfigs.initialInterval')}
                   </label>
                   <p className="text-xs text-text-secondary min-h-[32px]">
-                    Delay before the first retry attempt.
+                    {t('retryConfigs.initialIntervalDesc')}
                   </p>
                   <div className="relative">
                     <Input
@@ -225,10 +226,10 @@ export function RetryConfigsPage() {
 
                 <div className="space-y-2">
                   <label className="text-sm font-medium text-text-primary">
-                    Backoff Rate
+                    {t('retryConfigs.backoffRate')}
                   </label>
                   <p className="text-xs text-text-secondary min-h-[32px]">
-                    Multiplier applied to the interval after each retry.
+                    {t('retryConfigs.backoffRateDesc')}
                   </p>
                   <div className="relative">
                     <Input
@@ -249,10 +250,10 @@ export function RetryConfigsPage() {
 
                 <div className="space-y-2">
                   <label className="text-sm font-medium text-text-primary">
-                    Max Interval
+                    {t('retryConfigs.maxInterval')}
                   </label>
                   <p className="text-xs text-text-secondary min-h-[32px]">
-                    Maximum delay between retry attempts.
+                    {t('retryConfigs.maxIntervalDesc')}
                   </p>
                   <div className="relative">
                     <Input
@@ -271,19 +272,19 @@ export function RetryConfigsPage() {
                 </div>
               </div>
 
-              <div className="bg-surface-secondary/30 rounded-lg p-4 text-xs border border-border/50">
+              <div className="bg-muted/30 rounded-lg p-4 text-xs border border-border/50">
                 <div className="text-text-muted mb-3">
-                  Total attempts:{' '}
+                  {t('retryConfigs.totalAttempts')}:{' '}
                   <span className="text-text-primary font-semibold">
                     {Number(maxRetries) + 1}
                   </span>{' '}
-                  (1 initial + {maxRetries} retries)
+                  ({t('retryConfigs.initialPlusRetries', { retries: maxRetries })})
                 </div>
                 <div className="space-y-1 font-mono text-text-secondary">
                   <div className="flex justify-between">
-                    <span>Initial request</span>
+                    <span>{t('retryConfigs.initialRequest')}</span>
                     <span className="text-text-primary">
-                      Execute immediately
+                      {t('retryConfigs.executeImmediately')}
                     </span>
                   </div>
                   {Array.from(
@@ -296,9 +297,9 @@ export function RetryConfigsPage() {
                       )
                       return (
                         <div key={i} className="flex justify-between">
-                          <span>Retry {i + 1}</span>
+                          <span>{t('retryConfigs.retry', { num: i + 1 })}</span>
                           <span className="text-text-primary">
-                            Wait {delay.toFixed(0)}ms
+                            {t('retryConfigs.waitMs', { ms: delay.toFixed(0) })}
                           </span>
                         </div>
                       )
@@ -306,7 +307,7 @@ export function RetryConfigsPage() {
                   )}
                   {Number(maxRetries) > 5 && (
                     <div className="text-text-muted">
-                      ... and {Number(maxRetries) - 5} more retries
+                      {t('retryConfigs.moreRetries', { count: Number(maxRetries) - 5 })}
                     </div>
                   )}
                 </div>

@@ -1,4 +1,5 @@
 import { useState, type FormEvent } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useTransport } from '@/lib/transport';
@@ -8,6 +9,7 @@ interface LoginPageProps {
 }
 
 export function LoginPage({ onSuccess }: LoginPageProps) {
+  const { t } = useTranslation();
   const { transport } = useTransport();
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
@@ -23,10 +25,10 @@ export function LoginPage({ onSuccess }: LoginPageProps) {
       if (result.success && result.token) {
         onSuccess(result.token);
       } else {
-        setError(result.error || 'Invalid password');
+        setError(result.error || t('login.invalidPassword'));
       }
     } catch {
-      setError('Failed to verify password');
+      setError(t('login.verifyFailed'));
     } finally {
       setIsLoading(false);
     }
@@ -36,9 +38,9 @@ export function LoginPage({ onSuccess }: LoginPageProps) {
     <div className="flex min-h-screen items-center justify-center bg-background">
       <div className="w-full max-w-sm space-y-6 p-6">
         <div className="space-y-2 text-center">
-          <h1 className="text-2xl font-bold">Maxx Admin</h1>
+          <h1 className="text-2xl font-bold">{t('login.title')}</h1>
           <p className="text-muted-foreground text-sm">
-            Enter password to access the admin panel
+            {t('login.description')}
           </p>
         </div>
 
@@ -46,7 +48,7 @@ export function LoginPage({ onSuccess }: LoginPageProps) {
           <div className="space-y-2">
             <Input
               type="password"
-              placeholder="Password"
+              placeholder={t('login.passwordPlaceholder')}
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               autoFocus
@@ -62,7 +64,7 @@ export function LoginPage({ onSuccess }: LoginPageProps) {
             className="w-full"
             disabled={isLoading || !password}
           >
-            {isLoading ? 'Verifying...' : 'Login'}
+            {isLoading ? t('login.verifying') : t('login.submit')}
           </Button>
         </form>
       </div>

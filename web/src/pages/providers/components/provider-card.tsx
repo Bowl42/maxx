@@ -79,9 +79,8 @@ export function AntigravityProviderCard({
       <div className="flex items-start gap-3">
         <div
           className={`w-10 h-10 rounded-lg flex items-center justify-center shrink-0 ${
-            cooldown ? 'bg-cyan-500/10' : ''
+            cooldown ? 'bg-cyan-500/10' : 'bg-muted'
           }`}
-          style={cooldown ? undefined : { backgroundColor: ANTIGRAVITY_COLOR }}
         >
           {cooldown ? (
             <Snowflake size={20} className="text-cyan-400" />
@@ -197,7 +196,7 @@ export function CustomProviderCard({
       <div className="flex items-start gap-3">
         <div
           className={`w-10 h-10 rounded-lg flex items-center justify-center shrink-0 ${
-            cooldown ? 'bg-cyan-500/10' : 'bg-surface-hover'
+            cooldown ? 'bg-cyan-500/10' : 'bg-muted'
           }`}
         >
           {cooldown ? (

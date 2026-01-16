@@ -1,10 +1,12 @@
 import { useState, useEffect, useRef } from 'react'
+import { useTranslation } from 'react-i18next'
 import { Terminal, Trash2, Pause, Play, ArrowDown } from 'lucide-react'
 import { getTransport } from '@/lib/transport'
 import { Button } from '@/components/ui'
 import { PageHeader } from '@/components/layout/page-header'
 
 export function ConsolePage() {
+  const { t } = useTranslation()
   const [logs, setLogs] = useState<string[]>([])
   const [isPaused, setIsPaused] = useState(false)
   const [autoScroll, setAutoScroll] = useState(true)
@@ -56,8 +58,8 @@ export function ConsolePage() {
       <PageHeader
         icon={Terminal}
         iconClassName="text-slate-500"
-        title="Console"
-        description={`${logs.length.toLocaleString()} events`}
+        title={t('console.title')}
+        description={t('console.description', { count: logs.length })}
       >
         <Button
           onClick={() => setIsPaused(!isPaused)}
@@ -73,7 +75,7 @@ export function ConsolePage() {
           ) : (
             <Pause size={16} className="fill-current" />
           )}
-          {isPaused ? 'Resume' : 'Pause'}
+          {isPaused ? t('console.resume') : t('console.pause')}
         </Button>
         <Button
           onClick={clearLogs}
@@ -81,14 +83,14 @@ export function ConsolePage() {
           className="h-9 px-4 gap-2 text-muted-foreground hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/30 hover:border-red-200 dark:hover:border-red-900 border-border/50 transition-all duration-300"
         >
           <Trash2 size={16} />
-          <span className="hidden sm:inline">Clear</span>
+          <span className="hidden sm:inline">{t('console.clear')}</span>
         </Button>
       </PageHeader>
 
       <div
         ref={containerRef}
         onScroll={handleScroll}
-        className="flex-1 overflow-y-auto bg-zinc-50/50 dark:bg-zinc-950/50 font-mono text-xs md:text-sm scroll-smooth"
+        className="flex-1 overflow-y-auto bg-muted/30 font-mono text-xs md:text-sm scroll-smooth"
       >
         {logs.length === 0 ? (
           <EmptyState />
@@ -97,7 +99,7 @@ export function ConsolePage() {
             {logs.map((log, index) => (
               <div
                 key={index}
-                className="px-3 py-1.5 rounded-md hover:bg-zinc-200/50 dark:hover:bg-zinc-800/50 text-zinc-700 dark:text-zinc-300 transition-colors wrap-break-words whitespace-pre-wrap"
+                className="px-3 py-1.5 rounded-md hover:bg-accent text-foreground transition-colors wrap-break-words whitespace-pre-wrap"
               >
                 <div className="opacity-50 text-[10px] select-none inline-block w-8 mr-2 text-right">
                   {index + 1}
@@ -123,16 +125,17 @@ export function ConsolePage() {
 }
 
 function EmptyState() {
+  const { t } = useTranslation()
   return (
     <div className="flex flex-col items-center justify-center h-full min-h-[400px] text-muted-foreground/50">
-      <div className="w-20 h-20 rounded-full bg-zinc-100 dark:bg-zinc-900 flex items-center justify-center mb-6 ring-8 ring-zinc-50 dark:ring-zinc-950/50">
+      <div className="w-20 h-20 rounded-full bg-muted flex items-center justify-center mb-6 ring-8 ring-muted/50">
         <Terminal size={40} className="opacity-50" />
       </div>
       <p className="text-lg font-medium text-foreground/80">
-        Waiting for logs...
+        {t('console.waitingForLogs')}
       </p>
       <p className="text-sm mt-2 max-w-screen-sm text-center leading-relaxed">
-        Real-time events from the proxy will appear here automatically.
+        {t('console.waitingForLogsHint')}
       </p>
     </div>
   )

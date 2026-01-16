@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import {
   Button,
   Card,
@@ -20,6 +21,7 @@ import type { Route } from '@/lib/transport'
 import { PageHeader } from '@/components/layout/page-header'
 
 export function RoutesPage() {
+  const { t } = useTranslation()
   const { data: routes, isLoading } = useRoutes()
   const { data: providers } = useProviders()
   const deleteRoute = useDeleteRoute()
@@ -44,7 +46,7 @@ export function RoutesPage() {
   }
 
   const handleDelete = (id: number) => {
-    if (confirm('Are you sure you want to delete this route?')) {
+    if (confirm(t('routes.deleteConfirm'))) {
       deleteRoute.mutate(id)
     }
   }
@@ -54,12 +56,12 @@ export function RoutesPage() {
       <PageHeader
         icon={RouteIcon}
         iconClassName="text-violet-500"
-        title="Global Routes"
-        description="These routes apply to all projects. Project-specific routes can be configured in each project's settings."
+        title={t('routes.title')}
+        description={t('routes.description')}
       >
         <Button onClick={() => setShowForm(true)}>
           <Plus className="mr-2 h-4 w-4" />
-          Add Route
+          {t('routes.addRoute')}
         </Button>
       </PageHeader>
 
@@ -67,7 +69,7 @@ export function RoutesPage() {
         {showForm && (
           <Card>
             <CardHeader>
-              <CardTitle>{editingRoute ? 'Edit Route' : 'New Route'}</CardTitle>
+              <CardTitle>{editingRoute ? t('routes.editRoute') : t('routes.newRoute')}</CardTitle>
             </CardHeader>
             <CardContent>
               <RouteForm
@@ -81,21 +83,21 @@ export function RoutesPage() {
 
         <Card>
           <CardHeader>
-            <CardTitle>All Global Routes</CardTitle>
+            <CardTitle>{t('routes.allGlobalRoutes')}</CardTitle>
           </CardHeader>
           <CardContent>
             {isLoading ? (
-              <p className="text-gray-500">Loading...</p>
+              <p className="text-muted-foreground">{t('common.loading')}</p>
             ) : (
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>ID</TableHead>
-                    <TableHead>Client</TableHead>
-                    <TableHead>Provider</TableHead>
-                    <TableHead>Position</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Actions</TableHead>
+                    <TableHead>{t('routes.id')}</TableHead>
+                    <TableHead>{t('routes.client')}</TableHead>
+                    <TableHead>{t('routes.provider')}</TableHead>
+                    <TableHead>{t('routes.position')}</TableHead>
+                    <TableHead>{t('common.status')}</TableHead>
+                    <TableHead>{t('common.actions')}</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -113,7 +115,7 @@ export function RoutesPage() {
                         <Badge
                           variant={route.isEnabled ? 'success' : 'default'}
                         >
-                          {route.isEnabled ? 'Enabled' : 'Disabled'}
+                          {route.isEnabled ? t('common.enabled') : t('common.disabled')}
                         </Badge>
                       </TableCell>
                       <TableCell>
@@ -141,9 +143,9 @@ export function RoutesPage() {
                     <TableRow>
                       <TableCell
                         colSpan={6}
-                        className="text-center text-gray-500"
+                        className="text-center text-muted-foreground"
                       >
-                        No global routes configured
+                        {t('routes.noRoutes')}
                       </TableCell>
                     </TableRow>
                   )}
