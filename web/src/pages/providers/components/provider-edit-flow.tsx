@@ -359,6 +359,7 @@ function DeleteConfirmModal({
   onConfirm: () => void
   onCancel: () => void
 }) {
+  const { t } = useTranslation()
   return (
     <Dialog open={open} onOpenChange={(isOpen) => !isOpen && onCancel()}>
       <DialogContent className="w-[400px]">

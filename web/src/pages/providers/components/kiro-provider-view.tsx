@@ -57,6 +57,7 @@ function SubscriptionBadge({ type }: { type: string }) {
 
 // 配额卡片
 function QuotaCard({ quota }: { quota: KiroQuotaData }) {
+  const { t } = useTranslation()
   const percentage = quota.total_limit > 0
     ? Math.round((quota.available / quota.total_limit) * 100)
     : 0

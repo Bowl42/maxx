@@ -134,6 +134,7 @@ export function CustomProviderCard({
   onClick,
   streamingCount,
 }: ProviderCardProps) {
+  const { t } = useTranslation()
   const {
     getCooldownForProvider,
     formatRemaining,
