@@ -1,0 +1,68 @@
+name: Update Homebrew Cask
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "版本号 (例如: v1.0.0)"
+        required: true
+        type: string
+  workflow_call:
+    inputs:
+      tag:
+        required: true
+        type: string
+    secrets:
+      HOMEBREW_TAP_TOKEN:
+        required: true
+
+jobs:
+  update-homebrew:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download macOS checksums
+        run: |
+          VERSION="${{ inputs.tag }}"
+          BASE_URL="https://github.com/${{ github.repository }}/releases/download/${VERSION}"
+          curl -sL "${BASE_URL}/maxx-macOS-arm64.dmg.sha256" -o arm64.sha256
+          curl -sL "${BASE_URL}/maxx-macOS-amd64.dmg.sha256" -o amd64.sha256
+
+      - name: Update Homebrew Cask
+        env:
+          GH_TOKEN: ${{ secrets.HOMEBREW_TAP_TOKEN }}
+        run: |
+          VERSION="${{ inputs.tag }}"
+          VERSION_NUM="${VERSION#v}"
+
+          ARM64_SHA=$(cat arm64.sha256)
+          AMD64_SHA=$(cat amd64.sha256)
+
+          cat > maxx.rb << CASK_EOF
+          cask "maxx" do
+            version "${VERSION_NUM}"
+
+            name "maxx"
+            desc "maxx"
+            if Hardware::CPU.intel?
+              url "https://github.com/awsl-project/maxx/releases/download/v#{version}/maxx-macOS-amd64.dmg"
+              sha256 "${AMD64_SHA}"
+            else
+              url "https://github.com/awsl-project/maxx/releases/download/v#{version}/maxx-macOS-arm64.dmg"
+              sha256 "${ARM64_SHA}"
+            end
+
+            homepage "https://github.com/awsl-project/maxx"
+
+            app "maxx.app"
+          end
+          CASK_EOF
+
+          git clone https://git:${GH_TOKEN}@github.com/awsl-project/homebrew-awsl.git
+          cp maxx.rb homebrew-awsl/Casks/maxx.rb
+
+          cd homebrew-awsl
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add Casks/maxx.rb
+          git commit -m "Update maxx to ${VERSION}" || echo "No changes to commit"
+          git push
