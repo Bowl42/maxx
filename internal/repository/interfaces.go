@@ -114,7 +114,7 @@ type UsageStatsRepository interface {
 	// GetProviderStats 获取 Provider 统计数据（合并历史聚合数据和当前小时实时数据）
 	GetProviderStats(clientType string, projectID uint64) (map[uint64]*domain.ProviderStats, error)
 	// Aggregate 聚合统计数据（从 proxy_upstream_attempts 聚合到 usage_stats）
-	Aggregate()
+	Aggregate() (int, error)
 }
 
 // UsageStatsFilter 统计查询过滤条件

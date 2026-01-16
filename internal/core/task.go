@@ -38,9 +38,22 @@ func StartBackgroundTasks(deps BackgroundTaskDeps) {
 
 // runTasks 执行所有后台任务
 func (d *BackgroundTaskDeps) runTasks() {
-	d.UsageStats.Aggregate()
+	log.Println("[Task] Starting background tasks")
+
+	// 聚合统计数据
+	if count, err := d.UsageStats.Aggregate(); err != nil {
+		log.Printf("[Task] Failed to aggregate usage stats: %v", err)
+	} else if count > 0 {
+		log.Printf("[Task] Aggregated %d usage stats records", count)
+	}
+
+	// 清理过期请求
 	d.cleanupOldRequests()
+
+	// 清理过期统计
 	d.cleanupOldStats()
+
+	log.Println("[Task] All background tasks completed")
 }
 
 // cleanupOldRequests 清理过期的请求记录
