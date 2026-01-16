@@ -1,6 +1,6 @@
 module github.com/awsl-project/maxx
 
-go 1.25.5
+go 1.25
 
 require (
 	github.com/bytedance/sonic v1.14.2
