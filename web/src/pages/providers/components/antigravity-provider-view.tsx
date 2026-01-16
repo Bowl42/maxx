@@ -90,6 +90,7 @@ function SubscriptionBadge({ tier }: { tier: string }) {
 
 // 模型配额卡片
 function ModelQuotaCard({ model }: { model: AntigravityModelQuota }) {
+  const { t } = useTranslation()
   const displayName = modelDisplayNames[model.name] || model.name
   const color = getQuotaColor(model.percentage)
 

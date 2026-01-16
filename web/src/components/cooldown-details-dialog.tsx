@@ -1,5 +1,6 @@
 import { useEffect, useState, useCallback } from 'react'
 import { useTranslation } from 'react-i18next'
+import type { TFunction } from 'i18next'
 import {
   Dialog,
   DialogContent,
@@ -32,7 +33,7 @@ interface CooldownDetailsDialogProps {
 }
 
 // Reason 信息和图标 - 使用翻译
-const getReasonInfo = (t: (key: string) => string) => ({
+const getReasonInfo = (t: TFunction) => ({
   server_error: {
     label: t('provider.reasons.serverError'),
     description: t('provider.reasons.serverErrorDesc', '上游服务器返回 5xx 错误，系统自动进入冷却保护'),
