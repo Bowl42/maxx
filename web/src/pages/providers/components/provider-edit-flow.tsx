@@ -182,16 +182,16 @@ export function ProviderEditFlow({ provider, onClose }: ProviderEditFlowProps) {
   // Custom provider edit form
   return (
     <div className="flex flex-col h-full">
-      <div className="h-[73px] flex items-center justify-between px-6 border-b border-border bg-surface-primary">
+      <div className="h-[73px] flex items-center justify-between px-6 border-b border-border bg-card">
         <div className="flex items-center gap-4">
           <Button onClick={onClose} variant={'ghost'}>
             <ChevronLeft size={20} />
           </Button>
           <div>
-            <h2 className="text-headline font-semibold text-text-primary">
+            <h2 className="text-headline font-semibold text-foreground">
               Edit Provider
             </h2>
-            <p className="text-caption text-text-secondary">
+            <p className="text-caption text-muted-foreground">
               Update your custom provider settings
             </p>
           </div>
@@ -228,13 +228,13 @@ export function ProviderEditFlow({ provider, onClose }: ProviderEditFlowProps) {
       <div className="flex-1 overflow-y-auto p-6">
         <div className="mx-auto max-w-7xl space-y-8">
           <div className="space-y-6">
-            <h3 className="text-lg font-semibold text-text-primary border-b border-border pb-2">
+            <h3 className="text-lg font-semibold text-foreground border-b border-border pb-2">
               1. Basic Information
             </h3>
 
             <div className="grid gap-6">
               <div>
-                <label className="text-sm font-medium text-text-primary block mb-2">
+                <label className="text-sm font-medium text-foreground block mb-2">
                   Display Name
                 </label>
                 <Input
@@ -250,7 +250,7 @@ export function ProviderEditFlow({ provider, onClose }: ProviderEditFlowProps) {
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
-                  <label className="text-sm font-medium text-text-primary block mb-2">
+                  <label className="text-sm font-medium text-foreground block mb-2">
                     <div className="flex items-center gap-2">
                       <Globe size={14} />
                       <span>API Endpoint</span>
@@ -268,13 +268,13 @@ export function ProviderEditFlow({ provider, onClose }: ProviderEditFlowProps) {
                     placeholder="https://api.example.com/v1"
                     className="w-full"
                   />
-                  <p className="text-xs text-text-secondary mt-1">
+                  <p className="text-xs text-muted-foreground mt-1">
                     Optional if client-specific URLs are set below.
                   </p>
                 </div>
 
                 <div>
-                  <label className="text-sm font-medium text-text-primary block mb-2">
+                  <label className="text-sm font-medium text-foreground block mb-2">
                     <div className="flex items-center gap-2">
                       <Key size={14} />
                       <span>API Key (leave empty to keep current)</span>
@@ -295,7 +295,7 @@ export function ProviderEditFlow({ provider, onClose }: ProviderEditFlowProps) {
           </div>
 
           <div className="space-y-6">
-            <h3 className="text-lg font-semibold text-text-primary border-b border-border pb-2">
+            <h3 className="text-lg font-semibold text-foreground border-b border-border pb-2">
               2. Client Configuration
             </h3>
             <ClientsConfigSection
@@ -305,13 +305,13 @@ export function ProviderEditFlow({ provider, onClose }: ProviderEditFlowProps) {
           </div>
 
           <div className="space-y-6">
-            <h3 className="text-lg font-semibold text-text-primary border-b border-border pb-2">
+            <h3 className="text-lg font-semibold text-foreground border-b border-border pb-2">
               <div className="flex items-center gap-2">
                 <Shuffle size={18} />
                 <span>3. Model Mapping</span>
               </div>
             </h3>
-            <p className="text-sm text-text-secondary -mt-4">
+            <p className="text-sm text-muted-foreground -mt-4">
               Map request models to different upstream models. For example, map
               "claude-sonnet-4-20250514" to "gemini-2.5-pro".
             </p>
@@ -364,7 +364,7 @@ function DeleteConfirmModal({
           <DialogTitle>Delete Provider?</DialogTitle>
           <DialogDescription>
             Are you sure you want to delete{' '}
-            <span className="font-medium text-text-primary">
+            <span className="font-medium text-foreground">
               "{providerName}"
             </span>
             ? This action cannot be undone.

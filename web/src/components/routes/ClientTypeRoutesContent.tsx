@@ -211,7 +211,7 @@ export function ClientTypeRoutesContent({
   if (loading) {
     return (
       <div className="flex items-center justify-center h-full p-12">
-        <div className="text-text-muted">Loading...</div>
+        <div className="text-muted-foreground">Loading...</div>
       </div>
     )
   }
@@ -279,7 +279,7 @@ export function ClientTypeRoutesContent({
               </DragOverlay>
             </DndContext>
           ) : (
-            <div className="flex flex-col items-center justify-center py-16 text-text-muted">
+            <div className="flex flex-col items-center justify-center py-16 text-muted-foreground">
               <p className="text-body">
                 No routes configured for {getClientName(clientType)}
               </p>
@@ -294,7 +294,7 @@ export function ClientTypeRoutesContent({
             <div className="pt-4 border-t border-border/50 ">
               <div className="flex items-center gap-2 mb-6">
                 <Plus size={14} style={{ color }} />
-                <span className="text-caption font-medium text-text-muted">
+                <span className="text-caption font-medium text-muted-foreground">
                   Available Providers
                 </span>
               </div>
@@ -328,11 +328,11 @@ export function ClientTypeRoutesContent({
                           </span>
                         </div>
                         <div className="flex-1 min-w-0">
-                          <div className="text-[14px] font-semibold text-text-primary truncate leading-tight mb-1">
+                          <div className="text-[14px] font-semibold text-foreground truncate leading-tight mb-1">
                             {provider.name}
                           </div>
                           <div className="flex items-center gap-2">
-                            <span className="text-[11px] font-medium text-text-muted/80 capitalize leading-tight">
+                            <span className="text-[11px] font-medium text-muted-foreground/80 capitalize leading-tight">
                               {provider.type}
                             </span>
                             {isNative ? (

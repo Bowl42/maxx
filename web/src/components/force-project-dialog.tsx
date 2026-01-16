@@ -98,7 +98,7 @@ export function ForceProjectDialog({
     <Dialog open={!!event} onOpenChange={(open) => !open && onClose()}>
       <DialogContent
         showCloseButton={false}
-        className="overflow-hidden p-0 w-full max-w-[28rem] bg-surface-primary"
+        className="overflow-hidden p-0 w-full max-w-[28rem] bg-card"
       >
         {/* Header with Gradient */}
         <div className="relative bg-gradient-to-b from-amber-900/20 to-transparent p-6 pb-4">
@@ -107,7 +107,7 @@ export function ForceProjectDialog({
               <AlertCircle size={28} className="text-amber-400" />
             </div>
             <div>
-              <h2 className="text-xl font-bold text-text-primary">选择项目</h2>
+              <h2 className="text-xl font-bold text-foreground">选择项目</h2>
               <p className="text-xs text-amber-500/80 font-medium uppercase tracking-wider mt-1">
                 Project Selection Required
               </p>
@@ -118,10 +118,10 @@ export function ForceProjectDialog({
         {/* Body Content */}
         <div className="px-6 pb-6 space-y-5">
           {/* Session Info */}
-          <div className="flex items-center gap-4 p-3 rounded-xl bg-surface-secondary border border-border">
+          <div className="flex items-center gap-4 p-3 rounded-xl bg-muted border border-border">
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2 mb-1">
-                <span className="text-[10px] font-bold text-text-muted uppercase tracking-wider">
+                <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">
                   Session
                 </span>
                 <span
@@ -134,7 +134,7 @@ export function ForceProjectDialog({
                   {getClientName(event.clientType)}
                 </span>
               </div>
-              <div className="font-mono text-xs text-text-secondary truncate">
+              <div className="font-mono text-xs text-muted-foreground truncate">
                 {event.sessionID}
               </div>
             </div>
@@ -185,7 +185,7 @@ export function ForceProjectDialog({
             </div>
           ) : (
             <div className="space-y-3">
-              <label className="text-[10px] font-bold text-text-muted uppercase tracking-wider">
+              <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">
                 选择项目
               </label>
               {projects && projects.length > 0 ? (
@@ -199,7 +199,7 @@ export function ForceProjectDialog({
                         'flex items-center gap-2 px-3 py-2 rounded-lg border text-sm font-medium transition-all',
                         selectedProjectId === project.id
                           ? 'border-amber-500 bg-amber-500 text-white shadow-lg shadow-amber-500/25'
-                          : 'border-border bg-surface-secondary text-text-primary hover:bg-surface-hover hover:border-amber-500/50'
+                          : 'border-border bg-muted text-foreground hover:bg-accent hover:border-amber-500/50'
                       )}
                     >
                       <FolderOpen size={14} />
@@ -208,7 +208,7 @@ export function ForceProjectDialog({
                   ))}
                 </div>
               ) : (
-                <p className="text-sm text-text-muted text-center py-4">
+                <p className="text-sm text-muted-foreground text-center py-4">
                   没有可用的项目，请先创建项目
                 </p>
               )}
@@ -250,7 +250,7 @@ export function ForceProjectDialog({
                 className="flex-1 relative overflow-hidden rounded-xl p-[1px] group disabled:opacity-50 disabled:cursor-not-allowed transition-all hover:scale-[1.01] active:scale-[0.99]"
               >
                 <span className="absolute inset-0 bg-gradient-to-r from-amber-500 to-orange-600 rounded-xl" />
-                <div className="relative flex items-center justify-center gap-2 rounded-[11px] bg-surface-primary group-hover:bg-transparent px-4 py-3 transition-colors">
+                <div className="relative flex items-center justify-center gap-2 rounded-[11px] bg-card group-hover:bg-transparent px-4 py-3 transition-colors">
                   {updateSessionProject.isPending ? (
                     <>
                       <div className="h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white" />
@@ -273,7 +273,7 @@ export function ForceProjectDialog({
               </button>
             </div>
 
-            <div className="flex items-start gap-2 rounded-lg bg-surface-secondary/50 p-2.5 text-[11px] text-text-muted">
+            <div className="flex items-start gap-2 rounded-lg bg-muted/50 p-2.5 text-[11px] text-muted-foreground">
               <AlertCircle size={12} className="mt-0.5 shrink-0" />
               <p>如果未在规定时间内选择项目，请求将被拒绝。</p>
             </div>

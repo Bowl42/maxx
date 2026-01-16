@@ -118,7 +118,9 @@ export function ProvidersPage() {
         icon={Layers}
         iconClassName="text-blue-500"
         title={t('providers.title')}
-        description={t('providers.description', { count: providers?.length || 0 })}
+        description={t('providers.description', {
+          count: providers?.length || 0,
+        })}
       >
         <input
           type="file"
@@ -156,10 +158,10 @@ export function ProvidersPage() {
         <div className="mx-auto max-w-7xl">
           {isLoading ? (
             <div className="flex items-center justify-center h-full">
-              <div className="text-text-muted">{t('common.loading')}</div>
+              <div className="text-muted-foreground">{t('common.loading')}</div>
             </div>
           ) : providers?.length === 0 ? (
-            <div className="flex flex-col items-center justify-center h-full text-text-muted">
+            <div className="flex flex-col items-center justify-center h-full text-muted-foreground">
               <Layers size={48} className="mb-4 opacity-50" />
               <p className="text-body">{t('providers.noProviders')}</p>
               <p className="text-caption mt-2">
@@ -176,36 +178,40 @@ export function ProvidersPage() {
           ) : (
             <div className="space-y-8">
               {/* 动态渲染各类型分组 */}
-              {(Object.keys(PROVIDER_TYPE_CONFIGS) as ProviderTypeKey[]).map(typeKey => {
-                const typeProviders = groupedProviders[typeKey]
-                if (typeProviders.length === 0) return null
+              {(Object.keys(PROVIDER_TYPE_CONFIGS) as ProviderTypeKey[]).map(
+                typeKey => {
+                  const typeProviders = groupedProviders[typeKey]
+                  if (typeProviders.length === 0) return null
 
-                const config = PROVIDER_TYPE_CONFIGS[typeKey]
-                const TypeIcon = config.icon
+                  const config = PROVIDER_TYPE_CONFIGS[typeKey]
+                  const TypeIcon = config.icon
 
-                return (
-                  <section key={typeKey} className="space-y-3">
-                    <div className="flex items-center gap-2 px-1">
-                      <TypeIcon size={16} style={{ color: config.color }} />
-                      <h3 className="text-sm font-semibold text-text-secondary uppercase tracking-wider">
-                        {config.label}
-                      </h3>
-                      <div className="h-px flex-1 bg-border/50 ml-2" />
-                    </div>
-                    <div className="space-y-3">
-                      {typeProviders.map(provider => (
-                        <ProviderRow
-                          key={provider.id}
-                          provider={provider}
-                          stats={providerStats[provider.id]}
-                          streamingCount={countsByProvider.get(provider.id) || 0}
-                          onClick={() => setEditingProvider(provider)}
-                        />
-                      ))}
-                    </div>
-                  </section>
-                )
-              })}
+                  return (
+                    <section key={typeKey} className="space-y-3">
+                      <div className="flex items-center gap-2 px-1">
+                        <TypeIcon size={16} style={{ color: config.color }} />
+                        <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">
+                          {config.label}
+                        </h3>
+                        <div className="h-px flex-1 bg-border/50 ml-2" />
+                      </div>
+                      <div className="space-y-3">
+                        {typeProviders.map(provider => (
+                          <ProviderRow
+                            key={provider.id}
+                            provider={provider}
+                            stats={providerStats[provider.id]}
+                            streamingCount={
+                              countsByProvider.get(provider.id) || 0
+                            }
+                            onClick={() => setEditingProvider(provider)}
+                          />
+                        ))}
+                      </div>
+                    </section>
+                  )
+                }
+              )}
             </div>
           )}
         </div>
@@ -213,10 +219,13 @@ export function ProvidersPage() {
 
       {/* Import Status Toast */}
       {importStatus && (
-        <div className="fixed bottom-6 right-6 bg-surface-primary border border-border rounded-lg shadow-lg p-4">
+        <div className="fixed bottom-6 right-6 bg-card border border-border rounded-lg shadow-lg p-4">
           <div className="space-y-2">
-            <div className="text-sm font-medium text-text-primary">
-              {t('providers.importCompleted', { imported: importStatus.imported, skipped: importStatus.skipped })}
+            <div className="text-sm font-medium text-foreground">
+              {t('providers.importCompleted', {
+                imported: importStatus.imported,
+                skipped: importStatus.skipped,
+              })}
             </div>
             {importStatus.errors.length > 0 && (
               <div className="text-xs text-red-400 space-y-1">

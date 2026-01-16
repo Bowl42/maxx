@@ -50,7 +50,7 @@ export function NavProxyStatus() {
         </TooltipTrigger>
         <TooltipContent side="right" align="center">
           <div className="flex flex-col gap-1">
-            <span className="text-xs text-text-muted">Listening on</span>
+            <span className="text-xs text-muted-foreground">Listening on</span>
             <span className="font-mono font-medium">{proxyAddress}</span>
             <span className="text-xs text-emerald-400">
               {copied ? 'Copied!' : 'Click to copy'}
@@ -72,12 +72,12 @@ export function NavProxyStatus() {
         <Radio size={16} className="text-emerald-400" />
       </div>
       <div className="flex flex-col items-start flex-1 min-w-0">
-        <span className="text-caption text-text-muted">Listening on</span>
-        <span className="font-mono font-medium text-text-primary  truncate">
+        <span className="text-caption text-muted-foreground">Listening on</span>
+        <span className="font-mono font-medium text-foreground  truncate">
           {proxyAddress}
         </span>
       </div>
-      <div className="shrink-0 text-text-muted relative w-4 h-4">
+      <div className="shrink-0 text-muted-foreground relative w-4 h-4">
         <Copy
           size={14}
           className={`absolute inset-0 transition-all ${

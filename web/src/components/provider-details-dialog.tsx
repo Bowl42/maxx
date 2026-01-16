@@ -102,8 +102,8 @@ const REASON_INFO: Record<
     label: '未知原因',
     description: '因未知原因进入冷却状态',
     icon: HelpCircle,
-    color: 'text-text-muted',
-    bgColor: 'bg-surface-secondary/50 border-border',
+    color: 'text-muted-foreground',
+    bgColor: 'bg-muted/50 border-border',
   },
 }
 
@@ -218,7 +218,7 @@ export function ProviderDetailsDialog({
                   'text-xs font-bold',
                   enabled
                     ? 'text-emerald-600 dark:text-emerald-400'
-                    : 'text-text-muted'
+                    : 'text-muted-foreground'
                 )}
               >
                 {enabled ? 'ON' : 'OFF'}
@@ -247,7 +247,7 @@ export function ProviderDetailsDialog({
                 'relative w-14 h-14 lg:w-16 lg:h-16 rounded-2xl flex items-center justify-center border shadow-lg',
                 isInCooldown
                   ? 'bg-cyan-500/10 dark:bg-cyan-950/40 border-cyan-500/40 dark:border-cyan-500/30'
-                  : 'bg-surface-secondary border-border'
+                  : 'bg-muted border-border'
               )}
               style={!isInCooldown ? { color } : {}}
             >
@@ -271,7 +271,7 @@ export function ProviderDetailsDialog({
 
             {/* Provider Info */}
             <div className="flex-1 min-w-0">
-              <h2 className="text-lg lg:text-xl font-bold text-text-primary truncate mb-1">
+              <h2 className="text-lg lg:text-xl font-bold text-foreground truncate mb-1">
                 {provider.name}
               </h2>
               <div className="flex flex-wrap items-center gap-2">
@@ -284,7 +284,7 @@ export function ProviderDetailsDialog({
                     <Activity size={10} /> CONVERTED
                   </span>
                 )}
-                <span className="px-2 py-0.5 rounded-full text-[10px] font-mono bg-surface-hover text-text-secondary">
+                <span className="px-2 py-0.5 rounded-full text-[10px] font-mono bg-accent text-muted-foreground">
                   {provider.type}
                 </span>
                 {streamingCount > 0 && (
@@ -304,12 +304,12 @@ export function ProviderDetailsDialog({
               {/* Provider Basic Info Card */}
               <div className="rounded-xl border border-border bg-muted-background p-4 space-y-3">
                 <div className="flex items-start gap-2">
-                  <Info size={14} className="text-text-muted mt-0.5 shrink-0" />
+                  <Info size={14} className="text-muted-foreground mt-0.5 shrink-0" />
                   <div className="flex-1 min-w-0">
-                    <div className="text-[10px] font-bold text-text-muted uppercase tracking-wider mb-1">
+                    <div className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider mb-1">
                       Endpoint
                     </div>
-                    <div className="text-xs text-text-secondary font-mono break-all">
+                    <div className="text-xs text-muted-foreground font-mono break-all">
                       {endpoint}
                     </div>
                   </div>
@@ -317,19 +317,19 @@ export function ProviderDetailsDialog({
 
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <div className="text-[10px] font-bold text-text-muted uppercase tracking-wider mb-1">
+                    <div className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider mb-1">
                       Client Type
                     </div>
-                    <div className="text-xs text-text-primary font-semibold">
+                    <div className="text-xs text-foreground font-semibold">
                       {clientType}
                     </div>
                   </div>
                   {route && (
                     <div>
-                      <div className="text-[10px] font-bold text-text-muted uppercase tracking-wider mb-1">
+                      <div className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider mb-1">
                         Priority
                       </div>
-                      <div className="text-xs text-text-primary font-semibold">
+                      <div className="text-xs text-foreground font-semibold">
                         #{route.position + 1}
                       </div>
                     </div>
@@ -376,7 +376,7 @@ export function ProviderDetailsDialog({
 
                 {/* Warning Note */}
                 {isInCooldown && (
-                  <div className="flex items-start gap-2 rounded-lg bg-surface-secondary/50 p-2.5 text-[11px] text-text-muted">
+                  <div className="flex items-start gap-2 rounded-lg bg-muted/50 p-2.5 text-[11px] text-muted-foreground">
                     <Activity size={12} className="mt-0.5 shrink-0" />
                     <p>强制解冻可能导致请求因根本原因未解决而再次失败。</p>
                   </div>
@@ -417,7 +417,7 @@ export function ProviderDetailsDialog({
                             {REASON_INFO[cooldown.reason]?.label ||
                               REASON_INFO.unknown.label}
                           </h3>
-                          <p className="text-xs text-text-secondary leading-relaxed">
+                          <p className="text-xs text-muted-foreground leading-relaxed">
                             {REASON_INFO[cooldown.reason]?.description ||
                               REASON_INFO.unknown.description}
                           </p>
@@ -453,7 +453,7 @@ export function ProviderDetailsDialog({
 
               {/* Statistics Section */}
               <div className="space-y-3">
-                <div className="flex items-center gap-2 text-text-secondary">
+                <div className="flex items-center gap-2 text-muted-foreground">
                   <TrendingUp size={14} />
                   <span className="text-xs font-bold uppercase tracking-wider">
                     Statistics

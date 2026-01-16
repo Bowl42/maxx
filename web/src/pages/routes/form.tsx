@@ -152,7 +152,7 @@ export function RouteForm({
         <label className="mb-1 block text-sm font-medium">
           Model Mapping (Override)
         </label>
-        <p className="mb-2 text-xs text-text-secondary">
+        <p className="mb-2 text-xs text-muted-foreground">
           Route-level model mappings take priority over provider and global settings.
         </p>
         <ModelMappingEditor

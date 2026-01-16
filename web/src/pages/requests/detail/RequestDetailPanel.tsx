@@ -105,23 +105,23 @@ export function RequestDetailPanel({
       className="flex flex-col h-full overflow-hidden min-w-0"
     >
       {/* Detail Header */}
-      <div className="h-16 border-b border-border bg-surface-secondary/20 px-6 flex items-center justify-between shrink-0 backdrop-blur-sm sticky top-0 z-10">
+      <div className="h-16 border-b border-border bg-muted/20 px-6 flex items-center justify-between shrink-0 backdrop-blur-sm sticky top-0 z-10">
         <div className="flex items-center gap-4">
-          <div className="w-10 h-10 rounded-lg bg-surface-primary flex items-center justify-center text-text-primary shadow-sm border border-border">
+          <div className="w-10 h-10 rounded-lg bg-card flex items-center justify-center text-foreground shadow-sm border border-border">
             <Server size={20} />
           </div>
           <div>
-            <h3 className="text-sm font-medium text-text-primary">
+            <h3 className="text-sm font-medium text-foreground">
               {providerMap.get(selectedAttempt.providerID) ||
                 `Provider #${selectedAttempt.providerID}`}
             </h3>
-            <div className="flex items-center gap-3 text-xs text-text-secondary mt-0.5">
+            <div className="flex items-center gap-3 text-xs text-muted-foreground mt-0.5">
               <span>Attempt #{selectedAttempt.id}</span>
               {selectedAttempt.mappedModel && selectedAttempt.requestModel !== selectedAttempt.mappedModel && (
-                <span className="text-text-muted">
-                  <span className="text-text-secondary">{selectedAttempt.requestModel}</span>
+                <span className="text-muted-foreground">
+                  <span className="text-muted-foreground">{selectedAttempt.requestModel}</span>
                   <span className="mx-1">→</span>
-                  <span className="text-text-primary">{selectedAttempt.mappedModel}</span>
+                  <span className="text-foreground">{selectedAttempt.mappedModel}</span>
                 </span>
               )}
               {selectedAttempt.cost > 0 && (
@@ -151,11 +151,11 @@ export function RequestDetailPanel({
       <TabsContent value="request" className="flex-1 overflow-hidden flex flex-col min-w-0 mt-0">
         {selectedAttempt.requestInfo ? (
             <div className="flex-1 flex flex-col overflow-hidden p-6 gap-6 animate-fade-in min-w-0">
-              <div className="flex items-center gap-3 p-3 bg-surface-secondary/30 rounded-lg border border-border shrink-0">
+              <div className="flex items-center gap-3 p-3 bg-muted/30 rounded-lg border border-border shrink-0">
                 <Badge variant="info" className="font-mono text-xs">
                   {selectedAttempt.requestInfo.method}
                 </Badge>
-                <code className="flex-1 font-mono text-xs text-text-primary break-all">
+                <code className="flex-1 font-mono text-xs text-foreground break-all">
                   {selectedAttempt.requestInfo.url}
                 </code>
                 <CopyAsCurlButton requestInfo={selectedAttempt.requestInfo} />
@@ -164,7 +164,7 @@ export function RequestDetailPanel({
               <div className="flex flex-col min-h-0 flex-1 gap-6">
                 <div className="flex flex-col min-h-0 gap-3 flex-1">
                   <div className="flex items-center justify-between shrink-0">
-                    <h5 className="text-xs font-semibold text-text-secondary uppercase tracking-wider flex items-center gap-2">
+                    <h5 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-2">
                       <Code size={14} /> Headers
                     </h5>
                     <div className="flex items-center gap-2">
@@ -189,7 +189,7 @@ export function RequestDetailPanel({
                     <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
                       <Badge
                         variant="outline"
-                        className="text-[10px] bg-surface-primary/80 backdrop-blur-sm"
+                        className="text-[10px] bg-card/80 backdrop-blur-sm"
                       >
                         JSON
                       </Badge>
@@ -203,7 +203,7 @@ export function RequestDetailPanel({
                 {selectedAttempt.requestInfo.body && (
                   <div className="flex flex-col min-h-0 gap-3 flex-1">
                     <div className="flex items-center justify-between shrink-0">
-                      <h5 className="text-xs font-semibold text-text-secondary uppercase tracking-wider flex items-center gap-2">
+                      <h5 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-2">
                         <Database size={14} /> Body
                       </h5>
                       <div className="flex items-center gap-2">
@@ -246,7 +246,7 @@ export function RequestDetailPanel({
                       <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
                         <Badge
                           variant="outline"
-                          className="text-[10px] bg-surface-primary/80 backdrop-blur-sm"
+                          className="text-[10px] bg-card/80 backdrop-blur-sm"
                         >
                           JSON
                         </Badge>
@@ -275,7 +275,7 @@ export function RequestDetailPanel({
       <TabsContent value="response" className="flex-1 overflow-hidden flex flex-col min-w-0 mt-0">
         {selectedAttempt.responseInfo ? (
             <div className="flex-1 flex flex-col overflow-hidden p-6 gap-6 animate-fade-in min-w-0">
-              <div className="flex items-center gap-3 p-3 bg-surface-secondary/30 rounded-lg border border-border shrink-0">
+              <div className="flex items-center gap-3 p-3 bg-muted/30 rounded-lg border border-border shrink-0">
                 <div
                   className={cn(
                     'px-2 py-1 rounded text-xs font-bold font-mono',
@@ -286,7 +286,7 @@ export function RequestDetailPanel({
                 >
                   {selectedAttempt.responseInfo.status}
                 </div>
-                <span className="text-sm text-text-secondary font-medium">
+                <span className="text-sm text-muted-foreground font-medium">
                   Response Status
                 </span>
               </div>
@@ -294,7 +294,7 @@ export function RequestDetailPanel({
               <div className="flex flex-col min-h-0 flex-1 gap-6">
                 <div className="flex flex-col min-h-0 gap-3 flex-1">
                   <div className="flex items-center justify-between shrink-0">
-                    <h5 className="text-xs font-semibold text-text-secondary uppercase tracking-wider flex items-center gap-2">
+                    <h5 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-2">
                       <Code size={14} /> Headers
                     </h5>
                     <CopyButton
@@ -306,7 +306,7 @@ export function RequestDetailPanel({
                     <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
                       <Badge
                         variant="outline"
-                        className="text-[10px] bg-surface-primary/80 backdrop-blur-sm"
+                        className="text-[10px] bg-card/80 backdrop-blur-sm"
                       >
                         JSON
                       </Badge>
@@ -320,7 +320,7 @@ export function RequestDetailPanel({
                 {selectedAttempt.responseInfo.body && (
                   <div className="flex flex-col min-h-0 gap-3 flex-1">
                     <div className="flex items-center justify-between shrink-0">
-                      <h5 className="text-xs font-semibold text-text-secondary uppercase tracking-wider flex items-center gap-2">
+                      <h5 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-2">
                         <Database size={14} /> Body
                       </h5>
                       <CopyButton
@@ -340,7 +340,7 @@ export function RequestDetailPanel({
                       <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
                         <Badge
                           variant="outline"
-                          className="text-[10px] bg-surface-primary/80 backdrop-blur-sm"
+                          className="text-[10px] bg-card/80 backdrop-blur-sm"
                         >
                           JSON
                         </Badge>
@@ -368,7 +368,7 @@ export function RequestDetailPanel({
 
       <TabsContent value="metadata" className="flex-1 overflow-y-auto p-6 mt-0">
         <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
-              <Card className="bg-surface-primary border-border">
+              <Card className="bg-card border-border">
                 <CardHeader className="pb-2 border-b border-border/50">
                   <CardTitle className="text-sm font-medium flex items-center gap-2">
                     <Info size={16} className="text-info" />
@@ -378,37 +378,37 @@ export function RequestDetailPanel({
                 <CardContent className="pt-4">
                   <dl className="space-y-4">
                     <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 items-center">
-                      <dt className="text-xs font-medium text-text-secondary uppercase tracking-wider">
+                      <dt className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
                         Attempt ID
                       </dt>
-                      <dd className="sm:col-span-2 font-mono text-xs text-text-primary bg-surface-secondary px-2 py-1 rounded select-all break-all">
+                      <dd className="sm:col-span-2 font-mono text-xs text-foreground bg-muted px-2 py-1 rounded select-all break-all">
                         #{selectedAttempt.id}
                       </dd>
                     </div>
                     <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 items-center">
-                      <dt className="text-xs font-medium text-text-secondary uppercase tracking-wider">
+                      <dt className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
                         Provider
                       </dt>
-                      <dd className="sm:col-span-2 font-mono text-xs text-text-primary bg-surface-secondary px-2 py-1 rounded">
+                      <dd className="sm:col-span-2 font-mono text-xs text-foreground bg-muted px-2 py-1 rounded">
                         {providerMap.get(selectedAttempt.providerID) || `Provider #${selectedAttempt.providerID}`}
                       </dd>
                     </div>
                     <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 items-center">
-                      <dt className="text-xs font-medium text-text-secondary uppercase tracking-wider">
+                      <dt className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
                         Request Model
                       </dt>
-                      <dd className="sm:col-span-2 font-mono text-xs text-text-primary bg-surface-secondary px-2 py-1 rounded">
+                      <dd className="sm:col-span-2 font-mono text-xs text-foreground bg-muted px-2 py-1 rounded">
                         {selectedAttempt.requestModel || '-'}
                       </dd>
                     </div>
                     <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 items-center">
-                      <dt className="text-xs font-medium text-text-secondary uppercase tracking-wider">
+                      <dt className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
                         Mapped Model
                       </dt>
-                      <dd className="sm:col-span-2 font-mono text-xs text-text-primary bg-surface-secondary px-2 py-1 rounded">
+                      <dd className="sm:col-span-2 font-mono text-xs text-foreground bg-muted px-2 py-1 rounded">
                         {selectedAttempt.mappedModel || '-'}
                         {selectedAttempt.mappedModel && selectedAttempt.requestModel !== selectedAttempt.mappedModel && (
-                          <span className="ml-2 text-text-muted text-[10px]">
+                          <span className="ml-2 text-muted-foreground text-[10px]">
                             (converted)
                           </span>
                         )}
@@ -416,13 +416,13 @@ export function RequestDetailPanel({
                     </div>
                     {selectedAttempt.responseModel && (
                       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 items-center">
-                        <dt className="text-xs font-medium text-text-secondary uppercase tracking-wider">
+                        <dt className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
                           Response Model
                         </dt>
-                        <dd className="sm:col-span-2 font-mono text-xs text-text-primary bg-surface-secondary px-2 py-1 rounded">
+                        <dd className="sm:col-span-2 font-mono text-xs text-foreground bg-muted px-2 py-1 rounded">
                           {selectedAttempt.responseModel}
                           {selectedAttempt.responseModel !== selectedAttempt.mappedModel && (
-                            <span className="ml-2 text-text-muted text-[10px]">
+                            <span className="ml-2 text-muted-foreground text-[10px]">
                               (upstream)
                             </span>
                           )}
@@ -430,10 +430,10 @@ export function RequestDetailPanel({
                       </div>
                     )}
                     <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 items-center">
-                      <dt className="text-xs font-medium text-text-secondary uppercase tracking-wider">
+                      <dt className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
                         Status
                       </dt>
-                      <dd className="sm:col-span-2 font-mono text-xs text-text-primary bg-surface-secondary px-2 py-1 rounded">
+                      <dd className="sm:col-span-2 font-mono text-xs text-foreground bg-muted px-2 py-1 rounded">
                         {selectedAttempt.status}
                       </dd>
                     </div>
@@ -441,7 +441,7 @@ export function RequestDetailPanel({
                 </CardContent>
               </Card>
 
-              <Card className="bg-surface-primary border-border">
+              <Card className="bg-card border-border">
                 <CardHeader className="pb-2 border-b border-border/50">
                   <CardTitle className="text-sm font-medium flex items-center gap-2">
                     <Zap size={16} className="text-warning" />
@@ -451,23 +451,23 @@ export function RequestDetailPanel({
                 <CardContent className="pt-4">
                   <dl className="space-y-4">
                     <div className="flex justify-between items-center border-b border-border/30 pb-2">
-                      <dt className="text-xs font-medium text-text-secondary uppercase tracking-wider">
+                      <dt className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
                         Input Tokens
                       </dt>
-                      <dd className="text-sm text-text-primary font-mono font-medium">
+                      <dd className="text-sm text-foreground font-mono font-medium">
                         {selectedAttempt.inputTokenCount.toLocaleString()}
                       </dd>
                     </div>
                     <div className="flex justify-between items-center border-b border-border/30 pb-2">
-                      <dt className="text-xs font-medium text-text-secondary uppercase tracking-wider">
+                      <dt className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
                         Output Tokens
                       </dt>
-                      <dd className="text-sm text-text-primary font-mono font-medium">
+                      <dd className="text-sm text-foreground font-mono font-medium">
                         {selectedAttempt.outputTokenCount.toLocaleString()}
                       </dd>
                     </div>
                     <div className="flex justify-between items-center border-b border-border/30 pb-2">
-                      <dt className="text-xs font-medium text-text-secondary uppercase tracking-wider">
+                      <dt className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
                         Cache Read
                       </dt>
                       <dd className="text-sm text-violet-400 font-mono font-medium">
@@ -475,7 +475,7 @@ export function RequestDetailPanel({
                       </dd>
                     </div>
                     <div className="flex justify-between items-center border-b border-border/30 pb-2">
-                      <dt className="text-xs font-medium text-text-secondary uppercase tracking-wider">
+                      <dt className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
                         Cache Write
                       </dt>
                       <dd className="text-sm text-amber-400 font-mono font-medium">
@@ -485,7 +485,7 @@ export function RequestDetailPanel({
                     {(selectedAttempt.cache5mWriteCount > 0 ||
                       selectedAttempt.cache1hWriteCount > 0) && (
                       <div className="flex justify-between items-center border-b border-border/30 pb-2 pl-4">
-                        <dt className="text-xs font-medium text-text-secondary/70 tracking-wider">
+                        <dt className="text-xs font-medium text-muted-foreground/70 tracking-wider">
                           <span className="text-cyan-400/80">5m:</span>{' '}
                           {selectedAttempt.cache5mWriteCount}
                           <span className="mx-2">|</span>
@@ -495,7 +495,7 @@ export function RequestDetailPanel({
                       </div>
                     )}
                     <div className="flex justify-between items-center">
-                      <dt className="text-xs font-medium text-text-secondary uppercase tracking-wider">
+                      <dt className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
                         Cost
                       </dt>
                       <dd className="text-sm text-blue-400 font-mono font-medium">

@@ -49,7 +49,7 @@ export function RequestDetailView({
       className="flex flex-col h-full w-full min-w-0"
     >
       {/* Detail Header */}
-      <div className="h-16 border-b border-border bg-surface-secondary/20 px-6 flex items-center justify-between shrink-0 backdrop-blur-sm sticky top-0 z-10">
+      <div className="h-16 border-b border-border bg-muted/20 px-6 flex items-center justify-between shrink-0 backdrop-blur-sm sticky top-0 z-10">
         <div className="flex items-center gap-4">
           <div
             className="w-10 h-10 rounded-lg flex items-center justify-center shadow-sm border border-border"
@@ -62,12 +62,12 @@ export function RequestDetailView({
             <ClientIcon type={request.clientType as ClientType} size={20} />
           </div>
           <div>
-            <h3 className="text-sm font-medium text-text-primary">
+            <h3 className="text-sm font-medium text-foreground">
               {getClientName(request.clientType as ClientType)} Request
             </h3>
-            <div className="flex items-center gap-3 text-xs text-text-secondary mt-0.5">
+            <div className="flex items-center gap-3 text-xs text-muted-foreground mt-0.5">
               <span>Request #{request.id}</span>
-              <span className="text-text-muted">·</span>
+              <span className="text-muted-foreground">·</span>
               <span>{request.requestModel}</span>
               {request.cost > 0 && (
                 <span className="text-blue-400 font-medium">
@@ -96,11 +96,11 @@ export function RequestDetailView({
       <TabsContent value="request" className="flex-1 overflow-hidden flex flex-col min-w-0 mt-0">
         {request.requestInfo ? (
           <div className="flex-1 flex flex-col overflow-hidden p-6 gap-6 animate-fade-in min-w-0">
-            <div className="flex items-center gap-3 p-3 bg-surface-secondary/30 rounded-lg border border-border shrink-0">
+            <div className="flex items-center gap-3 p-3 bg-muted/30 rounded-lg border border-border shrink-0">
               <Badge variant="info" className="font-mono text-xs">
                 {request.requestInfo.method}
               </Badge>
-              <code className="flex-1 font-mono text-xs text-text-primary break-all">
+              <code className="flex-1 font-mono text-xs text-foreground break-all">
                 {request.requestInfo.url}
               </code>
               <CopyAsCurlButton requestInfo={request.requestInfo} />
@@ -109,7 +109,7 @@ export function RequestDetailView({
             <div className="flex flex-col min-h-0 flex-1 gap-6">
               <div className="flex flex-col min-h-0 gap-3 flex-1">
                 <div className="flex items-center justify-between shrink-0">
-                  <h5 className="text-xs font-semibold text-text-secondary uppercase tracking-wider flex items-center gap-2">
+                  <h5 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-2">
                     <Code size={14} /> Headers
                   </h5>
                   <CopyButton
@@ -121,7 +121,7 @@ export function RequestDetailView({
                   <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
                     <Badge
                       variant="outline"
-                      className="text-[10px] bg-surface-primary/80 backdrop-blur-sm"
+                      className="text-[10px] bg-card/80 backdrop-blur-sm"
                     >
                       JSON
                     </Badge>
@@ -135,7 +135,7 @@ export function RequestDetailView({
               {request.requestInfo.body && (
                 <div className="flex flex-col min-h-0 gap-3 flex-1">
                   <div className="flex items-center justify-between shrink-0">
-                    <h5 className="text-xs font-semibold text-text-secondary uppercase tracking-wider flex items-center gap-2">
+                    <h5 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-2">
                       <Database size={14} /> Body
                     </h5>
                     <CopyButton
@@ -155,7 +155,7 @@ export function RequestDetailView({
                     <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
                       <Badge
                         variant="outline"
-                        className="text-[10px] bg-surface-primary/80 backdrop-blur-sm"
+                        className="text-[10px] bg-card/80 backdrop-blur-sm"
                       >
                         JSON
                       </Badge>
@@ -184,7 +184,7 @@ export function RequestDetailView({
       <TabsContent value="response" className="flex-1 overflow-hidden flex flex-col min-w-0 mt-0">
         {request.responseInfo ? (
           <div className="flex-1 flex flex-col overflow-hidden p-6 gap-6 animate-fade-in min-w-0">
-            <div className="flex items-center gap-3 p-3 bg-surface-secondary/30 rounded-lg border border-border shrink-0">
+            <div className="flex items-center gap-3 p-3 bg-muted/30 rounded-lg border border-border shrink-0">
               <div
                 className={cn(
                   'px-2 py-1 rounded text-xs font-bold font-mono',
@@ -195,7 +195,7 @@ export function RequestDetailView({
               >
                 {request.responseInfo.status}
               </div>
-              <span className="text-sm text-text-secondary font-medium">
+              <span className="text-sm text-muted-foreground font-medium">
                 Response Status
               </span>
             </div>
@@ -203,7 +203,7 @@ export function RequestDetailView({
             <div className="flex flex-col min-h-0 flex-1 gap-6">
               <div className="flex flex-col min-h-0 gap-3 flex-1">
                 <div className="flex items-center justify-between shrink-0">
-                  <h5 className="text-xs font-semibold text-text-secondary uppercase tracking-wider flex items-center gap-2">
+                  <h5 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-2">
                     <Code size={14} /> Headers
                   </h5>
                   <CopyButton
@@ -215,7 +215,7 @@ export function RequestDetailView({
                   <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
                     <Badge
                       variant="outline"
-                      className="text-[10px] bg-surface-primary/80 backdrop-blur-sm"
+                      className="text-[10px] bg-card/80 backdrop-blur-sm"
                     >
                       JSON
                     </Badge>
@@ -229,7 +229,7 @@ export function RequestDetailView({
               {request.responseInfo.body && (
                 <div className="flex flex-col min-h-0 gap-3 flex-1">
                   <div className="flex items-center justify-between shrink-0">
-                    <h5 className="text-xs font-semibold text-text-secondary uppercase tracking-wider flex items-center gap-2">
+                    <h5 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-2">
                       <Database size={14} /> Body
                     </h5>
                     <CopyButton
@@ -249,7 +249,7 @@ export function RequestDetailView({
                     <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
                       <Badge
                         variant="outline"
-                        className="text-[10px] bg-surface-primary/80 backdrop-blur-sm"
+                        className="text-[10px] bg-card/80 backdrop-blur-sm"
                       >
                         JSON
                       </Badge>
@@ -277,7 +277,7 @@ export function RequestDetailView({
 
       <TabsContent value="metadata" className="flex-1 overflow-y-auto p-6 mt-0">
         <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
-          <Card className="bg-surface-primary border-border">
+          <Card className="bg-card border-border">
             <CardHeader className="pb-2 border-b border-border/50">
               <CardTitle className="text-sm font-medium flex items-center gap-2">
                 <Info size={16} className="text-info" /> Request Info
@@ -286,23 +286,23 @@ export function RequestDetailView({
             <CardContent className="pt-4">
               <dl className="space-y-4">
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 items-center">
-                  <dt className="text-xs font-medium text-text-secondary uppercase tracking-wider">
+                  <dt className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
                     Request ID
                   </dt>
-                  <dd className="sm:col-span-2 font-mono text-xs text-text-primary bg-surface-secondary px-2 py-1 rounded select-all break-all">
+                  <dd className="sm:col-span-2 font-mono text-xs text-foreground bg-muted px-2 py-1 rounded select-all break-all">
                     {request.requestID || '-'}
                   </dd>
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 items-center">
-                  <dt className="text-xs font-medium text-text-secondary uppercase tracking-wider">
+                  <dt className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
                     Session ID
                   </dt>
                   <dd className="sm:col-span-2">
-                    <div className="font-mono text-xs text-text-primary bg-surface-secondary px-2 py-1 rounded select-all break-all">
+                    <div className="font-mono text-xs text-foreground bg-muted px-2 py-1 rounded select-all break-all">
                       {request.sessionID || '-'}
                     </div>
                     {sessionInfo && (
-                      <div className="flex items-center gap-2 mt-1 text-[10px] text-text-muted">
+                      <div className="flex items-center gap-2 mt-1 text-[10px] text-muted-foreground">
                         <span className="capitalize">
                           {sessionInfo.clientType}
                         </span>
@@ -320,34 +320,34 @@ export function RequestDetailView({
                   </dd>
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 items-center">
-                  <dt className="text-xs font-medium text-text-secondary uppercase tracking-wider">
+                  <dt className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
                     Instance ID
                   </dt>
-                  <dd className="sm:col-span-2 font-mono text-xs text-text-primary bg-surface-secondary px-2 py-1 rounded select-all break-all">
+                  <dd className="sm:col-span-2 font-mono text-xs text-foreground bg-muted px-2 py-1 rounded select-all break-all">
                     {request.instanceID || '-'}
                   </dd>
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 items-center">
-                  <dt className="text-xs font-medium text-text-secondary uppercase tracking-wider">
+                  <dt className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
                     Request Model
                   </dt>
-                  <dd className="sm:col-span-2 font-mono text-xs text-text-primary bg-surface-secondary px-2 py-1 rounded">
+                  <dd className="sm:col-span-2 font-mono text-xs text-foreground bg-muted px-2 py-1 rounded">
                     {request.requestModel || '-'}
                   </dd>
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 items-center">
-                  <dt className="text-xs font-medium text-text-secondary uppercase tracking-wider">
+                  <dt className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
                     Response Model
                   </dt>
-                  <dd className="sm:col-span-2 font-mono text-xs text-text-primary bg-surface-secondary px-2 py-1 rounded">
+                  <dd className="sm:col-span-2 font-mono text-xs text-foreground bg-muted px-2 py-1 rounded">
                     {request.responseModel || '-'}
                   </dd>
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 items-center">
-                  <dt className="text-xs font-medium text-text-secondary uppercase tracking-wider">
+                  <dt className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
                     Project
                   </dt>
-                  <dd className="sm:col-span-2 font-mono text-xs text-text-primary bg-surface-secondary px-2 py-1 rounded">
+                  <dd className="sm:col-span-2 font-mono text-xs text-foreground bg-muted px-2 py-1 rounded">
                     {projectName || '-'}
                   </dd>
                 </div>
@@ -363,7 +363,7 @@ export function RequestDetailView({
             </CardContent>
           </Card>
 
-          <Card className="bg-surface-primary border-border">
+          <Card className="bg-card border-border">
             <CardHeader className="pb-2 border-b border-border/50">
               <CardTitle className="text-sm font-medium flex items-center gap-2">
                 <Zap size={16} className="text-warning" /> Usage & Cache
@@ -372,23 +372,23 @@ export function RequestDetailView({
             <CardContent className="pt-4">
               <dl className="space-y-4">
                 <div className="flex justify-between items-center border-b border-border/30 pb-2">
-                  <dt className="text-xs font-medium text-text-secondary uppercase tracking-wider">
+                  <dt className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
                     Input Tokens
                   </dt>
-                  <dd className="text-sm text-text-primary font-mono font-medium">
+                  <dd className="text-sm text-foreground font-mono font-medium">
                     {request.inputTokenCount.toLocaleString()}
                   </dd>
                 </div>
                 <div className="flex justify-between items-center border-b border-border/30 pb-2">
-                  <dt className="text-xs font-medium text-text-secondary uppercase tracking-wider">
+                  <dt className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
                     Output Tokens
                   </dt>
-                  <dd className="text-sm text-text-primary font-mono font-medium">
+                  <dd className="text-sm text-foreground font-mono font-medium">
                     {request.outputTokenCount.toLocaleString()}
                   </dd>
                 </div>
                 <div className="flex justify-between items-center border-b border-border/30 pb-2">
-                  <dt className="text-xs font-medium text-text-secondary uppercase tracking-wider">
+                  <dt className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
                     Cache Read
                   </dt>
                   <dd className="text-sm text-violet-400 font-mono font-medium">
@@ -396,7 +396,7 @@ export function RequestDetailView({
                   </dd>
                 </div>
                 <div className="flex justify-between items-center border-b border-border/30 pb-2">
-                  <dt className="text-xs font-medium text-text-secondary uppercase tracking-wider">
+                  <dt className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
                     Cache Write
                   </dt>
                   <dd className="text-sm text-amber-400 font-mono font-medium">
@@ -406,7 +406,7 @@ export function RequestDetailView({
                 {(request.cache5mWriteCount > 0 ||
                   request.cache1hWriteCount > 0) && (
                   <div className="flex justify-between items-center border-b border-border/30 pb-2 pl-4">
-                    <dt className="text-xs font-medium text-text-secondary/70 tracking-wider">
+                    <dt className="text-xs font-medium text-muted-foreground/70 tracking-wider">
                       <span className="text-cyan-400/80">5m:</span>{' '}
                       {request.cache5mWriteCount}
                       <span className="mx-2">|</span>
@@ -416,7 +416,7 @@ export function RequestDetailView({
                   </div>
                 )}
                 <div className="flex justify-between items-center">
-                  <dt className="text-xs font-medium text-text-secondary uppercase tracking-wider">
+                  <dt className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
                     Cost
                   </dt>
                   <dd className="text-sm text-blue-400 font-mono font-medium">

@@ -57,38 +57,38 @@ export function DiffModal({
       onKeyDown={(e) => e.stopPropagation()} // Prevent any key events from bubbling
     >
       <div
-        className="bg-surface-primary border border-border rounded-lg shadow-2xl w-[90vw] h-[85vh] flex flex-col"
+        className="bg-card border border-border rounded-lg shadow-2xl w-[90vw] h-[85vh] flex flex-col"
         onClick={(e) => e.stopPropagation()} // Prevent clicks inside modal from closing it
       >
         {/* Modal Header */}
         <div className="h-14 border-b border-border px-6 flex items-center justify-between shrink-0">
           <div className="flex items-center gap-3">
             <GitCompare className="h-5 w-5 text-accent" />
-            <h3 className="text-sm font-semibold text-text-primary">{title}</h3>
+            <h3 className="text-sm font-semibold text-foreground">{title}</h3>
           </div>
           <Button
             variant="ghost"
             size="icon"
             onClick={onClose}
-            className="h-8 w-8 text-text-secondary hover:text-text-primary"
+            className="h-8 w-8 text-muted-foreground hover:text-foreground"
           >
             <X className="h-5 w-5" />
           </Button>
         </div>
 
         {/* Legend */}
-        <div className="h-10 border-b border-border px-6 flex items-center gap-6 shrink-0 bg-surface-secondary/20">
+        <div className="h-10 border-b border-border px-6 flex items-center gap-6 shrink-0 bg-muted/20">
           <div className="flex items-center gap-2 text-xs">
             <div className="w-3 h-3 bg-green-500/20 border border-green-500/50 rounded"></div>
-            <span className="text-text-muted">Added in Upstream</span>
+            <span className="text-muted-foreground">Added in Upstream</span>
           </div>
           <div className="flex items-center gap-2 text-xs">
             <div className="w-3 h-3 bg-red-500/20 border border-red-500/50 rounded"></div>
-            <span className="text-text-muted">Removed from Client</span>
+            <span className="text-muted-foreground">Removed from Client</span>
           </div>
           <div className="flex items-center gap-2 text-xs">
-            <div className="w-3 h-3 bg-surface-secondary border border-border rounded"></div>
-            <span className="text-text-muted">Unchanged</span>
+            <div className="w-3 h-3 bg-muted border border-border rounded"></div>
+            <span className="text-muted-foreground">Unchanged</span>
           </div>
         </div>
 
@@ -103,7 +103,7 @@ export function DiffModal({
 
               return lines.map((line, lineIndex) => {
                 let bgColor = ''
-                let textColor = 'text-text-primary'
+                let textColor = 'text-foreground'
                 let prefix = ' '
                 let borderColor = 'border-border/30'
 
@@ -118,8 +118,8 @@ export function DiffModal({
                   prefix = '-'
                   borderColor = 'border-red-500/30'
                 } else {
-                  bgColor = 'bg-surface-primary/20'
-                  textColor = 'text-text-secondary'
+                  bgColor = 'bg-card/20'
+                  textColor = 'text-muted-foreground'
                 }
 
                 return (
@@ -140,7 +140,7 @@ export function DiffModal({
 
         {/* Modal Footer */}
         <div className="h-14 border-t border-border px-6 flex items-center justify-between shrink-0">
-          <div className="text-xs text-text-muted">
+          <div className="text-xs text-muted-foreground">
             {diffResult.filter((p) => p.added).length > 0 && (
               <span className="text-green-400 mr-4">
                 +

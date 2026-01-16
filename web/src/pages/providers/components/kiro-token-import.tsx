@@ -99,19 +99,19 @@ export function KiroTokenImport({
   const isTokenValid = token.trim().length > 0
 
   return (
-    <div className="flex flex-col h-full bg-surface-primary">
+    <div className="flex flex-col h-full bg-card">
       {/* Header */}
-      <div className="h-16 flex items-center gap-4 px-6 border-b border-border bg-surface-primary/80 backdrop-blur-sm sticky top-0 z-10">
+      <div className="h-16 flex items-center gap-4 px-6 border-b border-border bg-card/80 backdrop-blur-sm sticky top-0 z-10">
         <Button
           variant="ghost"
           size="icon"
           onClick={onBack}
-          className="rounded-full hover:bg-surface-hover -ml-2"
+          className="rounded-full hover:bg-accent -ml-2"
         >
-          <ChevronLeft size={20} className="text-text-secondary" />
+          <ChevronLeft size={20} className="text-muted-foreground" />
         </Button>
         <div>
-          <h2 className="text-lg font-semibold text-text-primary flex items-center gap-2">
+          <h2 className="text-lg font-semibold text-foreground flex items-center gap-2">
             <span
               className="w-2 h-2 rounded-full inline-block"
               style={{ backgroundColor: KIRO_COLOR }}
@@ -125,26 +125,26 @@ export function KiroTokenImport({
         <div className="container max-w-2xl mx-auto py-8 px-6 space-y-8">
           {/* Hero Section */}
           <div className="text-center space-y-2 mb-8">
-            <h1 className="text-2xl font-bold text-text-primary">
+            <h1 className="text-2xl font-bold text-foreground">
               Import Kiro Social Token
             </h1>
-            <p className="text-text-secondary mx-auto">
+            <p className="text-muted-foreground mx-auto">
               Enter your Kiro Social refresh token to connect your account.
             </p>
           </div>
 
           {/* Token Input Form */}
           <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
-            <div className="bg-surface-secondary rounded-2xl p-6 border border-border space-y-6 shadow-sm">
+            <div className="bg-muted rounded-2xl p-6 border border-border space-y-6 shadow-sm">
               <div className="flex items-center gap-3 pb-4 border-b border-border/50">
-                <div className="p-2 rounded-lg bg-surface-hover">
-                  <ShieldCheck size={18} className="text-text-primary" />
+                <div className="p-2 rounded-lg bg-accent">
+                  <ShieldCheck size={18} className="text-foreground" />
                 </div>
                 <div>
-                  <h3 className="text-base font-semibold text-text-primary">
+                  <h3 className="text-base font-semibold text-foreground">
                     Credentials
                   </h3>
-                  <p className="text-xs text-text-secondary">
+                  <p className="text-xs text-muted-foreground">
                     Enter your Kiro Social account details
                   </p>
                 </div>
@@ -152,11 +152,11 @@ export function KiroTokenImport({
 
               {/* Email Input */}
               <div className="space-y-2">
-                <label className="text-sm font-medium text-text-primary flex items-center justify-between">
+                <label className="text-sm font-medium text-foreground flex items-center justify-between">
                   <span className="flex items-center gap-2">
                     <Mail size={14} /> Email Address
                   </span>
-                  <span className="text-[10px] text-text-muted bg-surface-hover px-2 py-0.5 rounded-full">
+                  <span className="text-[10px] text-muted-foreground bg-accent px-2 py-0.5 rounded-full">
                     Optional
                   </span>
                 </label>
@@ -165,10 +165,10 @@ export function KiroTokenImport({
                   value={email}
                   onChange={e => setEmail(e.target.value)}
                   placeholder="e.g. user@example.com"
-                  className="bg-surface-primary"
+                  className="bg-card"
                   disabled={validating || creating}
                 />
-                <p className="text-[11px] text-text-muted pl-1">
+                <p className="text-[11px] text-muted-foreground pl-1">
                   Used for display purposes only. Auto-detected from token if
                   available.
                 </p>
@@ -176,7 +176,7 @@ export function KiroTokenImport({
 
               {/* Token Input */}
               <div className="space-y-2">
-                <label className="text-sm font-medium text-text-primary flex items-center gap-2">
+                <label className="text-sm font-medium text-foreground flex items-center gap-2">
                   <Key size={14} /> Refresh Token
                 </label>
                 <div className="relative">
@@ -187,11 +187,11 @@ export function KiroTokenImport({
                       setValidationResult(null)
                     }}
                     placeholder="Paste your Kiro Social refresh token here..."
-                    className="w-full h-32 px-4 py-3 rounded-xl border border-border bg-surface-primary text-text-primary placeholder:text-text-muted font-mono text-xs resize-none focus:outline-none focus:ring-2 focus:ring-accent/50 transition-all"
+                    className="w-full h-32 px-4 py-3 rounded-xl border border-border bg-card text-foreground placeholder:text-muted-foreground font-mono text-xs resize-none focus:outline-none focus:ring-2 focus:ring-accent/50 transition-all"
                     disabled={validating || creating}
                   />
                   {token && (
-                    <div className="absolute bottom-3 right-3 text-[10px] text-text-muted font-mono bg-surface-secondary px-2 py-1 rounded border border-border">
+                    <div className="absolute bottom-3 right-3 text-[10px] text-muted-foreground font-mono bg-muted px-2 py-1 rounded border border-border">
                       {token.length} chars
                     </div>
                   )}
@@ -245,10 +245,10 @@ export function KiroTokenImport({
                     <Ban size={24} className="text-warning" />
                   </div>
                   <div className="flex-1 space-y-1">
-                    <div className="font-semibold text-text-primary">
+                    <div className="font-semibold text-foreground">
                       Account Banned
                     </div>
-                    <div className="text-sm text-text-secondary">
+                    <div className="text-sm text-muted-foreground">
                       This account has been banned and cannot be used.
                     </div>
                     {validationResult.banReason && (
@@ -269,19 +269,19 @@ export function KiroTokenImport({
                     <CheckCircle2 size={24} className="text-success" />
                   </div>
                   <div className="flex-1 space-y-1">
-                    <div className="font-semibold text-text-primary">
+                    <div className="font-semibold text-foreground">
                       Token Verified Successfully
                     </div>
-                    <div className="text-sm text-text-secondary">
+                    <div className="text-sm text-muted-foreground">
                       Ready to connect as{' '}
-                      <span className="font-medium text-text-primary">
+                      <span className="font-medium text-foreground">
                         {validationResult.email || email || 'Kiro Account'}
                       </span>
                     </div>
 
                     <div className="flex flex-wrap items-center gap-2 mt-3 pt-3 border-t border-success/10">
                       {validationResult.subscriptionType && (
-                        <div className="flex items-center gap-1.5 px-2 py-1 rounded bg-surface-primary border border-border/50">
+                        <div className="flex items-center gap-1.5 px-2 py-1 rounded bg-card border border-border/50">
                           <Zap
                             size={10}
                             className={
@@ -290,22 +290,22 @@ export function KiroTokenImport({
                                 : 'text-blue-500'
                             }
                           />
-                          <span className="text-xs font-medium text-text-secondary">
+                          <span className="text-xs font-medium text-muted-foreground">
                             {validationResult.subscriptionType}
                           </span>
                         </div>
                       )}
                       {validationResult.usageLimit !== undefined && (
-                        <div className="flex items-center gap-1.5 px-2 py-1 rounded bg-surface-primary border border-border/50">
-                          <span className="text-xs text-text-secondary">
+                        <div className="flex items-center gap-1.5 px-2 py-1 rounded bg-card border border-border/50">
+                          <span className="text-xs text-muted-foreground">
                             Usage: {validationResult.currentUsage ?? 0} /{' '}
                             {validationResult.usageLimit}
                           </span>
                         </div>
                       )}
                       {validationResult.daysUntilReset !== undefined && (
-                        <div className="flex items-center gap-1.5 px-2 py-1 rounded bg-surface-primary border border-border/50">
-                          <span className="text-xs text-text-secondary">
+                        <div className="flex items-center gap-1.5 px-2 py-1 rounded bg-card border border-border/50">
+                          <span className="text-xs text-muted-foreground">
                             Resets in {validationResult.daysUntilReset} days
                           </span>
                         </div>

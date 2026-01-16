@@ -101,9 +101,7 @@ export function RetryConfigsPage() {
       <div className="flex h-full items-center justify-center">
         <div className="flex flex-col items-center gap-2">
           <RefreshCw className="h-8 w-8 animate-spin text-accent" />
-          <p className="text-sm text-text-secondary">
-            {t('common.loading')}
-          </p>
+          <p className="text-sm text-muted-foreground">{t('common.loading')}</p>
         </div>
       </div>
     )
@@ -112,16 +110,16 @@ export function RetryConfigsPage() {
   return (
     <div className="flex flex-col h-full bg-background">
       {/* Header */}
-      <div className="h-[73px] flex items-center justify-between px-6 border-b border-border bg-surface-primary shrink-0">
+      <div className="h-[73px] flex items-center justify-between px-6 border-b border-border bg-card shrink-0">
         <div className="flex items-center gap-3">
           <div className="p-2 bg-accent rounded-lg">
             <ShieldCheck size={20} />
           </div>
           <div>
-            <h2 className="text-lg font-semibold text-text-primary leading-tight">
+            <h2 className="text-lg font-semibold text-foreground leading-tight">
               {t('retryConfigs.title')}
             </h2>
-            <p className="text-xs text-text-secondary">
+            <p className="text-xs text-muted-foreground">
               {t('retryConfigs.description')}
             </p>
           </div>
@@ -164,7 +162,7 @@ export function RetryConfigsPage() {
             </div>
           )}
 
-          <Card className="border-border bg-surface-primary shadow-sm">
+          <Card className="border-border bg-card shadow-sm">
             <CardHeader className="border-b border-border pb-4">
               <div className="flex items-center justify-between">
                 <CardTitle className="text-base font-medium">
@@ -176,10 +174,10 @@ export function RetryConfigsPage() {
             <CardContent className="pt-6 space-y-8">
               {/* Max Retries */}
               <div className="grid gap-2">
-                <label className="text-sm font-medium text-text-primary">
+                <label className="text-sm font-medium text-foreground">
                   {t('retryConfigs.maxRetries')}
                 </label>
-                <p className="text-xs text-text-secondary mb-2">
+                <p className="text-xs text-muted-foreground mb-2">
                   {t('retryConfigs.maxRetriesDesc')}
                 </p>
                 <div className="flex items-center gap-4">
@@ -193,7 +191,9 @@ export function RetryConfigsPage() {
                     max="10"
                     className="max-w-[120px] font-mono"
                   />
-                  <span className="text-xs text-text-muted">{t('retryConfigs.attempts')}</span>
+                  <span className="text-xs text-muted-foreground">
+                    {t('retryConfigs.attempts')}
+                  </span>
                 </div>
               </div>
 
@@ -202,10 +202,10 @@ export function RetryConfigsPage() {
               {/* Timing Settings */}
               <div className="grid md:grid-cols-3 gap-6">
                 <div className="space-y-2">
-                  <label className="text-sm font-medium text-text-primary">
+                  <label className="text-sm font-medium text-foreground">
                     {t('retryConfigs.initialInterval')}
                   </label>
-                  <p className="text-xs text-text-secondary min-h-[32px]">
+                  <p className="text-xs text-muted-foreground min-h-[32px]">
                     {t('retryConfigs.initialIntervalDesc')}
                   </p>
                   <div className="relative">
@@ -218,17 +218,17 @@ export function RetryConfigsPage() {
                       min="0"
                       className="font-mono pr-12"
                     />
-                    <span className="absolute right-3 top-2.5 text-xs text-text-muted">
+                    <span className="absolute right-3 top-2.5 text-xs text-muted-foreground">
                       ms
                     </span>
                   </div>
                 </div>
 
                 <div className="space-y-2">
-                  <label className="text-sm font-medium text-text-primary">
+                  <label className="text-sm font-medium text-foreground">
                     {t('retryConfigs.backoffRate')}
                   </label>
-                  <p className="text-xs text-text-secondary min-h-[32px]">
+                  <p className="text-xs text-muted-foreground min-h-[32px]">
                     {t('retryConfigs.backoffRateDesc')}
                   </p>
                   <div className="relative">
@@ -242,17 +242,17 @@ export function RetryConfigsPage() {
                       step="0.1"
                       className="font-mono pr-8"
                     />
-                    <span className="absolute right-3 top-2.5 text-xs text-text-muted">
+                    <span className="absolute right-3 top-2.5 text-xs text-muted-foreground">
                       x
                     </span>
                   </div>
                 </div>
 
                 <div className="space-y-2">
-                  <label className="text-sm font-medium text-text-primary">
+                  <label className="text-sm font-medium text-foreground">
                     {t('retryConfigs.maxInterval')}
                   </label>
-                  <p className="text-xs text-text-secondary min-h-[32px]">
+                  <p className="text-xs text-muted-foreground min-h-[32px]">
                     {t('retryConfigs.maxIntervalDesc')}
                   </p>
                   <div className="relative">
@@ -265,7 +265,7 @@ export function RetryConfigsPage() {
                       min="0"
                       className="font-mono pr-12"
                     />
-                    <span className="absolute right-3 top-2.5 text-xs text-text-muted">
+                    <span className="absolute right-3 top-2.5 text-xs text-muted-foreground">
                       ms
                     </span>
                   </div>
@@ -273,17 +273,21 @@ export function RetryConfigsPage() {
               </div>
 
               <div className="bg-muted/30 rounded-lg p-4 text-xs border border-border/50">
-                <div className="text-text-muted mb-3">
+                <div className="text-muted-foreground mb-3">
                   {t('retryConfigs.totalAttempts')}:{' '}
-                  <span className="text-text-primary font-semibold">
+                  <span className="text-foreground font-semibold">
                     {Number(maxRetries) + 1}
                   </span>{' '}
-                  ({t('retryConfigs.initialPlusRetries', { retries: maxRetries })})
+                  (
+                  {t('retryConfigs.initialPlusRetries', {
+                    retries: maxRetries,
+                  })}
+                  )
                 </div>
-                <div className="space-y-1 font-mono text-text-secondary">
+                <div className="space-y-1 font-mono text-muted-foreground">
                   <div className="flex justify-between">
                     <span>{t('retryConfigs.initialRequest')}</span>
-                    <span className="text-text-primary">
+                    <span className="text-foreground">
                       {t('retryConfigs.executeImmediately')}
                     </span>
                   </div>
@@ -298,7 +302,7 @@ export function RetryConfigsPage() {
                       return (
                         <div key={i} className="flex justify-between">
                           <span>{t('retryConfigs.retry', { num: i + 1 })}</span>
-                          <span className="text-text-primary">
+                          <span className="text-foreground">
                             {t('retryConfigs.waitMs', { ms: delay.toFixed(0) })}
                           </span>
                         </div>
@@ -306,8 +310,10 @@ export function RetryConfigsPage() {
                     }
                   )}
                   {Number(maxRetries) > 5 && (
-                    <div className="text-text-muted">
-                      {t('retryConfigs.moreRetries', { count: Number(maxRetries) - 5 })}
+                    <div className="text-muted-foreground">
+                      {t('retryConfigs.moreRetries', {
+                        count: Number(maxRetries) - 5,
+                      })}
                     </div>
                   )}
                 </div>

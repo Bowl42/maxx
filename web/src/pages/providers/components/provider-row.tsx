@@ -137,8 +137,8 @@ export function ProviderRow({
       className={cn(
         'group relative flex items-center gap-4 p-3 rounded-xl border transition-all duration-300 overflow-hidden',
         streamingCount > 0
-          ? 'bg-surface-primary border-transparent ring-1 ring-black/5 dark:ring-white/10'
-          : 'bg-surface-primary/60 border-border hover:border-accent/30 hover:bg-surface-primary shadow-sm cursor-pointer'
+          ? 'bg-card border-transparent ring-1 ring-black/5 dark:ring-white/10'
+          : 'bg-card/60 border-border hover:border-accent/30 hover:bg-card shadow-sm cursor-pointer'
       )}
       style={{
         borderColor: streamingCount > 0 ? `${color}40` : undefined,
@@ -162,7 +162,7 @@ export function ProviderRow({
 
       {/* Provider Icon */}
       <div
-        className="relative z-10 w-12 h-12 rounded-xl flex items-center justify-center shrink-0 bg-surface-secondary border border-border shadow-inner group-hover:shadow-none transition-shadow duration-300"
+        className="relative z-10 w-12 h-12 rounded-xl flex items-center justify-center shrink-0 bg-muted border border-border shadow-inner group-hover:shadow-none transition-shadow duration-300"
         style={{ color }}
       >
         <div
@@ -175,7 +175,7 @@ export function ProviderRow({
       {/* Provider Info */}
       <div className="relative z-10 flex-1 min-w-0">
         <div className="flex items-center gap-2 mb-1">
-          <h3 className="text-[15px] font-bold text-text-primary truncate">
+          <h3 className="text-[15px] font-bold text-foreground truncate">
             {provider.name}
           </h3>
           <span
@@ -190,7 +190,7 @@ export function ProviderRow({
           </span>
         </div>
         <div
-          className="flex items-center gap-1.5 text-[11px] font-medium text-text-muted truncate"
+          className="flex items-center gap-1.5 text-[11px] font-medium text-muted-foreground truncate"
           title={displayInfo}
         >
           {typeConfig.isAccountBased ? (
@@ -204,7 +204,7 @@ export function ProviderRow({
 
       {/* Supported Clients */}
       <div className="relative z-10 w-28 flex flex-col gap-1 shrink-0">
-        <span className="text-[9px] font-black text-text-muted/60 uppercase tracking-tighter">
+        <span className="text-[9px] font-black text-muted-foreground/60 uppercase tracking-tighter">
           Clients
         </span>
         <div className="flex items-center -space-x-1.5 group/clients">
@@ -212,13 +212,13 @@ export function ProviderRow({
             provider.supportedClientTypes.map(ct => (
               <div
                 key={ct}
-                className="relative z-0 hover:z-10 bg-surface-primary rounded-full p-0.5 border border-border transition-all hover:scale-125 hover:-translate-y-0.5 shadow-sm"
+                className="relative z-0 hover:z-10 bg-card rounded-full p-0.5 border border-border transition-all hover:scale-125 hover:-translate-y-0.5 shadow-sm"
               >
                 <ClientIcon type={ct} size={14} />
               </div>
             ))
           ) : (
-            <span className="text-xs text-text-muted font-mono">-</span>
+            <span className="text-xs text-muted-foreground font-mono">-</span>
           )}
         </div>
       </div>
@@ -227,17 +227,17 @@ export function ProviderRow({
       {isAntigravity && (
         <div className="relative z-10 w-24 flex flex-col gap-1 shrink-0">
           <div className="flex items-center justify-between px-0.5">
-            <span className="text-[9px] font-black text-text-muted/80 uppercase tracking-tighter">
+            <span className="text-[9px] font-black text-muted-foreground/80 uppercase tracking-tighter">
               Claude
             </span>
             {claudeInfo && (
-              <span className="text-[9px] font-mono text-text-muted/60">
+              <span className="text-[9px] font-mono text-muted-foreground/60">
                 {formatResetTime(claudeInfo.resetTime)}
               </span>
             )}
           </div>
           {claudeInfo ? (
-            <div className="h-2 bg-surface-secondary rounded-full overflow-hidden border border-border/50 p-[1px]">
+            <div className="h-2 bg-muted rounded-full overflow-hidden border border-border/50 p-[1px]">
               <div
                 className={cn(
                   'h-full rounded-full transition-all duration-1000',
@@ -254,7 +254,7 @@ export function ProviderRow({
               />
             </div>
           ) : (
-            <div className="h-1.5 bg-surface-secondary rounded-full" />
+            <div className="h-1.5 bg-muted rounded-full" />
           )}
         </div>
       )}
@@ -263,11 +263,11 @@ export function ProviderRow({
       {isKiro && (
         <div className="relative z-10 w-28 flex flex-col gap-1 shrink-0">
           <div className="flex items-center justify-between px-0.5">
-            <span className="text-[9px] font-black text-text-muted/80 uppercase tracking-tighter">
+            <span className="text-[9px] font-black text-muted-foreground/80 uppercase tracking-tighter">
               Quota
             </span>
             {kiroInfo && !kiroInfo.isBanned && (
-              <span className="text-[9px] font-mono text-text-muted/60">
+              <span className="text-[9px] font-mono text-muted-foreground/60">
                 {formatKiroResetDays(kiroInfo.resetDays)}
               </span>
             )}
@@ -279,7 +279,7 @@ export function ProviderRow({
               </div>
             ) : (
               <>
-                <div className="h-2 bg-surface-secondary rounded-full overflow-hidden border border-border/50 p-[1px]">
+                <div className="h-2 bg-muted rounded-full overflow-hidden border border-border/50 p-[1px]">
                   <div
                     className={cn(
                       'h-full rounded-full transition-all duration-1000',
@@ -296,27 +296,27 @@ export function ProviderRow({
                   />
                 </div>
                 <div className="flex items-center justify-between px-0.5">
-                  <span className="text-[9px] font-mono text-text-muted/60">
+                  <span className="text-[9px] font-mono text-muted-foreground/60">
                     {kiroInfo.available.toFixed(1)}
                   </span>
-                  <span className="text-[9px] font-mono text-text-muted/40">
+                  <span className="text-[9px] font-mono text-muted-foreground/40">
                     / {kiroInfo.totalLimit.toFixed(1)}
                   </span>
                 </div>
               </>
             )
           ) : (
-            <div className="h-1.5 bg-surface-secondary rounded-full" />
+            <div className="h-1.5 bg-muted rounded-full" />
           )}
         </div>
       )}
 
       {/* Stats Grid */}
-      <div className="relative z-10 flex items-center gap-px bg-surface-secondary/50 rounded-xl border border-border/60 p-0.5 backdrop-blur-sm">
+      <div className="relative z-10 flex items-center gap-px bg-muted/50 rounded-xl border border-border/60 p-0.5 backdrop-blur-sm">
         {stats && stats.totalRequests > 0 ? (
           <>
             <div className="flex flex-col items-center min-w-[45px] px-2 py-1">
-              <span className="text-[8px] font-bold text-text-muted uppercase tracking-tight">
+              <span className="text-[8px] font-bold text-muted-foreground uppercase tracking-tight">
                 SR
               </span>
               <span
@@ -334,16 +334,16 @@ export function ProviderRow({
             </div>
             <div className="w-[1px] h-6 bg-border/40" />
             <div className="flex flex-col items-center min-w-[45px] px-2 py-1">
-              <span className="text-[8px] font-bold text-text-muted uppercase tracking-tight">
+              <span className="text-[8px] font-bold text-muted-foreground uppercase tracking-tight">
                 REQ
               </span>
-              <span className="font-mono font-black text-[12px] text-text-primary">
+              <span className="font-mono font-black text-[12px] text-foreground">
                 {stats.totalRequests}
               </span>
             </div>
             <div className="w-[1px] h-6 bg-border/40" />
             <div className="flex flex-col items-center min-w-[45px] px-2 py-1">
-              <span className="text-[8px] font-bold text-text-muted uppercase tracking-tight">
+              <span className="text-[8px] font-bold text-muted-foreground uppercase tracking-tight">
                 TKN
               </span>
               <span className="font-mono font-black text-[12px] text-blue-400">
@@ -352,7 +352,7 @@ export function ProviderRow({
             </div>
             <div className="w-[1px] h-6 bg-border/40" />
             <div className="flex flex-col items-center min-w-[55px] px-2 py-1">
-              <span className="text-[8px] font-bold text-text-muted uppercase tracking-tight">
+              <span className="text-[8px] font-bold text-muted-foreground uppercase tracking-tight">
                 COST
               </span>
               <span className="font-mono font-black text-[12px] text-purple-400">
@@ -361,7 +361,7 @@ export function ProviderRow({
             </div>
           </>
         ) : (
-          <div className="px-6 py-2 flex items-center gap-2 text-text-muted/30">
+          <div className="px-6 py-2 flex items-center gap-2 text-muted-foreground/30">
             <Activity size={12} />
             <span className="text-[10px] font-bold uppercase tracking-widest">
               No Activity
@@ -372,7 +372,7 @@ export function ProviderRow({
 
       {/* Navigation Icon */}
       <div className="relative z-10 shrink-0 ml-1">
-        <div className="p-2 rounded-full text-text-muted group-hover:text-text-primary group-hover:bg-surface-secondary transition-all transform group-hover:translate-x-1">
+        <div className="p-2 rounded-full text-muted-foreground group-hover:text-foreground group-hover:bg-muted transition-all transform group-hover:translate-x-1">
           <ChevronRight size={20} />
         </div>
       </div>

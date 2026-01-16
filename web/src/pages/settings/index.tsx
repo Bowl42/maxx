@@ -57,16 +57,16 @@ function AppearanceSection() {
   ]
 
   return (
-    <Card className="border-border bg-surface-primary">
+    <Card className="border-border bg-card">
       <CardHeader className="border-b border-border py-4">
         <CardTitle className="text-base font-medium flex items-center gap-2">
-          <Monitor className="h-4 w-4 text-text-muted" />
+          <Monitor className="h-4 w-4 text-muted-foreground" />
           {t('settings.appearance')}
         </CardTitle>
       </CardHeader>
       <CardContent className="p-6">
         <div className="flex items-center gap-6">
-          <label className="text-sm font-medium text-text-secondary w-40 shrink-0">
+          <label className="text-sm font-medium text-muted-foreground w-40 shrink-0">
             {t('settings.themePreference')}
           </label>
           <div className="flex flex-wrap gap-3">
@@ -96,16 +96,16 @@ function LanguageSection() {
   ]
 
   return (
-    <Card className="border-border bg-surface-primary">
+    <Card className="border-border bg-card">
       <CardHeader className="border-b border-border py-4">
         <CardTitle className="text-base font-medium flex items-center gap-2">
-          <Languages className="h-4 w-4 text-text-muted" />
+          <Languages className="h-4 w-4 text-muted-foreground" />
           {t('settings.language')}
         </CardTitle>
       </CardHeader>
       <CardContent className="p-6">
         <div className="flex items-center gap-6">
-          <label className="text-sm font-medium text-text-secondary w-40 shrink-0">
+          <label className="text-sm font-medium text-muted-foreground w-40 shrink-0">
             {t('settings.languagePreference')}
           </label>
           <div className="flex flex-wrap gap-3">
@@ -153,20 +153,20 @@ function ForceProjectSection() {
   if (isLoading) return null
 
   return (
-    <Card className="border-border bg-surface-primary">
+    <Card className="border-border bg-card">
       <CardHeader className="border-b border-border py-4">
         <CardTitle className="text-base font-medium flex items-center gap-2">
-          <FolderOpen className="h-4 w-4 text-text-muted" />
+          <FolderOpen className="h-4 w-4 text-muted-foreground" />
           {t('settings.forceProjectBinding')}
         </CardTitle>
       </CardHeader>
       <CardContent className="p-6 space-y-4">
         <div className="flex items-center justify-between">
           <div>
-            <label className="text-sm font-medium text-text-primary">
+            <label className="text-sm font-medium text-foreground">
               {t('settings.enableForceProjectBinding')}
             </label>
-            <p className="text-xs text-text-muted mt-1">
+            <p className="text-xs text-muted-foreground mt-1">
               {t('settings.forceProjectBindingDesc')}
             </p>
           </div>
@@ -179,7 +179,7 @@ function ForceProjectSection() {
 
         {forceProjectEnabled && (
           <div className="flex items-center gap-6 pt-4 border-t border-border">
-            <label className="text-sm font-medium text-text-secondary w-32 shrink-0">
+            <label className="text-sm font-medium text-muted-foreground w-32 shrink-0">
               {t('settings.waitTimeout')}
             </label>
             <Input
@@ -191,7 +191,7 @@ function ForceProjectSection() {
               max={300}
               disabled={updateSetting.isPending}
             />
-            <span className="text-xs text-text-muted">{t('settings.waitTimeoutRange')}</span>
+            <span className="text-xs text-muted-foreground">{t('settings.waitTimeoutRange')}</span>
           </div>
         )}
       </CardContent>
@@ -235,9 +235,9 @@ function SortableRuleItem({ id, index, rule, onRemove, onUpdate, disabled }: Sor
         className="cursor-grab active:cursor-grabbing p-1 hover:bg-accent rounded"
         disabled={disabled}
       >
-        <GripVertical className="h-4 w-4 text-text-muted" />
+        <GripVertical className="h-4 w-4 text-muted-foreground" />
       </button>
-      <span className="text-xs text-text-muted w-6">{index + 1}.</span>
+      <span className="text-xs text-muted-foreground w-6">{index + 1}.</span>
       <ModelInput
         value={rule.pattern}
         onChange={pattern => onUpdate(pattern, rule.target)}
@@ -245,7 +245,7 @@ function SortableRuleItem({ id, index, rule, onRemove, onUpdate, disabled }: Sor
         disabled={disabled}
         className="flex-1 max-w-xs h-7 text-xs"
       />
-      <ArrowRight className="h-3 w-3 text-text-muted shrink-0" />
+      <ArrowRight className="h-3 w-3 text-muted-foreground shrink-0" />
       <ModelInput
         value={rule.target}
         onChange={target => onUpdate(rule.pattern, target)}
@@ -336,11 +336,11 @@ function AntigravityModelMappingSection() {
   const isPending = updateSettings.isPending || resetSettings.isPending
 
   return (
-    <Card className="border-border bg-surface-primary">
+    <Card className="border-border bg-card">
       <CardHeader className="border-b border-border py-4">
         <div className="flex items-center justify-between">
           <CardTitle className="text-base font-medium flex items-center gap-2">
-            <Zap className="h-4 w-4 text-text-muted" />
+            <Zap className="h-4 w-4 text-muted-foreground" />
             {t('settings.antigravityModelMapping')}
           </CardTitle>
           <Button
@@ -355,7 +355,7 @@ function AntigravityModelMappingSection() {
         </div>
       </CardHeader>
       <CardContent className="p-6 space-y-4">
-        <p className="text-xs text-text-muted">
+        <p className="text-xs text-muted-foreground">
           {t('settings.modelMappingDesc')}
         </p>
 
@@ -394,7 +394,7 @@ function AntigravityModelMappingSection() {
             disabled={isPending}
             className="flex-1 max-w-xs"
           />
-          <ArrowRight className="h-4 w-4 text-text-muted shrink-0" />
+          <ArrowRight className="h-4 w-4 text-muted-foreground shrink-0" />
           <ModelInput
             value={newTarget}
             onChange={setNewTarget}
