@@ -22,7 +22,7 @@ import {
 import { PageHeader } from '@/components/layout'
 
 export function ProjectsPage() {
-  const { t } = useTranslation()
+  const { t, i18n } = useTranslation()
   const navigate = useNavigate()
   const { data: projects, isLoading } = useProjects()
   const createProject = useCreateProject()
@@ -130,11 +130,14 @@ export function ProjectsPage() {
                   <div className="flex items-center gap-1.5">
                     <Calendar size={12} />
                     <span>
-                      {new Date(project.createdAt).toLocaleDateString(undefined, {
-                        month: 'short',
-                        day: 'numeric',
-                        year: 'numeric',
-                      })}
+                      {new Date(project.createdAt).toLocaleDateString(
+                        i18n.resolvedLanguage ?? i18n.language,
+                        {
+                          month: 'short',
+                          day: 'numeric',
+                          year: 'numeric',
+                        }
+                      )}
                     </span>
                   </div>
                 </CardFooter>
