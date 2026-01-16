@@ -63,3 +63,11 @@ jobs:
       tag: ${{ inputs.version }}
     permissions:
       contents: write
+
+  update-homebrew:
+    needs: wails-build
+    uses: ./.github/workflows/update-homebrew.yml
+    with:
+      tag: ${{ inputs.version }}
+    secrets:
+      HOMEBREW_TAP_TOKEN: ${{ secrets.HOMEBREW_TAP_TOKEN }}
