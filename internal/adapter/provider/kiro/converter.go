@@ -68,9 +68,13 @@ func ConvertClaudeToCodeWhisperer(requestBody []byte, modelMapping map[string]st
 		cwReq.ConversationState.CurrentMessage.UserInputMessage.UserInputMessageContext.Tools = tools
 	}
 
-	// 构建历史消息
-	history := buildHistory(claudeReq, mappedModel)
-	cwReq.ConversationState.History = history
+	// 构建历史消息 (匹配 kiro2api 的条件判断逻辑)
+	// 只在有系统消息、多条消息或有工具时才设置 History
+	if claudeReq.System != nil || len(claudeReq.Messages) > 1 || len(claudeReq.Tools) > 0 {
+		history := buildHistory(claudeReq, mappedModel)
+		cwReq.ConversationState.History = history
+	}
+	// 否则 History 保持 nil (序列化为 null，匹配 kiro2api)
 
 	// 验证请求完整性 (matching kiro2api validateCodeWhispererRequest)
 	if err := validateCodeWhispererRequest(&cwReq); err != nil {
@@ -294,11 +298,12 @@ func convertTools(tools []converter.ClaudeTool) []CodeWhispererTool {
 		}
 		cwTool.ToolSpecification.Description = desc
 
-		// 转换 InputSchema (直接使用，匹配 kiro2api)
+		// 转换 InputSchema (直接使用原始值，匹配 kiro2api)
+		// kiro2api 在 converter/codewhisperer.go:337-339 直接使用 tool.InputSchema
 		if tool.InputSchema != nil {
-			if schema, ok := tool.InputSchema.(map[string]interface{}); ok {
+			if schema, ok := tool.InputSchema.(map[string]any); ok {
 				cwTool.ToolSpecification.InputSchema = InputSchema{
-					Json: convertMapInterface(schema),
+					Json: schema, // 直接使用，不做浅拷贝
 				}
 			}
 		}
