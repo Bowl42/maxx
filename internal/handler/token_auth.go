@@ -49,6 +49,8 @@ func NewTokenAuthMiddleware(
 func (m *TokenAuthMiddleware) IsEnabled() bool {
 	val, err := m.settingRepo.Get(SettingKeyProxyTokenAuthEnabled)
 	if err != nil {
+		// On error, default to disabled to avoid blocking all requests
+		// when the setting hasn't been configured yet
 		return false
 	}
 	return val == "true"
@@ -61,9 +63,12 @@ func (m *TokenAuthMiddleware) ExtractToken(req *http.Request, clientType domain.
 		// Claude uses x-api-key header
 		return req.Header.Get("x-api-key")
 	case domain.ClientTypeOpenAI, domain.ClientTypeCodex:
-		// OpenAI/Codex uses Authorization: Bearer <token>
+		// OpenAI/Codex uses Authorization: Bearer <token> (case-insensitive)
 		auth := req.Header.Get("Authorization")
-		return strings.TrimPrefix(auth, "Bearer ")
+		if parts := strings.Fields(auth); len(parts) == 2 && strings.EqualFold(parts[0], "Bearer") {
+			return parts[1]
+		}
+		return ""
 	case domain.ClientTypeGemini:
 		// Gemini uses x-goog-api-key header
 		return req.Header.Get("x-goog-api-key")
