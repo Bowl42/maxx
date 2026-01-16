@@ -17,7 +17,6 @@ import {
   FolderKanban,
   Loader2,
   Calendar,
-  ArrowRight,
   Hash,
 } from 'lucide-react'
 import { PageHeader } from '@/components/layout'
