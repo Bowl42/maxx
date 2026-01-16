@@ -380,7 +380,9 @@ func (d *DB) migration002AddSlugToProjects() error {
 			return err
 		}
 	}
-	_, _ = d.db.Exec(`CREATE UNIQUE INDEX IF NOT EXISTS idx_projects_slug ON projects(slug) WHERE slug != ''`)
+	// Drop old index and create new one that excludes soft-deleted projects
+	_, _ = d.db.Exec(`DROP INDEX IF EXISTS idx_projects_slug`)
+	_, _ = d.db.Exec(`CREATE UNIQUE INDEX IF NOT EXISTS idx_projects_slug ON projects(slug) WHERE slug != '' AND deleted_at IS NULL`)
 	return d.migrateProjectSlugs()
 }
 

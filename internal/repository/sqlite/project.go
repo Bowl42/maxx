@@ -26,12 +26,12 @@ func (r *ProjectRepository) Create(p *domain.Project) error {
 		p.Slug = domain.GenerateSlug(p.Name)
 	}
 
-	// Ensure slug uniqueness
+	// Ensure slug uniqueness (only among non-deleted projects)
 	baseSlug := p.Slug
 	counter := 1
 	for {
 		var exists bool
-		err := r.db.db.QueryRow(`SELECT EXISTS(SELECT 1 FROM projects WHERE slug = ?)`, p.Slug).Scan(&exists)
+		err := r.db.db.QueryRow(`SELECT EXISTS(SELECT 1 FROM projects WHERE slug = ? AND deleted_at IS NULL)`, p.Slug).Scan(&exists)
 		if err != nil {
 			return err
 		}
@@ -67,10 +67,10 @@ func (r *ProjectRepository) Create(p *domain.Project) error {
 func (r *ProjectRepository) Update(p *domain.Project) error {
 	p.UpdatedAt = time.Now()
 
-	// Check slug uniqueness (excluding current project)
+	// Check slug uniqueness (excluding current project and deleted projects)
 	if p.Slug != "" {
 		var exists bool
-		err := r.db.db.QueryRow(`SELECT EXISTS(SELECT 1 FROM projects WHERE slug = ? AND id != ?)`, p.Slug, p.ID).Scan(&exists)
+		err := r.db.db.QueryRow(`SELECT EXISTS(SELECT 1 FROM projects WHERE slug = ? AND id != ? AND deleted_at IS NULL)`, p.Slug, p.ID).Scan(&exists)
 		if err != nil {
 			return err
 		}
