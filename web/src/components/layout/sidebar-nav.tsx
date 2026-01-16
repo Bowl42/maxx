@@ -19,6 +19,7 @@ import {
   SidebarFooter,
   SidebarHeader,
   SidebarMenuBadge,
+  SidebarMenuButton,
   SidebarMenuItem,
   SidebarTrigger,
 } from '@/components/ui/sidebar'
@@ -57,12 +58,11 @@ function RequestsNavItem() {
 
   return (
     <SidebarMenuItem>
-      <NavLink
-        to="/requests"
-        data-size="lg"
-        className={({ isActive: linkIsActive }) =>
-          `ring-sidebar-ring hover:bg-sidebar-accent hover:text-sidebar-accent-foreground active:bg-sidebar-accent active:text-sidebar-accent-foreground gap-2 rounded-md p-2 text-left text-sm transition-[width,height,padding] group-has-data-[sidebar=menu-action]/menu-item:pr-8 group-data-[collapsible=icon]:size-8! group-data-[collapsible=icon]:p-2! focus-visible:ring-2 peer/menu-button flex w-full items-center overflow-hidden outline-hidden group/menu-button disabled:pointer-events-none disabled:opacity-50 aria-disabled:pointer-events-none aria-disabled:opacity-50 [&>span:last-child]:truncate [&_svg]:size-4 [&_svg]:shrink-0 h-12 group-data-[collapsible=icon]:p-0! relative min-w-8 duration-200 ease-linear ${isActive || linkIsActive ? 'bg-sidebar-primary! text-sidebar-primary-foreground! font-medium' : ''}`
-        }
+      <SidebarMenuButton
+        render={<NavLink to="/requests" />}
+        isActive={isActive}
+        tooltip={t('requests.title')}
+        className="relative"
       >
         {/* Marquee 背景动画 (仅在有 streaming 请求且未激活时显示) */}
         {total > 0 && !isActive && (
@@ -72,10 +72,8 @@ function RequestsNavItem() {
           />
         )}
         <Activity className="relative z-10" />
-        <span className="relative z-10 group-data-[collapsible=icon]:hidden">
-          {t('requests.title')}
-        </span>
-      </NavLink>
+        <span className="relative z-10">{t('requests.title')}</span>
+      </SidebarMenuButton>
       {total > 0 && (
         <SidebarMenuBadge>
           <StreamingBadge count={total} color={color} />
@@ -87,8 +85,7 @@ function RequestsNavItem() {
 
 export function SidebarNav() {
   const { t } = useTranslation()
-  const versionDisplay =
-    `v${__APP_VERSION__}`
+  const versionDisplay = `v${__APP_VERSION__}`
   return (
     <Sidebar collapsible="icon">
       <SidebarHeader>

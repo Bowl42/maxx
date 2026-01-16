@@ -14,6 +14,7 @@ import {
   SidebarGroupContent,
   SidebarGroupLabel,
   SidebarMenu,
+  SidebarMenuButton,
   SidebarMenuItem,
   SidebarMenuBadge,
 } from '@/components/ui/sidebar'
@@ -28,12 +29,11 @@ function ClientNavItem({ clientType }: { clientType: ClientType }) {
 
   return (
     <SidebarMenuItem>
-      <NavLink
-        to={`/routes/${clientType}`}
-        data-size="lg"
-        className={({ isActive: linkIsActive }) =>
-          `ring-sidebar-ring hover:bg-sidebar-accent hover:text-sidebar-accent-foreground active:bg-sidebar-accent active:text-sidebar-accent-foreground gap-2 rounded-md p-2 text-left text-sm transition-[width,height,padding] group-has-data-[sidebar=menu-action]/menu-item:pr-8 group-data-[collapsible=icon]:size-8! group-data-[collapsible=icon]:p-2! focus-visible:ring-2 peer/menu-button flex w-full items-center overflow-hidden outline-hidden group/menu-button disabled:pointer-events-none disabled:opacity-50 aria-disabled:pointer-events-none aria-disabled:opacity-50 [&>span:last-child]:truncate [&_svg]:size-4 [&_svg]:shrink-0 h-12 group-data-[collapsible=icon]:p-0! relative overflow-hidden group-data-[collapsible=icon]:justify-center ${isActive || linkIsActive ? 'bg-sidebar-accent text-sidebar-accent-foreground font-medium' : ''}`
-        }
+      <SidebarMenuButton
+        render={<NavLink to={`/routes/${clientType}`} />}
+        isActive={isActive}
+        tooltip={clientName}
+        className="relative overflow-hidden"
       >
         {/* Marquee 背景动画 (仅在有 streaming 请求且未激活时显示) */}
         {streamingCount > 0 && !isActive && (
@@ -43,8 +43,8 @@ function ClientNavItem({ clientType }: { clientType: ClientType }) {
           />
         )}
         <ClientIcon type={clientType} size={18} className="relative z-10" />
-        <span className="relative z-10 group-data-[collapsible=icon]:hidden">{clientName}</span>
-      </NavLink>
+        <span className="relative z-10">{clientName}</span>
+      </SidebarMenuButton>
       {streamingCount > 0 && (
         <SidebarMenuBadge>
           <StreamingBadge count={streamingCount} color={color} />
