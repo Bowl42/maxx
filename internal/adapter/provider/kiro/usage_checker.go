@@ -12,26 +12,43 @@ import (
 const (
 	// GetUsageLimitsURL 获取使用限制的 API URL
 	GetUsageLimitsURL = "https://codewhisperer.us-east-1.amazonaws.com/getUsageLimits"
-
-	// UsageCacheTTL usage 缓存有效期（5 分钟）
-	// 参考 kiro-account-manager: 减少 API 调用频率，降低被检测风险
-	UsageCacheTTL = 5 * time.Minute
 )
 
-// CheckUsageLimits 检查 token 的使用限制（带缓存）
-// 匹配 kiro2api/auth/usage_checker.go:27-86
-// 优化：添加 5 分钟缓存，减少 API 调用频率（参考 kiro-account-manager）
-func (a *KiroAdapter) CheckUsageLimits(ctx context.Context) (*UsageLimits, error) {
-	// 检查缓存
+// GetCachedUsage 获取缓存的 usage 数据（不会触发 API 调用）
+// 如果没有缓存，返回 nil
+func (a *KiroAdapter) GetCachedUsage() *UsageLimits {
 	a.usageMu.RLock()
-	if a.usageCache.UsageLimits != nil && time.Now().Before(a.usageCache.ExpiresAt) {
-		cached := a.usageCache.UsageLimits
-		a.usageMu.RUnlock()
-		return cached, nil
-	}
-	a.usageMu.RUnlock()
+	defer a.usageMu.RUnlock()
 
-	// 缓存过期，重新获取
+	if a.usageCache == nil || a.usageCache.UsageLimits == nil {
+		return nil
+	}
+	return a.usageCache.UsageLimits
+}
+
+// GetCachedUsageInfo 获取缓存的简化额度信息（不会触发 API 调用）
+func (a *KiroAdapter) GetCachedUsageInfo() *UsageInfo {
+	limits := a.GetCachedUsage()
+	if limits == nil {
+		return nil
+	}
+	return CalculateUsageInfo(limits)
+}
+
+// GetUsageCacheTime 获取缓存时间（用于前端显示"上次更新时间"）
+func (a *KiroAdapter) GetUsageCacheTime() *time.Time {
+	a.usageMu.RLock()
+	defer a.usageMu.RUnlock()
+
+	if a.usageCache == nil || a.usageCache.UsageLimits == nil {
+		return nil
+	}
+	return &a.usageCache.CachedAt
+}
+
+// RefreshUsage 手动刷新 usage（唯一会调用 API 的方法）
+// 只在用户主动点击刷新时调用，平时不会自动调用
+func (a *KiroAdapter) RefreshUsage(ctx context.Context) (*UsageLimits, error) {
 	limits, err := a.fetchUsageLimits(ctx)
 	if err != nil {
 		return nil, err
@@ -42,14 +59,13 @@ func (a *KiroAdapter) CheckUsageLimits(ctx context.Context) (*UsageLimits, error
 	a.usageCache = &UsageCache{
 		UsageLimits: limits,
 		CachedAt:    time.Now(),
-		ExpiresAt:   time.Now().Add(UsageCacheTTL),
 	}
 	a.usageMu.Unlock()
 
 	return limits, nil
 }
 
-// fetchUsageLimits 实际获取 usage limits（不带缓存）
+// fetchUsageLimits 实际获取 usage limits（内部方法）
 func (a *KiroAdapter) fetchUsageLimits(ctx context.Context) (*UsageLimits, error) {
 	// 获取 access token
 	accessToken, err := a.getAccessToken(ctx)
@@ -106,38 +122,22 @@ func (a *KiroAdapter) fetchUsageLimits(ctx context.Context) (*UsageLimits, error
 	return &usageLimits, nil
 }
 
-// GetUsageInfo 获取简化的额度信息
-func (a *KiroAdapter) GetUsageInfo(ctx context.Context) (*UsageInfo, error) {
-	limits, err := a.CheckUsageLimits(ctx)
+// GetUsageInfo 获取简化的额度信息（使用缓存，不触发 API）
+func (a *KiroAdapter) GetUsageInfo() *UsageInfo {
+	return a.GetCachedUsageInfo()
+}
+
+// RefreshUsageInfo 手动刷新并获取简化的额度信息
+func (a *KiroAdapter) RefreshUsageInfo(ctx context.Context) (*UsageInfo, error) {
+	limits, err := a.RefreshUsage(ctx)
 	if err != nil {
 		return nil, err
 	}
-
 	return CalculateUsageInfo(limits), nil
 }
 
-// RefreshUsageCache 强制刷新 usage 缓存（用于手动刷新）
-// 参考 kiro-account-manager: 分离快速刷新（只刷新 token）和完整刷新（token + usage）
-func (a *KiroAdapter) RefreshUsageCache(ctx context.Context) (*UsageLimits, error) {
-	limits, err := a.fetchUsageLimits(ctx)
-	if err != nil {
-		return nil, err
-	}
-
-	// 更新缓存
-	a.usageMu.Lock()
-	a.usageCache = &UsageCache{
-		UsageLimits: limits,
-		CachedAt:    time.Now(),
-		ExpiresAt:   time.Now().Add(UsageCacheTTL),
-	}
-	a.usageMu.Unlock()
-
-	return limits, nil
-}
-
-// InvalidateUsageCache 清除 usage 缓存
-func (a *KiroAdapter) InvalidateUsageCache() {
+// ClearUsageCache 清除 usage 缓存
+func (a *KiroAdapter) ClearUsageCache() {
 	a.usageMu.Lock()
 	a.usageCache = &UsageCache{}
 	a.usageMu.Unlock()

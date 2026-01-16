@@ -28,11 +28,10 @@ type TokenCache struct {
 	ExpiresAt   time.Time
 }
 
-// UsageCache caches usage limits to reduce API calls
+// UsageCache caches usage limits (only updated on manual refresh)
 type UsageCache struct {
 	UsageLimits *UsageLimits
 	CachedAt    time.Time
-	ExpiresAt   time.Time
 }
 
 // KiroAdapter handles communication with AWS CodeWhisperer/Q Developer
