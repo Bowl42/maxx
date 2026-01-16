@@ -58,22 +58,44 @@ func (m *TokenAuthMiddleware) IsEnabled() bool {
 }
 
 // ExtractToken extracts the token from the request based on client type
+// First tries the primary header for the client type, then falls back to other headers
 func (m *TokenAuthMiddleware) ExtractToken(req *http.Request, clientType domain.ClientType) string {
+	// Try primary header based on client type first
 	switch clientType {
 	case domain.ClientTypeClaude:
-		// Claude uses x-api-key header
-		return req.Header.Get("x-api-key")
+		if token := req.Header.Get("x-api-key"); token != "" {
+			return token
+		}
 	case domain.ClientTypeOpenAI, domain.ClientTypeCodex:
-		// OpenAI/Codex uses Authorization: Bearer <token> (case-insensitive)
-		auth := req.Header.Get("Authorization")
+		if auth := req.Header.Get("Authorization"); auth != "" {
+			if parts := strings.Fields(auth); len(parts) == 2 && strings.EqualFold(parts[0], "Bearer") {
+				return parts[1]
+			}
+		}
+	case domain.ClientTypeGemini:
+		if token := req.Header.Get("x-goog-api-key"); token != "" {
+			return token
+		}
+	}
+
+	// Fallback: try all headers
+	// Authorization: Bearer <token>
+	if auth := req.Header.Get("Authorization"); auth != "" {
 		if parts := strings.Fields(auth); len(parts) == 2 && strings.EqualFold(parts[0], "Bearer") {
 			return parts[1]
 		}
-		return ""
-	case domain.ClientTypeGemini:
-		// Gemini uses x-goog-api-key header
-		return req.Header.Get("x-goog-api-key")
 	}
+
+	// x-api-key (Claude style)
+	if token := req.Header.Get("x-api-key"); token != "" {
+		return token
+	}
+
+	// x-goog-api-key (Gemini style)
+	if token := req.Header.Get("x-goog-api-key"); token != "" {
+		return token
+	}
+
 	return ""
 }
 
@@ -84,7 +106,7 @@ func (m *TokenAuthMiddleware) ValidateRequest(req *http.Request, clientType doma
 		return nil, nil // Auth disabled, allow all
 	}
 
-	// Extract token based on client type
+	// Extract token based on client type, with fallback to other headers
 	token := m.ExtractToken(req, clientType)
 	token = strings.TrimSpace(token)
 

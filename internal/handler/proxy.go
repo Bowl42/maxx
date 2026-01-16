@@ -76,7 +76,7 @@ func (h *ProxyHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Token authentication (needs clientType to determine which header to extract from)
+	// Token authentication (uses clientType for primary header, with fallback)
 	var apiToken *domain.APIToken
 	var apiTokenID uint64
 	if h.tokenAuth != nil {
