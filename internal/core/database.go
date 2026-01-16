@@ -3,6 +3,7 @@ package core
 import (
 	"log"
 	"os"
+	"strconv"
 	"time"
 
 	"github.com/awsl-project/maxx/internal/adapter/client"
@@ -203,6 +204,9 @@ func InitializeServerComponents(
 		}
 	}()
 
+	log.Printf("[Core] Starting request cleanup goroutine")
+	go startRequestCleanup(repos)
+
 	log.Printf("[Core] Creating WebSocket hub")
 	wsHub := handler.NewWebSocketHub()
 
@@ -307,4 +311,76 @@ func CloseDatabase(repos *DatabaseRepos) error {
 		return repos.DB.Close()
 	}
 	return nil
+}
+
+// startRequestCleanup 启动请求记录清理后台任务
+func startRequestCleanup(repos *DatabaseRepos) {
+	// 启动时先执行一次清理
+	cleanupRequests(repos)
+
+	// 每小时执行一次清理
+	ticker := time.NewTicker(1 * time.Hour)
+	defer ticker.Stop()
+
+	for range ticker.C {
+		cleanupRequests(repos)
+	}
+}
+
+// cleanupRequests 执行请求记录清理
+func cleanupRequests(repos *DatabaseRepos) {
+	// 读取保留天数设置
+	retentionDaysStr, _ := repos.SettingRepo.Get(domain.SettingKeyRequestRetentionDays)
+	retentionDays := 7 // 默认 7 天
+	if retentionDaysStr != "" {
+		if days, err := parseIntSetting(retentionDaysStr); err == nil {
+			retentionDays = days
+		}
+	}
+
+	// 读取最大条数设置
+	maxCountStr, _ := repos.SettingRepo.Get(domain.SettingKeyRequestMaxCount)
+	maxCount := int64(10000) // 默认 10000 条
+	if maxCountStr != "" {
+		if count, err := parseIntSetting(maxCountStr); err == nil {
+			maxCount = int64(count)
+		}
+	}
+
+	var totalDeleted int64
+
+	// 按天数清理
+	if retentionDays > 0 {
+		before := time.Now().AddDate(0, 0, -retentionDays)
+		deleted, err := repos.ProxyRequestRepo.DeleteOlderThan(before)
+		if err != nil {
+			log.Printf("[Core] Request cleanup by days failed: %v", err)
+		} else if deleted > 0 {
+			totalDeleted += deleted
+			log.Printf("[Core] Request cleanup: deleted %d records older than %d days", deleted, retentionDays)
+		}
+	}
+
+	// 按条数清理
+	if maxCount > 0 {
+		deleted, err := repos.ProxyRequestRepo.DeleteExceedingCount(maxCount)
+		if err != nil {
+			log.Printf("[Core] Request cleanup by count failed: %v", err)
+		} else if deleted > 0 {
+			totalDeleted += deleted
+			log.Printf("[Core] Request cleanup: deleted %d records exceeding %d limit", deleted, maxCount)
+		}
+	}
+
+	// 如果删除较多记录，执行增量 VACUUM 压缩数据库
+	if totalDeleted > 1000 {
+		if _, err := repos.DB.Exec("PRAGMA incremental_vacuum(100)"); err != nil {
+			log.Printf("[Core] Database incremental vacuum failed: %v", err)
+		}
+	}
+}
+
+// parseIntSetting 解析整数设置
+func parseIntSetting(s string) (int, error) {
+	return strconv.Atoi(s)
 }

@@ -287,3 +287,106 @@ func (r *ProxyRequestRepository) UpdateProjectIDBySessionID(sessionID string, pr
 	}
 	return result.RowsAffected()
 }
+
+// DeleteOlderThan 删除指定时间之前的请求记录
+// 同时删除关联的 proxy_upstream_attempts 记录
+func (r *ProxyRequestRepository) DeleteOlderThan(before time.Time) (int64, error) {
+	// 先删除关联的 attempts
+	_, err := r.db.db.Exec(
+		`DELETE FROM proxy_upstream_attempts WHERE proxy_request_id IN (
+			SELECT id FROM proxy_requests WHERE created_at < ?
+		)`,
+		before,
+	)
+	if err != nil {
+		return 0, err
+	}
+
+	// 再删除 requests
+	result, err := r.db.db.Exec(
+		`DELETE FROM proxy_requests WHERE created_at < ?`,
+		before,
+	)
+	if err != nil {
+		return 0, err
+	}
+
+	affected, err := result.RowsAffected()
+	if err != nil {
+		return 0, err
+	}
+
+	// 更新计数缓存
+	if affected > 0 {
+		atomic.AddInt64(&r.count, -affected)
+	}
+
+	return affected, nil
+}
+
+// DeleteExceedingCount 删除超出指定条数的旧记录（分批处理）
+// 保留最新的 maxCount 条记录，删除其余的
+func (r *ProxyRequestRepository) DeleteExceedingCount(maxCount int64) (int64, error) {
+	const batchSize int64 = 1000 // 每批删除 1000 条
+
+	var totalDeleted int64
+	for {
+		currentCount := atomic.LoadInt64(&r.count)
+		if currentCount <= maxCount {
+			break
+		}
+
+		// 每次最多删除 batchSize 条
+		toDelete := currentCount - maxCount
+		if toDelete > batchSize {
+			toDelete = batchSize
+		}
+
+		deleted, err := r.deleteBatch(toDelete)
+		if err != nil {
+			return totalDeleted, err
+		}
+		if deleted == 0 {
+			break
+		}
+		totalDeleted += deleted
+	}
+	return totalDeleted, nil
+}
+
+// deleteBatch 删除指定数量的最旧记录
+func (r *ProxyRequestRepository) deleteBatch(count int64) (int64, error) {
+	// 先删除关联的 attempts
+	_, err := r.db.db.Exec(
+		`DELETE FROM proxy_upstream_attempts WHERE proxy_request_id IN (
+			SELECT id FROM proxy_requests ORDER BY id ASC LIMIT ?
+		)`,
+		count,
+	)
+	if err != nil {
+		return 0, err
+	}
+
+	// 删除最旧的记录
+	result, err := r.db.db.Exec(
+		`DELETE FROM proxy_requests WHERE id IN (
+			SELECT id FROM proxy_requests ORDER BY id ASC LIMIT ?
+		)`,
+		count,
+	)
+	if err != nil {
+		return 0, err
+	}
+
+	affected, err := result.RowsAffected()
+	if err != nil {
+		return 0, err
+	}
+
+	// 更新计数缓存
+	if affected > 0 {
+		atomic.AddInt64(&r.count, -affected)
+	}
+
+	return affected, nil
+}

@@ -34,6 +34,11 @@ func (d *DB) Close() error {
 	return d.db.Close()
 }
 
+// Exec 执行 SQL 语句
+func (d *DB) Exec(query string, args ...interface{}) (sql.Result, error) {
+	return d.db.Exec(query, args...)
+}
+
 func (d *DB) migrate() error {
 	schema := `
 	CREATE TABLE IF NOT EXISTS providers (

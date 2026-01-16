@@ -301,7 +301,13 @@
     "resetToPreset": "Reset to Preset",
     "modelMappingDesc": "Model name mapping rules, matched in order (higher priority first). Supports wildcard *, e.g., *sonnet* matches all sonnet variants",
     "matchPattern": "Match Pattern",
-    "targetModel": "Target Model"
+    "targetModel": "Target Model",
+    "requestCleanup": "Request Cleanup",
+    "requestCleanupDesc": "Automatically clean up old request records to reduce database size. Cleanup runs hourly.",
+    "retentionDays": "Retention Days",
+    "retentionDaysHint": "0 = no cleanup by days",
+    "maxCount": "Max Records",
+    "maxCountHint": "0 = no cleanup by count"
   },
   "clientRoutes": {
     "claude": "Claude",

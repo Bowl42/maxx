@@ -1,4 +1,4 @@
-import { Settings, Moon, Sun, Monitor, Laptop, FolderOpen, Zap, Plus, Trash2, ArrowRight, RotateCcw, GripVertical, Languages } from 'lucide-react'
+import { Settings, Moon, Sun, Monitor, Laptop, FolderOpen, Zap, Plus, Trash2, ArrowRight, RotateCcw, GripVertical, Languages, Database } from 'lucide-react'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors } from '@dnd-kit/core'
@@ -39,6 +39,7 @@ export function SettingsPage() {
           <AppearanceSection />
           <LanguageSection />
           <ForceProjectSection />
+          <RequestCleanupSection />
           <AntigravityModelMappingSection />
         </div>
       </div>
@@ -194,6 +195,85 @@ function ForceProjectSection() {
             <span className="text-xs text-muted-foreground">{t('settings.waitTimeoutRange')}</span>
           </div>
         )}
+      </CardContent>
+    </Card>
+  )
+}
+
+function RequestCleanupSection() {
+  const { data: settings, isLoading } = useSettings()
+  const updateSetting = useUpdateSetting()
+  const { t } = useTranslation()
+
+  const retentionDays = settings?.request_retention_days || '7'
+  const maxCount = settings?.request_max_count || '10000'
+
+  const handleRetentionDaysChange = async (value: string) => {
+    const numValue = parseInt(value, 10)
+    if (numValue >= 0 && numValue <= 365) {
+      await updateSetting.mutateAsync({
+        key: 'request_retention_days',
+        value: value,
+      })
+    }
+  }
+
+  const handleMaxCountChange = async (value: string) => {
+    const numValue = parseInt(value, 10)
+    if (numValue >= 0 && numValue <= 1000000) {
+      await updateSetting.mutateAsync({
+        key: 'request_max_count',
+        value: value,
+      })
+    }
+  }
+
+  if (isLoading) return null
+
+  return (
+    <Card className="border-border bg-card">
+      <CardHeader className="border-b border-border py-4">
+        <CardTitle className="text-base font-medium flex items-center gap-2">
+          <Database className="h-4 w-4 text-muted-foreground" />
+          {t('settings.requestCleanup')}
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="p-6 space-y-4">
+        <p className="text-xs text-muted-foreground">
+          {t('settings.requestCleanupDesc')}
+        </p>
+
+        <div className="flex items-center gap-6">
+          <label className="text-sm font-medium text-muted-foreground w-32 shrink-0">
+            {t('settings.retentionDays')}
+          </label>
+          <Input
+            type="number"
+            value={retentionDays}
+            onChange={e => handleRetentionDaysChange(e.target.value)}
+            className="w-24"
+            min={0}
+            max={365}
+            disabled={updateSetting.isPending}
+          />
+          <span className="text-xs text-muted-foreground">{t('settings.retentionDaysHint')}</span>
+        </div>
+
+        <div className="flex items-center gap-6">
+          <label className="text-sm font-medium text-muted-foreground w-32 shrink-0">
+            {t('settings.maxCount')}
+          </label>
+          <Input
+            type="number"
+            value={maxCount}
+            onChange={e => handleMaxCountChange(e.target.value)}
+            className="w-24"
+            min={0}
+            max={1000000}
+            disabled={updateSetting.isPending}
+          />
+          <span className="text-xs text-muted-foreground">{t('settings.maxCountHint')}</span>
+        </div>
       </CardContent>
     </Card>
   )

@@ -301,7 +301,13 @@
     "resetToPreset": "重置为预设",
     "modelMappingDesc": "模型名映射规则，按顺序匹配（越靠前优先级越高）。支持通配符 *，例如 *sonnet* 匹配所有 sonnet 变体",
     "matchPattern": "匹配模式",
-    "targetModel": "目标模型"
+    "targetModel": "目标模型",
+    "requestCleanup": "请求记录清理",
+    "requestCleanupDesc": "自动清理旧的请求记录以减少数据库大小。每小时执行一次清理。",
+    "retentionDays": "保留天数",
+    "retentionDaysHint": "0 = 不按天数清理",
+    "maxCount": "最大条数",
+    "maxCountHint": "0 = 不按条数清理"
   },
   "clientRoutes": {
     "claude": "Claude",

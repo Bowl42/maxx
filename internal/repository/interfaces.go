@@ -1,6 +1,10 @@
 package repository
 
-import "github.com/awsl-project/maxx/internal/domain"
+import (
+	"time"
+
+	"github.com/awsl-project/maxx/internal/domain"
+)
 
 type ProviderRepository interface {
 	Create(provider *domain.Provider) error
@@ -70,6 +74,10 @@ type ProxyRequestRepository interface {
 	// MarkStaleAsFailed marks all IN_PROGRESS/PENDING requests from other instances as FAILED
 	// Also marks requests that have been IN_PROGRESS for too long (> 30 minutes) as timed out
 	MarkStaleAsFailed(currentInstanceID string) (int64, error)
+	// DeleteOlderThan 删除指定时间之前的请求记录
+	DeleteOlderThan(before time.Time) (int64, error)
+	// DeleteExceedingCount 删除超出指定条数的旧记录
+	DeleteExceedingCount(maxCount int64) (int64, error)
 }
 
 type ProxyUpstreamAttemptRepository interface {
