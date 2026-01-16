@@ -21,8 +21,10 @@ type SelectionType =
   | { type: 'request' }
   | { type: 'attempt'; attemptId: number }
 
-function formatDuration(ms: number): string {
-  if (ms < 1000) return `${ms}ms`
+function formatDuration(ns: number): string {
+  // Convert nanoseconds to milliseconds
+  const ms = ns / 1_000_000
+  if (ms < 1000) return `${ms.toFixed(0)}ms`
   const seconds = ms / 1000
   if (seconds < 60) return `${seconds.toFixed(2)}s`
   const minutes = Math.floor(seconds / 60)
