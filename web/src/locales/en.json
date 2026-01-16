@@ -23,7 +23,19 @@
     "reset": "Reset",
     "import": "Import",
     "export": "Export",
-    "refresh": "Refresh"
+    "refresh": "Refresh",
+    "copy": "Copy",
+    "copied": "Copied",
+    "saving": "Saving...",
+    "saved": "Saved",
+    "clientType": "Client Type",
+    "default": "Default",
+    "deleting": "Deleting...",
+    "updating": "Updating...",
+    "day": "day",
+    "days": "days",
+    "global": "Global",
+    "initFailed": "Failed to Initialize"
   },
   "nav": {
     "dashboard": "Dashboard",
@@ -98,7 +110,21 @@
       "failed": "Failed",
       "cancelled": "Cancelled",
       "rejected": "Rejected"
-    }
+    },
+    "requestId": "Request #${id}",
+    "noRequestData": "No request data available",
+    "noResponseData": "No response data available",
+    "noAttempts": "No attempts available",
+    "tabs": {
+      "request": "Request",
+      "response": "Response",
+      "metadata": "Metadata"
+    },
+    "selectAttempt": "Select an attempt to view details",
+    "attemptId": "Attempt #${id}",
+    "compareHeaders": "Compare Headers - Client vs Upstream",
+    "compareBody": "Compare Body - Client vs Upstream",
+    "clientRequest": "Client Request"
   },
   "providers": {
     "title": "Providers",
@@ -123,7 +149,16 @@
     "manage": "Manage",
     "projectInfo": "Project Information",
     "slug": "Slug",
-    "slugPlaceholder": "project-slug"
+    "slugPlaceholder": "project-slug",
+    "information": "Project Information",
+    "proxyConfig": "Proxy Configuration",
+    "name": "Name",
+    "slugDesc": "Used in URLs and proxy paths",
+    "baseUrl": "Base URL:",
+    "updated": "Updated:",
+    "saveChanges": "Save Changes",
+    "copyUrl": "Copy URL",
+    "proxyConfigDesc": "Use this base URL to route requests through this project's configuration. The protocol (Claude, OpenAI, Gemini) is automatically detected."
   },
   "routes": {
     "title": "Global Routes",
@@ -137,7 +172,31 @@
     "id": "ID",
     "client": "Client",
     "provider": "Provider",
-    "position": "Position"
+    "position": "Position",
+    "form": {
+      "clientType": "Client Type",
+      "provider": "Provider",
+      "project": "Project",
+      "position": "Position (lower = higher priority)",
+      "modelMapping": "Model Mapping (Override)",
+      "enabled": "Enabled",
+      "selectProvider": "Select provider...",
+      "globalProjects": "Global (All Projects)",
+      "modelMappingHelp": "Route-level model mappings take priority over provider and global settings."
+    },
+    "modelMapping": {
+      "requestModel": "Request Model",
+      "mappedModel": "Mapped Model",
+      "addMapping": "Add Mapping"
+    },
+    "update": "Update",
+    "create": "Create",
+    "customRoutes": "Custom Routes",
+    "usingGlobalRoutes": "Using global routes",
+    "customRoutesDisabled": "Custom Routes Disabled",
+    "usingGlobalRoutesDesc": "{{client}} is currently using global routes. Toggle switch to enable project-specific routing for this client type.",
+    "routesConfigured_one": "1 route configured for this project",
+    "routesConfigured_other": "{{count}} routes configured for this project"
   },
   "console": {
     "title": "Console",
@@ -161,7 +220,16 @@
     "projectBinding": "Project Binding",
     "projectBindingHint": "Changing the project will also update all requests associated with this session.",
     "updatedRequests": "Updated {{count}} requests",
-    "updateFailed": "Failed to update session project"
+    "updateFailed": "Failed to update session project",
+    "projectSessions": "Project Sessions",
+    "id": "ID",
+    "clientType": "Client Type",
+    "created": "Created",
+    "selectProject": "Select Project",
+    "session": "Session",
+    "remaining": "Remaining",
+    "noProjectsAvailable": "No projects available. Please create a project first.",
+    "projectSelectionRequired": "Project Selection Required"
   },
   "retryConfigs": {
     "title": "Retry Policy",
@@ -203,7 +271,10 @@
     "addStrategy": "Add Strategy",
     "editStrategy": "Edit Strategy",
     "newStrategy": "New Strategy",
-    "deleteConfirm": "Are you sure you want to delete this strategy?"
+    "deleteConfirm": "Are you sure you want to delete this strategy?",
+    "weightedRandom": "Weighted Random",
+    "priority": "Priority",
+    "allStrategies": "All Strategies"
   },
   "settings": {
     "title": "Settings",
@@ -347,48 +418,6 @@
     "forceThawWarning": "Force thawing may cause requests to fail again if the root cause is not resolved.",
     "disabling": "Disabling..."
   },
-  "routes": {
-    "form": {
-      "clientType": "Client Type",
-      "provider": "Provider",
-      "project": "Project",
-      "position": "Position (lower = higher priority)",
-      "modelMapping": "Model Mapping (Override)",
-      "enabled": "Enabled",
-      "selectProvider": "Select provider...",
-      "globalProjects": "Global (All Projects)",
-    "modelMappingHelp": "Route-level model mappings take priority over provider and global settings."
-  },
-  "modelMapping": {
-    "requestModel": "Request Model",
-    "mappedModel": "Mapped Model",
-    "addMapping": "Add Mapping"
-  },
-    "update": "Update",
-    "create": "Create",
-    "customRoutes": "Custom Routes",
-    "usingGlobalRoutes": "Using global routes",
-    "customRoutesDisabled": "Custom Routes Disabled",
-    "usingGlobalRoutesDesc": "{{client}} is currently using global routes. Toggle switch to enable project-specific routing for this client type.",
-    "routesConfigured_one": "1 route configured for this project",
-    "routesConfigured_other": "{{count}} routes configured for this project"
-  },
-  "requests": {
-    "requestId": "Request #${id}",
-    "noRequestData": "No request data available",
-    "noResponseData": "No response data available",
-    "noAttempts": "No attempts available",
-    "tabs": {
-      "request": "Request",
-      "response": "Response",
-      "metadata": "Metadata"
-    },
-    "selectAttempt": "Select an attempt to view details",
-    "attemptId": "Attempt #${id}",
-    "compareHeaders": "Compare Headers - Client vs Upstream",
-    "compareBody": "Compare Body - Client vs Upstream",
-    "clientRequest": "Client Request"
-  },
   "models": {
     "searchPlaceholder": "Search or enter custom model...",
     "select": "Select Model"
@@ -408,38 +437,6 @@
     "toggleSidebar": "Toggle Sidebar",
     "close": "Close"
   },
-  "routingStrategies": {
-    "weightedRandom": "Weighted Random",
-    "priority": "Priority",
-    "allStrategies": "All Strategies"
-  },
-  "projects": {
-    "information": "Project Information",
-    "proxyConfig": "Proxy Configuration",
-    "slug": "Slug",
-    "name": "Name",
-    "slugPlaceholder": "project-slug",
-    "slugDesc": "Used in URLs and proxy paths",
-    "baseUrl": "Base URL:",
-    "created": "Created:",
-    "updated": "Updated:",
-    "saveChanges": "Save Changes",
-    "copyUrl": "Copy URL",
-    "proxyConfigDesc": "Use this base URL to route requests through this project's configuration. The protocol (Claude, OpenAI, Gemini) is automatically detected."
-  },
-  "sessions": {
-    "projectSessions": "Project Sessions",
-    "description": "Active sessions using this project's configuration",
-    "id": "ID",
-    "sessionId": "Session ID",
-    "clientType": "Client Type",
-    "created": "Created",
-    "selectProject": "Select Project",
-    "session": "Session",
-    "remaining": "Remaining",
-    "noProjectsAvailable": "No projects available. Please create a project first.",
-    "projectSelectionRequired": "Project Selection Required"
-  },
   "modelInput": {
     "selectOrEnter": "Select or enter model...",
     "searchOrEnter": "Search or enter custom model...",
@@ -450,19 +447,5 @@
     "pressToUse": "Press {{key}} to use custom model name",
     "toUseCustomModel": "use custom model name",
     "banned": "Banned"
-  },
-  "common": {
-    "copy": "Copy",
-    "copied": "Copied",
-    "saving": "Saving...",
-    "saved": "Saved",
-    "clientType": "Client Type",
-    "default": "Default",
-    "deleting": "Deleting...",
-    "updating": "Updating...",
-    "day": "day",
-    "days": "days",
-    "global": "Global",
-    "initFailed": "Failed to Initialize"
   }
 }

@@ -23,7 +23,19 @@
     "reset": "重置",
     "import": "导入",
     "export": "导出",
-    "refresh": "刷新"
+    "refresh": "刷新",
+    "copy": "复制",
+    "copied": "已复制",
+    "saving": "保存中...",
+    "saved": "已保存",
+    "clientType": "客户端类型",
+    "default": "默认",
+    "deleting": "删除中...",
+    "updating": "更新中...",
+    "day": "天",
+    "days": "天",
+    "global": "全局",
+    "initFailed": "初始化失败"
   },
   "nav": {
     "dashboard": "仪表板",
@@ -98,7 +110,21 @@
       "failed": "失败",
       "cancelled": "已取消",
       "rejected": "已拒绝"
-    }
+    },
+    "requestId": "请求 #${id}",
+    "noRequestData": "无请求数据",
+    "noResponseData": "无响应数据",
+    "noAttempts": "无可用尝试",
+    "tabs": {
+      "request": "请求",
+      "response": "响应",
+      "metadata": "元数据"
+    },
+    "selectAttempt": "选择一个尝试以查看详情",
+    "attemptId": "尝试 #${id}",
+    "compareHeaders": "比较标头 - 客户端 vs 上游",
+    "compareBody": "比较正文 - 客户端 vs 上流",
+    "clientRequest": "客户端请求"
   },
   "providers": {
     "title": "提供商",
@@ -123,7 +149,16 @@
     "manage": "管理",
     "projectInfo": "项目信息",
     "slug": "标识符",
-    "slugPlaceholder": "project-slug"
+    "slugPlaceholder": "project-slug",
+    "information": "项目信息",
+    "proxyConfig": "代理配置",
+    "name": "名称",
+    "slugDesc": "用于 URL 和代理路径",
+    "baseUrl": "基础 URL:",
+    "updated": "更新时间:",
+    "saveChanges": "保存更改",
+    "copyUrl": "复制 URL",
+    "proxyConfigDesc": "使用此基础 URL 通过此项目的配置路由请求。协议（Claude、OpenAI、Gemini）会自动检测。"
   },
   "routes": {
     "title": "全局路由",
@@ -137,7 +172,31 @@
     "id": "ID",
     "client": "客户端",
     "provider": "提供商",
-    "position": "位置"
+    "position": "位置",
+    "form": {
+      "clientType": "客户端类型",
+      "provider": "提供商",
+      "project": "项目",
+      "position": "位置 (数值越小优先级越高)",
+      "modelMapping": "模型映射 (覆盖)",
+      "enabled": "启用",
+      "selectProvider": "选择提供商...",
+      "globalProjects": "全局 (所有项目)",
+      "modelMappingHelp": "路由级别的模型映射优先级高于提供商和全局设置。"
+    },
+    "modelMapping": {
+      "requestModel": "请求模型",
+      "mappedModel": "映射模型",
+      "addMapping": "添加映射"
+    },
+    "update": "更新",
+    "create": "创建",
+    "customRoutes": "自定义路由",
+    "usingGlobalRoutes": "使用全局路由",
+    "customRoutesDisabled": "自定义路由已禁用",
+    "usingGlobalRoutesDesc": "{{client}} 当前正在使用全局路由。切换开关以为此客户端类型启用项目特定的路由。",
+    "routesConfigured_one": "为该项目配置了 1 条路由",
+    "routesConfigured_other": "为该项目配置了 {{count}} 条路由"
   },
   "console": {
     "title": "控制台",
@@ -161,7 +220,16 @@
     "projectBinding": "项目绑定",
     "projectBindingHint": "更改项目将同时更新与此会话关联的所有请求。",
     "updatedRequests": "已更新 {{count}} 个请求",
-    "updateFailed": "更新会话项目失败"
+    "updateFailed": "更新会话项目失败",
+    "projectSessions": "项目会话",
+    "id": "ID",
+    "clientType": "客户端类型",
+    "created": "创建时间",
+    "selectProject": "选择项目",
+    "session": "会话",
+    "remaining": "剩余",
+    "noProjectsAvailable": "没有可用的项目，请先创建项目",
+    "projectSelectionRequired": "需要选择项目"
   },
   "retryConfigs": {
     "title": "重试策略",
@@ -203,7 +271,10 @@
     "addStrategy": "添加策略",
     "editStrategy": "编辑策略",
     "newStrategy": "新建策略",
-    "deleteConfirm": "确定要删除此策略吗？"
+    "deleteConfirm": "确定要删除此策略吗？",
+    "weightedRandom": "加权随机",
+    "priority": "优先级",
+    "allStrategies": "所有策略"
   },
   "settings": {
     "title": "设置",
@@ -347,48 +418,6 @@
     "forceThawWarning": "强制解冻可能导致请求因根本原因未解决而再次失败。",
     "disabling": "禁用中..."
   },
-  "routes": {
-    "form": {
-      "clientType": "客户端类型",
-      "provider": "提供商",
-      "project": "项目",
-      "position": "位置 (数值越小优先级越高)",
-      "modelMapping": "模型映射 (覆盖)",
-      "enabled": "启用",
-      "selectProvider": "选择提供商...",
-      "globalProjects": "全局 (所有项目)",
-    "modelMappingHelp": "路由级别的模型映射优先级高于提供商和全局设置。"
-  },
-  "modelMapping": {
-    "requestModel": "请求模型",
-    "mappedModel": "映射模型",
-    "addMapping": "添加映射"
-  },
-    "update": "更新",
-    "create": "创建",
-    "customRoutes": "自定义路由",
-    "usingGlobalRoutes": "使用全局路由",
-    "customRoutesDisabled": "自定义路由已禁用",
-    "usingGlobalRoutesDesc": "{{client}} 当前正在使用全局路由。切换开关以为此客户端类型启用项目特定的路由。",
-    "routesConfigured_one": "为该项目配置了 1 条路由",
-    "routesConfigured_other": "为该项目配置了 {{count}} 条路由"
-  },
-  "requests": {
-    "requestId": "请求 #${id}",
-    "noRequestData": "无请求数据",
-    "noResponseData": "无响应数据",
-    "noAttempts": "无可用尝试",
-    "tabs": {
-      "request": "请求",
-      "response": "响应",
-      "metadata": "元数据"
-    },
-    "selectAttempt": "选择一个尝试以查看详情",
-    "attemptId": "尝试 #${id}",
-    "compareHeaders": "比较标头 - 客户端 vs 上游",
-    "compareBody": "比较正文 - 客户端 vs 上流",
-    "clientRequest": "客户端请求"
-  },
   "models": {
     "searchPlaceholder": "搜索或输入自定义模型...",
     "select": "选择模型"
@@ -408,38 +437,6 @@
     "toggleSidebar": "切换侧边栏",
     "close": "关闭"
   },
-  "routingStrategies": {
-    "weightedRandom": "加权随机",
-    "priority": "优先级",
-    "allStrategies": "所有策略"
-  },
-  "projects": {
-    "information": "项目信息",
-    "proxyConfig": "代理配置",
-    "slug": "标识符",
-    "name": "名称",
-    "slugPlaceholder": "project-slug",
-    "slugDesc": "用于 URL 和代理路径",
-    "baseUrl": "基础 URL:",
-    "created": "创建时间:",
-    "updated": "更新时间:",
-    "saveChanges": "保存更改",
-    "copyUrl": "复制 URL",
-    "proxyConfigDesc": "使用此基础 URL 通过此项目的配置路由请求。协议（Claude、OpenAI、Gemini）会自动检测。"
-  },
-  "sessions": {
-    "projectSessions": "项目会话",
-    "description": "使用此项目配置的活动会话",
-    "id": "ID",
-    "sessionId": "会话 ID",
-    "clientType": "客户端类型",
-    "created": "创建时间",
-    "selectProject": "选择项目",
-    "session": "会话",
-    "remaining": "剩余",
-    "noProjectsAvailable": "没有可用的项目，请先创建项目",
-    "projectSelectionRequired": "需要选择项目"
-  },
   "modelInput": {
     "selectOrEnter": "选择或输入模型...",
     "searchOrEnter": "搜索或输入自定义模型...",
@@ -449,19 +446,5 @@
     "noModelsAvailable": "无可用模型",
     "pressToUse": "按 {{key}} 使用自定义模型名称",
     "toUseCustomModel": "使用自定义模型名称"
-  },
-  "common": {
-    "copy": "复制",
-    "copied": "已复制",
-    "saving": "保存中...",
-    "saved": "已保存",
-    "clientType": "客户端类型",
-    "default": "默认",
-    "deleting": "删除中...",
-    "updating": "更新中...",
-    "day": "天",
-    "days": "天",
-    "global": "全局",
-    "initFailed": "初始化失败"
   }
 }
