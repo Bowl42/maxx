@@ -321,71 +321,50 @@ jobs:
           cat release-assets/latest.json
 
 
-      - name: Generate release body
-        run: |
-          TAG="${{ inputs.tag || github.ref_name }}"
-          VERSION=${TAG#v}
-          echo "Generating release body for Maxx v$VERSION"
-
-          cat > /tmp/release_body.md << 'EOF'
-          ## 🎉 Maxx - AI API Gateway & Proxy
-
-          ### 📦 下载说明
-
-          | 平台 | 文件 | 说明 |
-          |------|------|------|
-          | **Windows** | `maxx.exe` | 直接运行 |
-          | **macOS (ARM)** | `maxx-macOS-arm64.dmg` | Apple Silicon (M1/M2/M3) |
-          | **macOS (Intel)** | `maxx-macOS-amd64.dmg` | Intel 芯片 |
-          | **Linux** | `maxx` | 原生二进制 |
-
-          ### 🚀 使用说明
-
-          **Windows**
-          ```bash
-          # 直接运行
-          .\maxx.exe
-          ```
-
-          **macOS**
-          ```bash
-          # 打开 DMG 文件，拖拽 maxx.app 到 Applications 文件夹
-          open maxx-macOS-*.dmg
-          ```
-
-          **Linux**
-          ```bash
-          # 添加执行权限后运行
-          chmod +x maxx
-          ./maxx
-          ```
-
-          ### 🔒 文件校验
-          所有平台均提供 SHA256 校验文件（`.sha256`），下载后可验证完整性：
-          
-          ```bash
-          # Linux/macOS
-          sha256sum -c maxx.sha256
-          shasum -a 256 -c maxx-macOS-arm64.dmg.sha256
-
-          # Windows PowerShell
-          (Get-FileHash maxx.exe).Hash -eq (Get-Content maxx.exe.sha256).Split()[0]
-          ```
-
-          ### 📝 更新内容
-          请查看 [提交历史](https://github.com/${{ github.repository }}/commits) 了解详细更新。
-          EOF
-
-          echo "Generated release body:"
-          cat /tmp/release_body.md
-
-      - name: Create Release
+      - name: Upload Release Assets
         uses: softprops/action-gh-release@v1
         with:
           tag_name: ${{ inputs.tag || github.ref_name }}
           files: release-assets/*
-          body_path: /tmp/release_body.md
-          draft: false
-          prerelease: false
+          append_body: true
+          body: |
+
+            ---
+
+            ## 📦 下载说明
+
+            | 平台 | 文件 | 说明 |
+            |------|------|------|
+            | **Windows** | `maxx.exe` | 直接运行 |
+            | **macOS (ARM)** | `maxx-macOS-arm64.dmg` | Apple Silicon (M1/M2/M3) |
+            | **macOS (Intel)** | `maxx-macOS-amd64.dmg` | Intel 芯片 |
+            | **Linux** | `maxx` | 原生二进制 |
+
+            ### 🚀 使用说明
+
+            **Windows**
+            ```bash
+            .\maxx.exe
+            ```
+
+            **macOS**
+            ```bash
+            open maxx-macOS-*.dmg
+            # 拖拽 maxx.app 到 Applications 文件夹
+            ```
+
+            > ⚠️ 如果提示"应用已损坏"，请运行：
+            > ```bash
+            > sudo xattr -d com.apple.quarantine /Applications/maxx.app
+            > ```
+
+            **Linux**
+            ```bash
+            chmod +x maxx
+            ./maxx
+            ```
+
+            ### 🔒 文件校验
+            所有平台均提供 SHA256 校验文件（`.sha256`），下载后可验证完整性。
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
