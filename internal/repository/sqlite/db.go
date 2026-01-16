@@ -291,7 +291,7 @@ func (d *DB) migrate() error {
 // runMigrations runs all pending migrations based on schema version
 func (d *DB) runMigrations() error {
 	// Current schema version - increment when adding new migrations
-	const currentVersion = 13
+	const currentVersion = 15
 
 	// Get stored version
 	var storedVersion int
@@ -336,6 +336,8 @@ func (d *DB) runMigrations() error {
 		{11, "AddProviderTypeToModelMappings", d.migration011AddProviderTypeToModelMappings},
 		{12, "SeedModelMappingsV2", d.migration012SeedModelMappingsV2},
 		{13, "AddDeletedAtToProjects", d.migration013AddDeletedAtToProjects},
+		{14, "AddDeletedAtToProviders", d.migration014AddDeletedAtToProviders},
+		{15, "AddDeletedAtToAPITokens", d.migration015AddDeletedAtToAPITokens},
 	}
 
 	for _, m := range migrations {
@@ -694,6 +696,30 @@ func (d *DB) migration013AddDeletedAtToProjects() error {
 	d.db.QueryRow(`SELECT COUNT(*) FROM pragma_table_info('projects') WHERE name='deleted_at'`).Scan(&has)
 	if !has {
 		_, err := d.db.Exec(`ALTER TABLE projects ADD COLUMN deleted_at DATETIME`)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (d *DB) migration014AddDeletedAtToProviders() error {
+	var has bool
+	d.db.QueryRow(`SELECT COUNT(*) FROM pragma_table_info('providers') WHERE name='deleted_at'`).Scan(&has)
+	if !has {
+		_, err := d.db.Exec(`ALTER TABLE providers ADD COLUMN deleted_at DATETIME`)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (d *DB) migration015AddDeletedAtToAPITokens() error {
+	var has bool
+	d.db.QueryRow(`SELECT COUNT(*) FROM pragma_table_info('api_tokens') WHERE name='deleted_at'`).Scan(&has)
+	if !has {
+		_, err := d.db.Exec(`ALTER TABLE api_tokens ADD COLUMN deleted_at DATETIME`)
 		if err != nil {
 			return err
 		}
