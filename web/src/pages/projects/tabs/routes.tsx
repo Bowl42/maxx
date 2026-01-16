@@ -44,14 +44,14 @@ function ProjectClientTypeWrapper({
   return (
     <div className="flex flex-col h-full">
       {/* Header with Toggle */}
-      <div className="flex items-center justify-between px-lg py-4 border-b border-border bg-surface-primary">
+      <div className="flex items-center justify-between px-lg py-4 border-b border-border bg-card">
         <div className="flex items-center gap-4">
           <ClientIcon type={clientType} size={32} />
           <div>
-            <h2 className="text-lg font-semibold text-text-primary">
+            <h2 className="text-lg font-semibold text-foreground">
               {getClientName(clientType)}
             </h2>
-            <p className="text-xs text-text-muted">
+            <p className="text-xs text-muted-foreground">
               {isCustomRoutesEnabled
                 ? `${projectRoutes.filter(r => r.clientType === clientType).length} route${
                     projectRoutes.filter(r => r.clientType === clientType)
@@ -64,7 +64,7 @@ function ProjectClientTypeWrapper({
           </div>
         </div>
         <div className="flex items-center gap-3">
-          <span className="text-sm text-text-secondary">Custom Routes</span>
+          <span className="text-sm text-muted-foreground">Custom Routes</span>
           <Switch
             checked={isCustomRoutesEnabled}
             onCheckedChange={onToggleCustomRoutes}
@@ -75,14 +75,14 @@ function ProjectClientTypeWrapper({
       {/* Content */}
       {!isCustomRoutesEnabled ? (
         <div className="flex-1 flex flex-col items-center justify-center py-24 text-center space-y-6 px-lg">
-          <div className="p-6 rounded-full bg-surface-secondary/50">
+          <div className="p-6 rounded-full bg-muted/50">
             <ClientIcon type={clientType} size={48} className="opacity-30" />
           </div>
           <div className="space-y-3">
-            <h3 className="text-lg font-semibold text-text-primary">
+            <h3 className="text-lg font-semibold text-foreground">
               Custom Routes Disabled
             </h3>
-            <p className="text-sm text-text-secondary leading-relaxed">
+            <p className="text-sm text-muted-foreground leading-relaxed">
               {getClientName(clientType)} is currently using global routes.
               Toggle the switch above to enable project-specific routing for
               this client type.
@@ -176,7 +176,7 @@ export function RoutesTab({ project }: RoutesTabProps) {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-full p-6">
-        <div className="text-text-muted">Loading...</div>
+        <div className="text-muted-foreground">Loading...</div>
       </div>
     )
   }
@@ -184,7 +184,7 @@ export function RoutesTab({ project }: RoutesTabProps) {
   return (
     <div className="flex flex-col h-full overflow-hidden">
       {/* ClientType Tabs */}
-      <div className="flex items-center gap-2 px-lg py-4 border-b border-border bg-surface-primary shrink-0">
+      <div className="flex items-center gap-2 px-lg py-4 border-b border-border bg-card shrink-0">
         {CLIENT_TYPES.map(clientType => {
           const isActive = activeClientType === clientType
           const routeCount = getRouteCount(clientType)
@@ -199,7 +199,7 @@ export function RoutesTab({ project }: RoutesTabProps) {
                 'relative flex items-center gap-2 px-4 py-2 rounded-lg transition-all',
                 isActive
                   ? 'bg-accent/10 text-accent border border-accent/20'
-                  : 'bg-surface-secondary text-text-secondary hover:bg-surface-hover border border-transparent'
+                  : 'bg-muted text-muted-foreground hover:bg-accent border border-transparent'
               )}
             >
               <ClientIcon type={clientType} size={16} />
@@ -207,7 +207,7 @@ export function RoutesTab({ project }: RoutesTabProps) {
                 {getClientName(clientType)}
               </span>
               {routeCount > 0 && (
-                <span className="text-[10px] font-mono text-text-muted">
+                <span className="text-[10px] font-mono text-muted-foreground">
                   {routeCount}
                 </span>
               )}

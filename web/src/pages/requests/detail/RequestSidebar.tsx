@@ -32,7 +32,7 @@ function getStatusIcon(status: string) {
     case 'IN_PROGRESS':
       return <Loader2 className="h-4 w-4 text-info animate-spin" />
     default:
-      return <Clock className="h-4 w-4 text-text-muted" />
+      return <Clock className="h-4 w-4 text-muted-foreground" />
   }
 }
 
@@ -44,7 +44,7 @@ function EmptyState({
   icon?: React.ReactNode
 }) {
   return (
-    <div className="flex flex-col items-center justify-center h-full text-text-muted p-12 text-center select-none">
+    <div className="flex flex-col items-center justify-center h-full text-muted-foreground p-12 text-center select-none">
       {icon || <Server className="h-12 w-12 mb-3 opacity-10" />}
       <p className="text-sm font-medium">{message}</p>
     </div>
@@ -71,11 +71,11 @@ export function RequestSidebar({
   routeMap,
 }: RequestSidebarProps) {
   return (
-    <div className="flex flex-col h-full bg-surface-primary min-w-0">
+    <div className="flex flex-col h-full bg-card min-w-0">
       {/* Request Section */}
       <div className="shrink-0">
-        <div className="h-10 px-4 border-b border-border bg-surface-secondary/50 flex items-center">
-          <span className="text-xs font-semibold text-text-secondary uppercase tracking-wider flex items-center gap-2">
+        <div className="h-10 px-4 border-b border-border bg-muted/50 flex items-center">
+          <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-2">
             <FileInput size={12} /> Client Request
           </span>
         </div>
@@ -86,7 +86,7 @@ export function RequestSidebar({
             'w-full text-left p-3.5 transition-all outline-none border-l-[3px] border-b border-border',
             selection.type === 'request'
               ? 'bg-accent/5 border-l-accent'
-              : 'border-l-transparent hover:bg-surface-secondary/50'
+              : 'border-l-transparent hover:bg-muted/50'
           )}
         >
           <div className="flex items-center justify-between mb-1.5">
@@ -96,8 +96,8 @@ export function RequestSidebar({
                 className={cn(
                   'text-sm font-medium transition-colors',
                   selection.type === 'request'
-                    ? 'text-text-primary'
-                    : 'text-text-secondary'
+                    ? 'text-foreground'
+                    : 'text-muted-foreground'
                 )}
               >
                 {getClientName(request.clientType as ClientType)} Request
@@ -116,7 +116,7 @@ export function RequestSidebar({
               </span>
             )}
           </div>
-          <div className="flex items-center justify-between text-xs text-text-muted">
+          <div className="flex items-center justify-between text-xs text-muted-foreground">
             <span className="truncate max-w-[180px]">
               {request.requestModel}
             </span>
@@ -128,8 +128,8 @@ export function RequestSidebar({
       </div>
 
       {/* Attempts Section */}
-      <div className="h-10 px-4 border-b border-border bg-surface-secondary/50 flex items-center justify-between shrink-0">
-        <span className="text-xs font-semibold text-text-secondary uppercase tracking-wider flex items-center gap-2">
+      <div className="h-10 px-4 border-b border-border bg-muted/50 flex items-center justify-between shrink-0">
+        <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-2">
           <Server size={12} /> Upstream Attempts
         </span>
         <Badge variant="outline" className="text-[10px] h-5 px-1.5">
@@ -152,7 +152,7 @@ export function RequestSidebar({
                   selection.type === 'attempt' &&
                     selection.attemptId === attempt.id
                     ? 'bg-accent/5 border-l-accent'
-                    : 'border-l-transparent hover:bg-surface-secondary/50'
+                    : 'border-l-transparent hover:bg-muted/50'
                 )}
               >
                 <div className="flex items-center justify-between mb-1.5">
@@ -163,8 +163,8 @@ export function RequestSidebar({
                         'text-sm font-medium transition-colors',
                         selection.type === 'attempt' &&
                           selection.attemptId === attempt.id
-                          ? 'text-text-primary'
-                          : 'text-text-secondary group-hover:text-text-primary'
+                          ? 'text-foreground'
+                          : 'text-muted-foreground group-hover:text-foreground'
                       )}
                     >
                       Attempt {index + 1}
@@ -183,7 +183,7 @@ export function RequestSidebar({
                     </span>
                   )}
                 </div>
-                <div className="flex items-center justify-between text-xs text-text-muted">
+                <div className="flex items-center justify-between text-xs text-muted-foreground">
                   <span
                     className="flex items-center gap-1.5 truncate max-w-[140px]"
                     title={

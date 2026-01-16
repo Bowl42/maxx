@@ -80,8 +80,8 @@ const REASON_INFO: Record<
     label: '未知原因',
     description: '因未知原因进入冷却状态',
     icon: HelpCircle,
-    color: 'text-text-muted',
-    bgColor: 'bg-surface-secondary border-border',
+    color: 'text-muted-foreground',
+    bgColor: 'bg-muted border-border',
   },
 }
 
@@ -141,13 +141,13 @@ export function CooldownDetailsDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
         showCloseButton={false}
-        className="overflow-hidden p-0 w-full max-w-[28rem] bg-surface-primary"
+        className="overflow-hidden p-0 w-full max-w-[28rem] bg-card"
       >
         {/* Header with Gradient */}
         <div className="relative bg-gradient-to-b from-cyan-900/20 to-transparent p-6 pb-4">
           <button
             onClick={() => onOpenChange(false)}
-            className="absolute top-4 right-4 p-2 rounded-full hover:bg-surface-hover text-text-muted hover:text-text-primary transition-colors"
+            className="absolute top-4 right-4 p-2 rounded-full hover:bg-accent text-muted-foreground hover:text-foreground transition-colors"
           >
             <X size={18} />
           </button>
@@ -160,7 +160,7 @@ export function CooldownDetailsDialog({
               />
             </div>
             <div>
-              <h2 className="text-xl font-bold text-text-primary">
+              <h2 className="text-xl font-bold text-foreground">
                 冷却保护中
               </h2>
               <p className="text-xs text-cyan-500/80 font-medium uppercase tracking-wider mt-1">
@@ -173,19 +173,19 @@ export function CooldownDetailsDialog({
         {/* Body Content */}
         <div className="px-6 pb-6 space-y-5">
           {/* Provider Card */}
-          <div className="flex items-center gap-4 p-3 rounded-xl bg-surface-secondary border border-border">
+          <div className="flex items-center gap-4 p-3 rounded-xl bg-muted border border-border">
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2 mb-1">
-                <span className="text-[10px] font-bold text-text-muted uppercase tracking-wider">
+                <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">
                   Target Provider
                 </span>
                 {cooldown.clientType && (
-                  <span className="px-1.5 py-0.5 rounded text-[10px] font-mono bg-surface-hover text-text-secondary">
+                  <span className="px-1.5 py-0.5 rounded text-[10px] font-mono bg-accent text-muted-foreground">
                     {cooldown.clientType}
                   </span>
                 )}
               </div>
-              <div className="font-semibold text-text-primary truncate">
+              <div className="font-semibold text-foreground truncate">
                 Provider #{cooldown.providerID}
               </div>
             </div>
@@ -201,7 +201,7 @@ export function CooldownDetailsDialog({
                 <h3 className={`text-sm font-bold ${reasonInfo.color} mb-1`}>
                   {reasonInfo.label}
                 </h3>
-                <p className="text-xs text-text-secondary leading-relaxed">
+                <p className="text-xs text-muted-foreground leading-relaxed">
                   {reasonInfo.description}
                 </p>
               </div>
@@ -225,20 +225,20 @@ export function CooldownDetailsDialog({
             </div>
 
             {/* Time Details */}
-            <div className="p-3 rounded-xl bg-surface-secondary border border-border flex flex-col items-center justify-center gap-1">
-              <span className="text-[10px] text-text-muted uppercase tracking-wider font-bold flex items-center gap-1.5">
+            <div className="p-3 rounded-xl bg-muted border border-border flex flex-col items-center justify-center gap-1">
+              <span className="text-[10px] text-muted-foreground uppercase tracking-wider font-bold flex items-center gap-1.5">
                 <Clock size={10} /> Resume
               </span>
-              <div className="font-mono text-sm font-semibold text-text-primary">
+              <div className="font-mono text-sm font-semibold text-foreground">
                 {timePart}
               </div>
             </div>
 
-            <div className="p-3 rounded-xl bg-surface-secondary border border-border flex flex-col items-center justify-center gap-1">
-              <span className="text-[10px] text-text-muted uppercase tracking-wider font-bold flex items-center gap-1.5">
+            <div className="p-3 rounded-xl bg-muted border border-border flex flex-col items-center justify-center gap-1">
+              <span className="text-[10px] text-muted-foreground uppercase tracking-wider font-bold flex items-center gap-1.5">
                 <Calendar size={10} /> Date
               </span>
-              <div className="font-mono text-sm font-semibold text-text-primary">
+              <div className="font-mono text-sm font-semibold text-foreground">
                 {datePart}
               </div>
             </div>
@@ -252,7 +252,7 @@ export function CooldownDetailsDialog({
               className="w-full relative overflow-hidden rounded-xl p-[1px] group disabled:opacity-50 disabled:cursor-not-allowed transition-all hover:scale-[1.01] active:scale-[0.99]"
             >
               <span className="absolute inset-0 bg-gradient-to-r from-cyan-500 to-blue-600 rounded-xl" />
-              <div className="relative flex items-center justify-center gap-2 rounded-[11px] bg-surface-primary group-hover:bg-transparent px-4 py-3 transition-colors">
+              <div className="relative flex items-center justify-center gap-2 rounded-[11px] bg-card group-hover:bg-transparent px-4 py-3 transition-colors">
                 {isClearing ? (
                   <>
                     <div className="h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white" />
@@ -277,7 +277,7 @@ export function CooldownDetailsDialog({
             <button
               onClick={onDisable}
               disabled={isDisabling || isClearing}
-              className="w-full flex items-center justify-center gap-2 rounded-xl border border-border bg-surface-secondary hover:bg-surface-hover px-4 py-3 text-sm font-medium text-text-secondary transition-colors disabled:opacity-50"
+              className="w-full flex items-center justify-center gap-2 rounded-xl border border-border bg-muted hover:bg-accent px-4 py-3 text-sm font-medium text-muted-foreground transition-colors disabled:opacity-50"
             >
               {isDisabling ? (
                 <div className="h-3 w-3 animate-spin rounded-full border-2 border-current/30 border-t-current" />
@@ -287,7 +287,7 @@ export function CooldownDetailsDialog({
               {isDisabling ? 'Disabling...' : '禁用此路由 (Disable Route)'}
             </button>
 
-            <div className="flex items-start gap-2 rounded-lg bg-surface-secondary/50 p-2.5 text-[11px] text-text-muted">
+            <div className="flex items-start gap-2 rounded-lg bg-muted/50 p-2.5 text-[11px] text-muted-foreground">
               <Activity size={12} className="mt-0.5 shrink-0" />
               <p>强制解冻可能导致请求因根本原因未解决而再次失败。</p>
             </div>

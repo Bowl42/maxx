@@ -15,7 +15,7 @@ export function ClientRoutesPage() {
   return (
     <div className="flex flex-col h-full bg-background">
       {/* Header */}
-      <div className="h-[73px] flex items-center justify-between px-6 border-b border-border bg-surface-primary shrink-0">
+      <div className="h-[73px] flex items-center justify-between px-6 border-b border-border bg-card shrink-0">
         <div className="flex items-center gap-3">
           <div className="p-2 bg-accent/10 rounded-lg">
             <ClientIcon
@@ -25,10 +25,10 @@ export function ClientRoutesPage() {
             />
           </div>
           <div>
-            <h2 className="text-lg font-semibold text-text-primary leading-tight">
+            <h2 className="text-lg font-semibold text-foreground leading-tight">
               {getClientName(activeClientType)} Routes
             </h2>
-            <p className="text-xs text-text-secondary">
+            <p className="text-xs text-muted-foreground">
               Configure default routing for all projects
             </p>
           </div>

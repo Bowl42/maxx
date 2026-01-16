@@ -91,24 +91,24 @@ function ModelQuotaCard({ model }: { model: AntigravityModelQuota }) {
   const color = getQuotaColor(model.percentage)
 
   return (
-    <div className="bg-surface-primary border border-border rounded-xl p-4">
+    <div className="bg-card border border-border rounded-xl p-4">
       <div className="flex items-center justify-between mb-3">
-        <span className="font-medium text-text-primary text-sm">
+        <span className="font-medium text-foreground text-sm">
           {displayName}
         </span>
-        <span className="text-xs text-text-secondary flex items-center gap-1">
+        <span className="text-xs text-muted-foreground flex items-center gap-1">
           <Clock size={12} />
           {formatResetTime(model.resetTime)}
         </span>
       </div>
       <div className="flex items-center gap-3">
-        <div className="flex-1 h-2 bg-surface-hover rounded-full overflow-hidden">
+        <div className="flex-1 h-2 bg-accent rounded-full overflow-hidden">
           <div
             className={`h-full ${color} transition-all duration-300`}
             style={{ width: `${model.percentage}%` }}
           />
         </div>
-        <span className="text-sm font-medium text-text-primary min-w-[3rem] text-right">
+        <span className="text-sm font-medium text-foreground min-w-[3rem] text-right">
           {model.percentage}%
         </span>
       </div>
@@ -194,19 +194,19 @@ export function AntigravityProviderView({
 
   return (
     <div className="flex flex-col h-full">
-      <div className="h-[73px] flex items-center justify-between px-6 border-b border-border bg-surface-primary">
+      <div className="h-[73px] flex items-center justify-between px-6 border-b border-border bg-card">
         <div className="flex items-center gap-4">
           <button
             onClick={onClose}
-            className="p-1.5 -ml-1 rounded-lg hover:bg-surface-hover text-text-secondary hover:text-text-primary transition-colors"
+            className="p-1.5 -ml-1 rounded-lg hover:bg-accent text-muted-foreground hover:text-foreground transition-colors"
           >
             <ChevronLeft size={20} />
           </button>
           <div>
-            <h2 className="text-headline font-semibold text-text-primary">
+            <h2 className="text-headline font-semibold text-foreground">
               {provider.name}
             </h2>
-            <p className="text-caption text-text-secondary">
+            <p className="text-caption text-muted-foreground">
               Antigravity Provider
             </p>
           </div>
@@ -223,7 +223,7 @@ export function AntigravityProviderView({
       <div className="flex-1 overflow-y-auto p-6">
         <div className="mx-auto max-w-7xl space-y-8">
           {/* Info Card */}
-          <div className="bg-surface-secondary rounded-xl p-6 border border-border">
+          <div className="bg-muted rounded-xl p-6 border border-border">
             <div className="flex items-start justify-between gap-6">
               <div className="flex items-center gap-4">
                 <div
@@ -234,14 +234,14 @@ export function AntigravityProviderView({
                 </div>
                 <div>
                   <div className="flex items-center gap-3">
-                    <h3 className="text-xl font-bold text-text-primary">
+                    <h3 className="text-xl font-bold text-foreground">
                       {provider.name}
                     </h3>
                     {quota?.subscriptionTier && (
                       <SubscriptionBadge tier={quota.subscriptionTier} />
                     )}
                   </div>
-                  <div className="text-sm text-text-secondary flex items-center gap-1.5 mt-1">
+                  <div className="text-sm text-muted-foreground flex items-center gap-1.5 mt-1">
                     <Mail size={14} />
                     {provider.config?.antigravity?.email || 'Unknown'}
                   </div>
@@ -249,10 +249,10 @@ export function AntigravityProviderView({
               </div>
 
               <div className="flex flex-col items-end gap-1 text-right">
-                <div className="text-xs text-text-secondary uppercase tracking-wider font-semibold">
+                <div className="text-xs text-muted-foreground uppercase tracking-wider font-semibold">
                   Project ID
                 </div>
-                <div className="text-sm font-mono text-text-primary bg-surface-primary px-2 py-1 rounded border border-border/50">
+                <div className="text-sm font-mono text-foreground bg-card px-2 py-1 rounded border border-border/50">
                   {provider.config?.antigravity?.projectID || '-'}
                 </div>
               </div>
@@ -260,10 +260,10 @@ export function AntigravityProviderView({
 
             <div className="mt-6 pt-6 border-t border-border/50 grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <div className="text-xs text-text-secondary uppercase tracking-wider font-semibold mb-1.5">
+                <div className="text-xs text-muted-foreground uppercase tracking-wider font-semibold mb-1.5">
                   Endpoint
                 </div>
-                <div className="font-mono text-sm text-text-primary break-all">
+                <div className="font-mono text-sm text-foreground break-all">
                   {provider.config?.antigravity?.endpoint || '-'}
                 </div>
               </div>
@@ -273,13 +273,13 @@ export function AntigravityProviderView({
           {/* Quota Section */}
           <div>
             <div className="flex items-center justify-between mb-4 border-b border-border pb-2">
-              <h4 className="text-lg font-semibold text-text-primary">
+              <h4 className="text-lg font-semibold text-foreground">
                 Model Quotas
               </h4>
               <button
                 onClick={() => fetchQuota(true)}
                 disabled={loading}
-                className="btn bg-surface-secondary hover:bg-surface-hover text-text-primary flex items-center gap-2 text-sm"
+                className="btn bg-muted hover:bg-accent text-foreground flex items-center gap-2 text-sm"
               >
                 <RefreshCw
                   size={14}
@@ -315,7 +315,7 @@ export function AntigravityProviderView({
                 ))}
               </div>
             ) : !loading ? (
-              <div className="text-center py-8 text-text-muted bg-surface-secondary/30 rounded-xl border border-dashed border-border">
+              <div className="text-center py-8 text-muted-foreground bg-muted/30 rounded-xl border border-dashed border-border">
                 No quota information available
               </div>
             ) : (
@@ -323,17 +323,17 @@ export function AntigravityProviderView({
                 {[1, 2, 3, 4].map(i => (
                   <div
                     key={i}
-                    className="bg-surface-primary border border-border rounded-xl p-4 animate-pulse"
+                    className="bg-card border border-border rounded-xl p-4 animate-pulse"
                   >
-                    <div className="h-4 bg-surface-hover rounded w-24 mb-3" />
-                    <div className="h-2 bg-surface-hover rounded w-full" />
+                    <div className="h-4 bg-accent rounded w-24 mb-3" />
+                    <div className="h-2 bg-accent rounded w-full" />
                   </div>
                 ))}
               </div>
             )}
 
             {quota?.lastUpdated && (
-              <p className="text-xs text-text-muted mt-4 text-right">
+              <p className="text-xs text-muted-foreground mt-4 text-right">
                 Last updated:{' '}
                 {new Date(quota.lastUpdated * 1000).toLocaleString()}
               </p>
@@ -343,7 +343,7 @@ export function AntigravityProviderView({
           {/* Model Mapping */}
           <div>
             <div className="flex items-center justify-between mb-4 border-b border-border pb-2">
-              <h4 className="text-lg font-semibold text-text-primary flex items-center gap-2">
+              <h4 className="text-lg font-semibold text-foreground flex items-center gap-2">
                 <Shuffle size={18} />
                 Model Mapping
               </h4>
@@ -366,7 +366,7 @@ export function AntigravityProviderView({
                 </Button>
               )}
             </div>
-            <p className="text-sm text-text-secondary mb-4">
+            <p className="text-sm text-muted-foreground mb-4">
               Map request models to different upstream models. For example, map
               "claude-sonnet-4-20250514" to "gemini-2.5-pro".
             </p>
@@ -380,7 +380,7 @@ export function AntigravityProviderView({
 
           {/* Supported Clients */}
           <div>
-            <h4 className="text-lg font-semibold text-text-primary mb-4 border-b border-border pb-2">
+            <h4 className="text-lg font-semibold text-foreground mb-4 border-b border-border pb-2">
               Supported Clients
             </h4>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -388,19 +388,19 @@ export function AntigravityProviderView({
                 provider.supportedClientTypes.map(ct => (
                   <div
                     key={ct}
-                    className="flex items-center gap-3 bg-surface-primary border border-border rounded-xl p-4 shadow-sm"
+                    className="flex items-center gap-3 bg-card border border-border rounded-xl p-4 shadow-sm"
                   >
                     <ClientIcon type={ct} size={28} />
                     <div>
-                      <div className="text-sm font-semibold text-text-primary capitalize">
+                      <div className="text-sm font-semibold text-foreground capitalize">
                         {ct}
                       </div>
-                      <div className="text-xs text-text-secondary">Enabled</div>
+                      <div className="text-xs text-muted-foreground">Enabled</div>
                     </div>
                   </div>
                 ))
               ) : (
-                <div className="col-span-full text-center py-8 text-text-muted bg-surface-secondary/30 rounded-xl border border-dashed border-border">
+                <div className="col-span-full text-center py-8 text-muted-foreground bg-muted/30 rounded-xl border border-dashed border-border">
                   No clients configured
                 </div>
               )}

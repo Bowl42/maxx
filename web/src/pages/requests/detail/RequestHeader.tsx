@@ -43,7 +43,7 @@ interface RequestHeaderProps {
 
 export function RequestHeader({ request, onBack }: RequestHeaderProps) {
   return (
-    <div className="h-[73px] border-b border-border bg-surface-primary px-6 flex items-center">
+    <div className="h-[73px] border-b border-border bg-card px-6 flex items-center">
       <div className="flex items-center justify-between gap-6 w-full">
         {/* Left: Back + Main Info */}
         <div className="flex items-center gap-3 min-w-0">
@@ -51,7 +51,7 @@ export function RequestHeader({ request, onBack }: RequestHeaderProps) {
             variant="ghost"
             size="icon"
             onClick={onBack}
-            className="h-8 w-8 -ml-2 text-text-secondary hover:text-text-primary shrink-0"
+            className="h-8 w-8 -ml-2 text-muted-foreground hover:text-foreground shrink-0"
           >
             <ArrowLeft className="h-5 w-5" />
           </Button>
@@ -67,7 +67,7 @@ export function RequestHeader({ request, onBack }: RequestHeaderProps) {
           </div>
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-2 flex-wrap">
-              <h2 className="text-lg font-semibold text-text-primary tracking-tight leading-none">
+              <h2 className="text-lg font-semibold text-foreground tracking-tight leading-none">
                 {request.requestModel || 'Unknown Model'}
               </h2>
               <Badge
@@ -77,8 +77,8 @@ export function RequestHeader({ request, onBack }: RequestHeaderProps) {
                 {request.status.toLowerCase().replace('_', ' ')}
               </Badge>
             </div>
-            <div className="flex items-center gap-3 mt-1.5 text-xs text-text-muted leading-none">
-              <span className="font-mono bg-surface-secondary px-1.5 py-0.5 rounded">
+            <div className="flex items-center gap-3 mt-1.5 text-xs text-muted-foreground leading-none">
+              <span className="font-mono bg-muted px-1.5 py-0.5 rounded">
                 #{request.id}
               </span>
               <span>{getClientName(request.clientType as ClientType)}</span>
@@ -88,9 +88,9 @@ export function RequestHeader({ request, onBack }: RequestHeaderProps) {
                 request.responseModel !== request.requestModel && (
                   <>
                     <span>·</span>
-                    <span className="text-text-secondary">
+                    <span className="text-muted-foreground">
                       Response:{' '}
-                      <span className="text-text-primary">
+                      <span className="text-foreground">
                         {request.responseModel}
                       </span>
                     </span>
@@ -103,19 +103,19 @@ export function RequestHeader({ request, onBack }: RequestHeaderProps) {
         {/* Right: Stats Grid */}
         <div className="flex items-center gap-4 shrink-0">
           <div className="text-center px-3">
-            <div className="text-[10px] uppercase tracking-wider text-text-muted mb-0.5">
+            <div className="text-[10px] uppercase tracking-wider text-muted-foreground mb-0.5">
               Duration
             </div>
-            <div className="text-sm font-mono font-medium text-text-primary">
+            <div className="text-sm font-mono font-medium text-foreground">
               {request.duration ? formatDuration(request.duration) : '-'}
             </div>
           </div>
           <div className="w-px h-8 bg-border" />
           <div className="text-center px-3">
-            <div className="text-[10px] uppercase tracking-wider text-text-muted mb-0.5">
+            <div className="text-[10px] uppercase tracking-wider text-muted-foreground mb-0.5">
               Input
             </div>
-            <div className="text-sm font-mono font-medium text-text-secondary">
+            <div className="text-sm font-mono font-medium text-muted-foreground">
               {request.inputTokenCount > 0
                 ? request.inputTokenCount.toLocaleString()
                 : '-'}
@@ -123,10 +123,10 @@ export function RequestHeader({ request, onBack }: RequestHeaderProps) {
           </div>
           <div className="w-px h-8 bg-border" />
           <div className="text-center px-3">
-            <div className="text-[10px] uppercase tracking-wider text-text-muted mb-0.5">
+            <div className="text-[10px] uppercase tracking-wider text-muted-foreground mb-0.5">
               Output
             </div>
-            <div className="text-sm font-mono font-medium text-text-primary">
+            <div className="text-sm font-mono font-medium text-foreground">
               {request.outputTokenCount > 0
                 ? request.outputTokenCount.toLocaleString()
                 : '-'}
@@ -134,7 +134,7 @@ export function RequestHeader({ request, onBack }: RequestHeaderProps) {
           </div>
           <div className="w-px h-8 bg-border" />
           <div className="text-center px-3">
-            <div className="text-[10px] uppercase tracking-wider text-text-muted mb-0.5">
+            <div className="text-[10px] uppercase tracking-wider text-muted-foreground mb-0.5">
               Cache Read
             </div>
             <div className="text-sm font-mono font-medium text-violet-400">
@@ -145,7 +145,7 @@ export function RequestHeader({ request, onBack }: RequestHeaderProps) {
           </div>
           <div className="w-px h-8 bg-border" />
           <div className="text-center px-3">
-            <div className="text-[10px] uppercase tracking-wider text-text-muted mb-0.5">
+            <div className="text-[10px] uppercase tracking-wider text-muted-foreground mb-0.5">
               Cache Write
             </div>
             <div className="text-sm font-mono font-medium text-amber-400">
@@ -156,7 +156,7 @@ export function RequestHeader({ request, onBack }: RequestHeaderProps) {
           </div>
           <div className="w-px h-8 bg-border" />
           <div className="text-center px-3">
-            <div className="text-[10px] uppercase tracking-wider text-text-muted mb-0.5">
+            <div className="text-[10px] uppercase tracking-wider text-muted-foreground mb-0.5">
               Cost
             </div>
             <div className="text-sm font-mono font-medium text-blue-400">

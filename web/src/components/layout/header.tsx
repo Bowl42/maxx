@@ -6,7 +6,7 @@ export function Header() {
   const { theme, toggleTheme } = useTheme()
 
   return (
-    <header className="flex h-14 items-center justify-between border-b border-border bg-surface-primary px-6">
+    <header className="flex h-14 items-center justify-between border-b border-border bg-card px-6">
       <h1 className="text-lg font-semibold">Maxx Next</h1>
       <Button variant="ghost" size="sm" onClick={toggleTheme}>
         {theme === 'dark' ? (

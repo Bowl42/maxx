@@ -8,18 +8,18 @@ interface AntigravityComingSoonProps {
 export function AntigravityComingSoon({ onBack }: AntigravityComingSoonProps) {
   return (
     <div className="flex flex-col h-full">
-      <div className="h-[73px] flex items-center gap-4 p-lg border-b border-border bg-surface-primary">
+      <div className="h-[73px] flex items-center gap-4 p-lg border-b border-border bg-card">
         <button
           onClick={onBack}
-          className="p-1.5 -ml-1 rounded-lg hover:bg-surface-hover text-text-secondary hover:text-text-primary transition-colors"
+          className="p-1.5 -ml-1 rounded-lg hover:bg-accent text-muted-foreground hover:text-foreground transition-colors"
         >
           <ChevronLeft size={20} />
         </button>
         <div>
-          <h2 className="text-headline font-semibold text-text-primary">
+          <h2 className="text-headline font-semibold text-foreground">
             Antigravity
           </h2>
-          <p className="text-caption text-text-secondary">
+          <p className="text-caption text-muted-foreground">
             OAuth Authentication
           </p>
         </div>
@@ -34,10 +34,10 @@ export function AntigravityComingSoon({ onBack }: AntigravityComingSoonProps) {
             >
               <Wand2 size={40} style={{ color: ANTIGRAVITY_COLOR }} />
             </div>
-            <h3 className="text-title3 font-semibold text-text-primary mb-2">
+            <h3 className="text-title3 font-semibold text-foreground mb-2">
               Coming Soon
             </h3>
-            <p className="text-body text-text-secondary text-center max-w-sm">
+            <p className="text-body text-muted-foreground text-center max-w-sm">
               Antigravity OAuth authentication will be available in a future
               update.
             </p>

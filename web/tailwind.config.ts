@@ -36,18 +36,7 @@ export default {
 				'4xl': '2.25em',
 			},
 			colors: {
-				background: "var(--color-background)",
-				"surface-primary": "var(--color-card)",
-				"surface-secondary": "var(--color-secondary)",
-				"surface-hover": "var(--color-accent)",
-				border: "var(--color-border)",
-				"text-primary": "var(--color-foreground)",
-				"text-secondary": "var(--color-muted-foreground)",
-				"text-muted": "var(--color-muted-foreground)",
-				accent: {
-					DEFAULT: "var(--color-primary)",
-					hover: "var(--color-primary)",
-				},
+				// 状态颜色
 				success: "#4EC9B0",
 				warning: "#DDB359",
 				error: "#F14C4C",
@@ -65,6 +54,7 @@ export default {
 					mistral: "var(--color-provider-mistral)",
 					custom: "var(--color-provider-custom)",
 					antigravity: "var(--color-provider-antigravity)",
+					kiro: "var(--color-provider-kiro)",
 				},
 
 				// Client 品牌色

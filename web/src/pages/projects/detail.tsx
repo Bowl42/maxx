@@ -61,7 +61,7 @@ export function ProjectDetailPage() {
   if (error || !project) {
     return (
       <div className="flex flex-col items-center justify-center h-full gap-4">
-        <p className="text-text-muted">Project not found</p>
+        <p className="text-muted-foreground">Project not found</p>
         <Button variant="secondary" onClick={() => navigate('/projects')}>
           <ArrowLeft className="mr-2 h-4 w-4" />
           Back to Projects
@@ -73,13 +73,13 @@ export function ProjectDetailPage() {
   return (
     <div className="flex flex-col h-full bg-background">
       {/* Header */}
-      <div className="h-[73px] flex items-center justify-between px-6 border-b border-border bg-surface-primary shrink-0 z-10">
+      <div className="h-[73px] flex items-center justify-between px-6 border-b border-border bg-card shrink-0 z-10">
         <div className="flex items-center gap-4">
           <Button
             variant="ghost"
             size="sm"
             onClick={() => navigate('/projects')}
-            className="h-8 w-8 p-0 hover:bg-surface-hover rounded-full"
+            className="h-8 w-8 p-0 hover:bg-accent rounded-full"
           >
             <ArrowLeft className="h-4 w-4" />
           </Button>
@@ -88,10 +88,10 @@ export function ProjectDetailPage() {
               <FolderKanban size={20} className="text-accent" />
             </div>
             <div>
-              <h2 className="text-lg font-semibold text-text-primary leading-tight">
+              <h2 className="text-lg font-semibold text-foreground leading-tight">
                 {project.name}
               </h2>
-              <p className="text-xs text-text-secondary font-mono mt-0.5">
+              <p className="text-xs text-muted-foreground font-mono mt-0.5">
                 {project.slug}
               </p>
             </div>
@@ -121,7 +121,7 @@ export function ProjectDetailPage() {
         onValueChange={(v: string) => setActiveTab(v as TabId)}
         className="flex-1 flex flex-col overflow-hidden"
       >
-        <div className="px-6 py-4 border-b border-border bg-surface-primary/50">
+        <div className="px-6 py-4 border-b border-border bg-card/50">
           <TabsList>
             <TabsTrigger value="overview">
               <LayoutGrid className="h-4 w-4 mr-2" />

@@ -117,10 +117,10 @@ export function RequestDetailPage() {
         <div className="p-4 bg-red-400/10 rounded-full">
           <AlertCircle className="h-12 w-12 text-red-400" />
         </div>
-        <h3 className="text-lg font-semibold text-text-primary">
+        <h3 className="text-lg font-semibold text-foreground">
           Request Not Found
         </h3>
-        <p className="text-sm text-text-secondary">
+        <p className="text-sm text-muted-foreground">
           The request you're looking for doesn't exist or has been deleted.
         </p>
       </div>

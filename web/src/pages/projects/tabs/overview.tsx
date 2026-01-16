@@ -52,31 +52,31 @@ export function OverviewTab({ project }: OverviewTabProps) {
   return (
     <div className="p-6 space-y-6">
       {/* Project Info */}
-      <Card className="border-border bg-surface-primary">
+      <Card className="border-border bg-card">
         <CardHeader>
           <CardTitle className="text-base">Project Information</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <label htmlFor="name" className="text-sm font-medium text-text-primary">Name</label>
+              <label htmlFor="name" className="text-sm font-medium text-foreground">Name</label>
               <Input
                 id="name"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                className="bg-surface-secondary border-border"
+                className="bg-muted border-border"
               />
             </div>
             <div className="space-y-2">
-              <label htmlFor="slug" className="text-sm font-medium text-text-primary">Slug</label>
+              <label htmlFor="slug" className="text-sm font-medium text-foreground">Slug</label>
               <Input
                 id="slug"
                 value={slug}
                 onChange={(e) => setSlug(e.target.value)}
-                className="bg-surface-secondary border-border font-mono"
+                className="bg-muted border-border font-mono"
                 placeholder="project-slug"
               />
-              <p className="text-xs text-text-muted">
+              <p className="text-xs text-muted-foreground">
                 Used in URLs and proxy paths
               </p>
             </div>
@@ -84,14 +84,14 @@ export function OverviewTab({ project }: OverviewTabProps) {
 
           <div className="grid grid-cols-2 gap-4 text-sm">
             <div>
-              <span className="text-text-secondary">Created:</span>{' '}
-              <span className="text-text-primary">
+              <span className="text-muted-foreground">Created:</span>{' '}
+              <span className="text-foreground">
                 {new Date(project.createdAt).toLocaleString()}
               </span>
             </div>
             <div>
-              <span className="text-text-secondary">Updated:</span>{' '}
-              <span className="text-text-primary">
+              <span className="text-muted-foreground">Updated:</span>{' '}
+              <span className="text-foreground">
                 {new Date(project.updatedAt).toLocaleString()}
               </span>
             </div>
@@ -113,19 +113,19 @@ export function OverviewTab({ project }: OverviewTabProps) {
       </Card>
 
       {/* Proxy Configuration */}
-      <Card className="border-border bg-surface-primary">
+      <Card className="border-border bg-card">
         <CardHeader>
           <CardTitle className="text-base">Proxy Configuration</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <p className="text-sm text-text-secondary">
+          <p className="text-sm text-muted-foreground">
             Use this base URL to route requests through this project's configuration.
             The protocol (Claude, OpenAI, Gemini) is automatically detected.
           </p>
 
           <div className="flex items-center gap-3">
-            <span className="text-sm font-medium text-text-primary w-20">Base URL:</span>
-            <code className="flex-1 text-xs bg-surface-secondary px-3 py-2 rounded border border-border text-text-primary font-mono">
+            <span className="text-sm font-medium text-foreground w-20">Base URL:</span>
+            <code className="flex-1 text-xs bg-muted px-3 py-2 rounded border border-border text-foreground font-mono">
               {projectBaseUrl}
             </code>
             <Button

@@ -220,13 +220,13 @@ export function ProviderCreateFlow({ onClose }: ProviderCreateFlowProps) {
       <div className="flex-1 overflow-y-auto p-6">
         <div className="mx-auto max-w-7xl space-y-8">
           <div className="space-y-6">
-            <h3 className="text-lg font-semibold text-text-primary border-b border-border pb-2">
+            <h3 className="text-lg font-semibold text-foreground border-b border-border pb-2">
               1. Basic Information
             </h3>
 
             <div className="grid gap-6">
               <div>
-                <label className="text-sm font-medium text-text-primary block mb-2">
+                <label className="text-sm font-medium text-foreground block mb-2">
                   Display Name
                 </label>
                 <Input
@@ -242,7 +242,7 @@ export function ProviderCreateFlow({ onClose }: ProviderCreateFlowProps) {
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
-                  <label className="text-sm font-medium text-text-primary block mb-2">
+                  <label className="text-sm font-medium text-foreground block mb-2">
                     <div className="flex items-center gap-2">
                       <Globe size={14} />
                       <span>API Endpoint</span>
@@ -260,13 +260,13 @@ export function ProviderCreateFlow({ onClose }: ProviderCreateFlowProps) {
                     placeholder="https://api.openai.com/v1"
                     className="w-full"
                   />
-                  <p className="text-xs text-text-secondary mt-1">
+                  <p className="text-xs text-muted-foreground mt-1">
                     Optional if client-specific URLs are set below.
                   </p>
                 </div>
 
                 <div>
-                  <label className="text-sm font-medium text-text-primary block mb-2">
+                  <label className="text-sm font-medium text-foreground block mb-2">
                     <div className="flex items-center gap-2">
                       <Key size={14} />
                       <span>API Key</span>
@@ -287,7 +287,7 @@ export function ProviderCreateFlow({ onClose }: ProviderCreateFlowProps) {
           </div>
 
           <div className="space-y-6">
-            <h3 className="text-lg font-semibold text-text-primary border-b border-border pb-2">
+            <h3 className="text-lg font-semibold text-foreground border-b border-border pb-2">
               2. Client Configuration
             </h3>
             <ClientsConfigSection
