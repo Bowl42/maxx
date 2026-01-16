@@ -73,6 +73,7 @@
     "client": "Client",
     "model": "Model",
     "project": "Project",
+    "token": "Token",
     "provider": "Provider",
     "code": "Code",
     "duration": "Duration",
@@ -258,6 +259,7 @@
     "expired": "Expired",
     "global": "Global",
     "notSpecified": "Not Specified",
+    "unknownProject": "Project #{{id}}",
     "createDialog": {
       "title": "Create New API Token",
       "description": "Create a token to authenticate proxy requests.",

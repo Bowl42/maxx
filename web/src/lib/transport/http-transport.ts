@@ -40,6 +40,7 @@ import type {
   APIToken,
   APITokenCreateResult,
   CreateAPITokenData,
+  RoutePositionUpdate,
 } from './types';
 
 export class HttpTransport implements Transport {

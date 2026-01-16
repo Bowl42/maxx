@@ -130,12 +130,13 @@ function matchScore(model: Model, pattern: string): number {
 export function ModelInput({
   value,
   onChange,
-  placeholder = t('modelInput.selectOrEnter'),
+  placeholder,
   disabled = false,
   className,
   providers,
 }: ModelInputProps) {
   const { t } = useTranslation()
+  const actualPlaceholder = placeholder ?? t('modelInput.selectOrEnter')
   const [isOpen, setIsOpen] = useState(false)
   const [search, setSearch] = useState('')
   const [focusedIndex, setFocusedIndex] = useState(-1)
@@ -264,7 +265,7 @@ export function ModelInput({
             value ? 'text-foreground' : 'text-muted-foreground'
           )}
         >
-          {value || placeholder}
+          {value || actualPlaceholder}
         </span>
         <div className="flex items-center gap-1">
           {value && !disabled && (

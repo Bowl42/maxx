@@ -18,7 +18,7 @@ import {
   Calendar,
   Activity,
 } from 'lucide-react'
-import type { Cooldown, CooldownReason } from '@/lib/transport/types'
+import type { Cooldown } from '@/lib/transport/types'
 import { useCooldowns } from '@/hooks/use-cooldowns'
 
 interface CooldownDetailsDialogProps {

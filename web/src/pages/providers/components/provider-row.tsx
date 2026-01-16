@@ -15,6 +15,7 @@ import type {
 import { getProviderTypeConfig } from '../types'
 import { cn } from '@/lib/utils'
 import { useAntigravityQuota, useKiroQuota } from '@/hooks/queries'
+import { useTranslation } from 'react-i18next'
 
 // 格式化 Token 数量
 function formatTokens(count: number): string {
@@ -114,6 +115,7 @@ export function ProviderRow({
   streamingCount,
   onClick,
 }: ProviderRowProps) {
+  const { t } = useTranslation()
   // 使用通用配置系统
   const typeConfig = getProviderTypeConfig(provider.type)
   const color = typeConfig.color

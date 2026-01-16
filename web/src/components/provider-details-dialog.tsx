@@ -22,7 +22,6 @@ import {
 } from 'lucide-react'
 import type {
   Cooldown,
-  CooldownReason,
   ProviderStats,
   ClientType,
 } from '@/lib/transport/types'

@@ -73,6 +73,7 @@
     "client": "客户端",
     "model": "模型",
     "project": "项目",
+    "token": "令牌",
     "provider": "提供商",
     "code": "状态码",
     "duration": "耗时",
@@ -258,6 +259,7 @@
     "expired": "已过期",
     "global": "全局",
     "notSpecified": "未指定",
+    "unknownProject": "项目 #{{id}}",
     "createDialog": {
       "title": "创建新 API 令牌",
       "description": "创建令牌以进行代理请求身份验证。",

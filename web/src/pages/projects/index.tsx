@@ -18,7 +18,6 @@ import {
   Loader2,
   Calendar,
   Hash,
-  ArrowRight,
 } from 'lucide-react'
 import { PageHeader } from '@/components/layout'
 
@@ -116,10 +115,6 @@ export function ProjectsPage() {
                   <div className="flex items-center gap-3 mb-2">
                     <div className="p-2 rounded-lg text-amber-500 bg-amber-500/10 group-hover:bg-amber-500/20 transition-colors">
                       <FolderKanban size={18} />
-                    </div>
-                    <div className="flex items-center gap-1.5 text-xs font-mono px-2 py-1 rounded bg-muted text-muted-foreground">
-                      <Hash size={10} />
-                      <span className="truncate">{project.slug}</span>
                     </div>
                     <div className="flex items-center gap-1.5 text-xs font-mono px-2 py-1 rounded bg-muted text-muted-foreground">
                       <Hash size={10} />

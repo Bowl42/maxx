@@ -37,6 +37,7 @@ import type {
   APIToken,
   APITokenCreateResult,
   CreateAPITokenData,
+  RoutePositionUpdate,
 } from './types';
 
 /**

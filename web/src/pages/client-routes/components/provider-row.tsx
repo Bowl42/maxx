@@ -69,7 +69,6 @@ export function SortableProviderRow({
   onToggle,
   onDelete,
 }: SortableProviderRowProps) {
-  const { t } = useTranslation()
   const [showDetailsDialog, setShowDetailsDialog] = useState(false)
   const { getCooldownForProvider, clearCooldown, isClearingCooldown } =
     useCooldowns()
@@ -176,7 +175,7 @@ function getClaudeQuotaInfo(
 }
 
 // 格式化重置时间
-function formatResetTime(resetTime: string): string {
+function formatResetTime(resetTime: string, t: (key: string) => string): string {
   try {
     const reset = new Date(resetTime)
     const now = new Date()
@@ -213,6 +212,7 @@ export function ProviderRowContent({
   isInCooldown: isInCooldownProp,
   dragHandleListeners,
 }: ProviderRowContentProps) {
+  const { t } = useTranslation()
   const { provider, enabled, isNative } = item
   const color = getProviderColorVar(provider.type as ProviderType)
   const isAntigravity = provider.type === 'antigravity'
@@ -410,7 +410,7 @@ export function ProviderRowContent({
               </span>
               {claudeInfo && (
                 <span className="text-[9px] font-mono text-muted-foreground/60">
-                  {formatResetTime(claudeInfo.resetTime)}
+                  {formatResetTime(claudeInfo.resetTime, t)}
                 </span>
               )}
             </div>

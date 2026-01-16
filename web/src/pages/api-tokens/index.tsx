@@ -164,7 +164,7 @@ export function APITokensPage() {
   const getProjectName = (projectId: number) => {
     if (projectId === 0) return t('apiTokens.global')
     const project = projects?.find(p => p.id === projectId)
-    return project?.name || `Project #${projectId}`
+    return project?.name || t('apiTokens.unknownProject', { id: projectId })
   }
 
   const isExpired = (token: APIToken) => {

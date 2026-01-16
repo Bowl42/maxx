@@ -152,7 +152,7 @@ export function RequestsPage() {
                     {t('requests.project')}
                   </TableHead>
                   <TableHead className="w-[100px] font-medium">
-                    Token
+                    {t('requests.token')}
                   </TableHead>
                   <TableHead className="w-[120px] font-medium">
                     {t('requests.provider')}
