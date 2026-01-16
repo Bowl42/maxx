@@ -5,6 +5,7 @@ import (
 	"embed"
 	"io/fs"
 	"log"
+	goruntime "runtime"
 
 	"github.com/awsl-project/maxx/internal/desktop"
 	"github.com/awsl-project/maxx/internal/handler"
@@ -49,33 +50,36 @@ func main() {
 		tray.Start()
 	}()
 
-	// Create application menu
-	appMenu := menu.NewMenu()
+	// Create application menu (only for macOS)
+	var appMenu *menu.Menu
+	if goruntime.GOOS == "darwin" {
+		appMenu = menu.NewMenu()
 
-	// macOS App Menu (Maxx)
-	appMenu.Append(menu.AppMenu())
+		// macOS App Menu (Maxx)
+		appMenu.Append(menu.AppMenu())
 
-	// File Menu
-	fileMenu := appMenu.AddSubmenu("File")
-	fileMenu.AddText("Home", keys.CmdOrCtrl("h"), func(_ *menu.CallbackData) {
-		if appCtx != nil {
-			runtime.WindowExecJS(appCtx, `window.location.href = 'wails://wails/index.html';`)
-		}
-	})
-	fileMenu.AddText("Settings", keys.CmdOrCtrl(","), func(_ *menu.CallbackData) {
-		if appCtx != nil {
-			runtime.WindowExecJS(appCtx, `window.location.href = 'wails://wails/index.html?page=settings';`)
-		}
-	})
-	fileMenu.AddSeparator()
-	fileMenu.AddText("Quit", keys.CmdOrCtrl("q"), func(_ *menu.CallbackData) {
-		if appCtx != nil {
-			runtime.Quit(appCtx)
-		}
-	})
+		// File Menu
+		fileMenu := appMenu.AddSubmenu("File")
+		fileMenu.AddText("Home", keys.CmdOrCtrl("h"), func(_ *menu.CallbackData) {
+			if appCtx != nil {
+				runtime.WindowExecJS(appCtx, `window.location.href = 'wails://wails/index.html';`)
+			}
+		})
+		fileMenu.AddText("Settings", keys.CmdOrCtrl(","), func(_ *menu.CallbackData) {
+			if appCtx != nil {
+				runtime.WindowExecJS(appCtx, `window.location.href = 'wails://wails/index.html?page=settings';`)
+			}
+		})
+		fileMenu.AddSeparator()
+		fileMenu.AddText("Quit", keys.CmdOrCtrl("q"), func(_ *menu.CallbackData) {
+			if appCtx != nil {
+				runtime.Quit(appCtx)
+			}
+		})
 
-	// Edit Menu (for copy/paste support)
-	appMenu.Append(menu.EditMenu())
+		// Edit Menu (for copy/paste support)
+		appMenu.Append(menu.EditMenu())
+	}
 
 	// Run Wails application
 	err = wails.Run(&options.App{
