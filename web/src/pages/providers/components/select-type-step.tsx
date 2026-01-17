@@ -103,10 +103,10 @@ export function SelectTypeStep({
 
                     <div className="flex-1 min-w-0">
                       <h3 className="text-headline font-semibold text-foreground mb-1">
-                        Kiro (Q Developer)
+                        {t('addProvider.kiro.name')}
                       </h3>
                       <p className="text-caption text-muted-foreground">
-                        AWS CodeWhisperer / Q Developer
+                        {t('addProvider.kiro.description')}
                       </p>
                     </div>
 

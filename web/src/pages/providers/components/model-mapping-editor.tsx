@@ -46,11 +46,16 @@ export function ModelMappingEditor({
   };
 
   const handleUpdate = (oldKey: string, newKey: string, newVal: string) => {
+    const normalizedKey = newKey.trim();
+    const normalizedVal = newVal.trim();
+    if (!normalizedKey || !normalizedVal) return;
+    if (oldKey !== normalizedKey && value[normalizedKey]) return; // prevent overwrite
+
     const newValue = { ...value };
-    if (oldKey !== newKey) {
+    if (oldKey !== normalizedKey) {
       delete newValue[oldKey];
     }
-    newValue[newKey] = newVal;
+    newValue[normalizedKey] = normalizedVal;
     onChange(newValue);
   };
 

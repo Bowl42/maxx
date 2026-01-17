@@ -103,10 +103,13 @@ export function AntigravityTokenImport({ onBack, onCreateProvider }: Antigravity
         if (oauthWindowRef.current?.closed) {
           clearInterval(checkWindowClosed);
           // If still waiting when window closes, assume user cancelled
-          if (oauthStatus === 'waiting') {
-            setOAuthStatus('idle');
-            setOAuthState(null);
-          }
+          setOAuthStatus((current) => {
+            if (current === 'waiting') {
+              setOAuthState(null);
+              return 'idle';
+            }
+            return current;
+          });
         }
       }, 500);
     } catch (err) {

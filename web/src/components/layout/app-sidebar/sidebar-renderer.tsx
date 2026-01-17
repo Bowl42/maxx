@@ -1,3 +1,4 @@
+import { Fragment } from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import type { SidebarConfig, MenuItem } from '@/types/sidebar';
@@ -49,7 +50,7 @@ function MenuItemRenderer({ item }: { item: MenuItem }) {
     }
 
     case 'dynamic-section': {
-      return <div key={item.key}>{item.generator()}</div>;
+      return <Fragment key={item.key}>{item.generator()}</Fragment>;
     }
 
     default:

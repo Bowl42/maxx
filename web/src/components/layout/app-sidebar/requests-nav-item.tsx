@@ -12,7 +12,8 @@ export function RequestsNavItem() {
   const location = useLocation();
   const { total } = useStreamingRequests();
   const { t } = useTranslation();
-  const isActive = location.pathname.startsWith('/requests');
+  const isActive =
+    location.pathname === '/requests' || location.pathname.startsWith('/requests/');
   const color = 'var(--color-success)'; // emerald-500
 
   return (

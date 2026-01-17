@@ -10,10 +10,14 @@ import { useStreamingRequests } from '@/hooks/use-streaming';
 import type { ClientType } from '@/lib/transport';
 import { SidebarMenuButton, SidebarMenuItem, SidebarMenuBadge } from '@/components/ui/sidebar';
 
-function ClientNavItem({ clientType }: { clientType: ClientType }) {
+function ClientNavItem({
+  clientType,
+  streamingCount
+}: {
+  clientType: ClientType;
+  streamingCount: number;
+}) {
   const location = useLocation();
-  const { countsByClient } = useStreamingRequests();
-  const streamingCount = countsByClient.get(clientType) || 0;
   const color = getClientColor(clientType);
   const clientName = getClientName(clientType);
   const isActive = location.pathname === `/routes/${clientType}`;
@@ -49,10 +53,16 @@ function ClientNavItem({ clientType }: { clientType: ClientType }) {
  * Renders all client route items dynamically
  */
 export function ClientRoutesItems() {
+  const { countsByClient } = useStreamingRequests();
+
   return (
     <>
       {allClientTypes.map((clientType) => (
-        <ClientNavItem key={clientType} clientType={clientType} />
+        <ClientNavItem
+          key={clientType}
+          clientType={clientType}
+          streamingCount={countsByClient.get(clientType) || 0}
+        />
       ))}
     </>
   );
