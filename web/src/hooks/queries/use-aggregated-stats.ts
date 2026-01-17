@@ -122,26 +122,31 @@ export function useProviderStatsFromUsageStats(options?: {
   granularity?: StatsGranularity;
   preset?: TimeRangePreset;
 }) {
+  const clientType = options?.clientType;
+  const projectId = options?.projectId;
+  const granularity = options?.granularity;
+  const preset = options?.preset;
+
   const filter = useMemo<UsageStatsFilter>(() => {
     // 如果指定了预设，使用预设的时间范围和粒度
-    if (options?.preset) {
-      const { start, end, granularity } = getTimeRange(options.preset);
+    if (preset) {
+      const timeRange = getTimeRange(preset);
       return {
-        granularity,
-        start: start.toISOString(),
-        end: end.toISOString(),
-        clientType: options?.clientType,
-        projectId: options?.projectId,
+        granularity: timeRange.granularity,
+        start: timeRange.start.toISOString(),
+        end: timeRange.end.toISOString(),
+        clientType,
+        projectId,
       };
     }
 
     // 否则使用指定的粒度（默认 day）查询全部
     return {
-      granularity: options?.granularity ?? 'day',
-      clientType: options?.clientType,
-      projectId: options?.projectId,
+      granularity: granularity ?? 'day',
+      clientType,
+      projectId,
     };
-  }, [options?.clientType, options?.projectId, options?.granularity, options?.preset]);
+  }, [clientType, projectId, granularity, preset]);
 
   const { data: stats, isLoading, error } = useUsageStats(filter);
 
@@ -175,26 +180,31 @@ export function useRouteStatsFromUsageStats(options?: {
   granularity?: StatsGranularity;
   preset?: TimeRangePreset;
 }) {
+  const clientType = options?.clientType;
+  const projectId = options?.projectId;
+  const granularity = options?.granularity;
+  const preset = options?.preset;
+
   const filter = useMemo<UsageStatsFilter>(() => {
     // 如果指定了预设，使用预设的时间范围和粒度
-    if (options?.preset) {
-      const { start, end, granularity } = getTimeRange(options.preset);
+    if (preset) {
+      const timeRange = getTimeRange(preset);
       return {
-        granularity,
-        start: start.toISOString(),
-        end: end.toISOString(),
-        clientType: options?.clientType,
-        projectId: options?.projectId,
+        granularity: timeRange.granularity,
+        start: timeRange.start.toISOString(),
+        end: timeRange.end.toISOString(),
+        clientType,
+        projectId,
       };
     }
 
     // 否则使用指定的粒度（默认 day）查询全部
     return {
-      granularity: options?.granularity ?? 'day',
-      clientType: options?.clientType,
-      projectId: options?.projectId,
+      granularity: granularity ?? 'day',
+      clientType,
+      projectId,
     };
-  }, [options?.clientType, options?.projectId, options?.granularity, options?.preset]);
+  }, [clientType, projectId, granularity, preset]);
 
   const { data: stats, isLoading, error } = useUsageStats(filter);
 

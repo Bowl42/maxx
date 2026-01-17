@@ -216,13 +216,14 @@ function getAggregationKey(date: Date, granularity: StatsGranularity): string {
       return `${year}-${month}-${day}T${hour}`;
     case 'day':
       return `${year}-${month}-${day}`;
-    case 'week':
+    case 'week': {
       // 使用周一的日期作为键
       const dayOfWeek = date.getDay();
       const diff = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
       const monday = new Date(date);
       monday.setDate(date.getDate() - diff);
       return `${monday.getFullYear()}-${String(monday.getMonth() + 1).padStart(2, '0')}-${String(monday.getDate()).padStart(2, '0')}`;
+    }
     case 'month':
       return `${year}-${month}`;
     default:
