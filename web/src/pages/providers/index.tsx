@@ -1,25 +1,24 @@
-import { useState, useMemo, useRef } from 'react';
+import { useMemo, useRef } from 'react';
 import { Plus, Layers, Download, Upload } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
+import { useNavigate } from 'react-router-dom';
 import { useProviders, useAllProviderStats } from '@/hooks/queries';
 import { useStreamingRequests } from '@/hooks/use-streaming';
 import type { Provider, ImportResult } from '@/lib/transport';
 import { getTransport } from '@/lib/transport';
 import { ProviderRow } from './components/provider-row';
-import { ProviderCreateFlow } from './components/provider-create-flow';
-import { ProviderEditFlow } from './components/provider-edit-flow';
 import { useQueryClient } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { PageHeader } from '@/components/layout/page-header';
 import { PROVIDER_TYPE_CONFIGS, type ProviderTypeKey } from './types';
+import { useState } from 'react';
 
 export function ProvidersPage() {
   const { t } = useTranslation();
+  const navigate = useNavigate();
   const { data: providers, isLoading } = useProviders();
   const { data: providerStats = {} } = useAllProviderStats();
   const { countsByProvider } = useStreamingRequests();
-  const [showCreateFlow, setShowCreateFlow] = useState(false);
-  const [editingProvider, setEditingProvider] = useState<Provider | null>(null);
   const [importStatus, setImportStatus] = useState<ImportResult | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const queryClient = useQueryClient();
@@ -96,16 +95,6 @@ export function ProvidersPage() {
     }
   };
 
-  // Show edit flow
-  if (editingProvider) {
-    return <ProviderEditFlow provider={editingProvider} onClose={() => setEditingProvider(null)} />;
-  }
-
-  // Show create flow
-  if (showCreateFlow) {
-    return <ProviderCreateFlow onClose={() => setShowCreateFlow(false)} />;
-  }
-
   // Provider list
   return (
     <div className="flex flex-col h-full bg-background">
@@ -143,7 +132,7 @@ export function ProvidersPage() {
           <Download size={14} />
           <span>{t('common.export')}</span>
         </Button>
-        <Button onClick={() => setShowCreateFlow(true)}>
+        <Button onClick={() => navigate('/providers/create')}>
           <Plus size={14} />
           <span>{t('providers.addProvider')}</span>
         </Button>
@@ -161,7 +150,7 @@ export function ProvidersPage() {
               <p className="text-body">{t('providers.noProviders')}</p>
               <p className="text-caption mt-2">{t('providers.noProvidersHint')}</p>
               <Button
-                onClick={() => setShowCreateFlow(true)}
+                onClick={() => navigate('/providers/create')}
                 className=" mt-6 flex items-center gap-2"
               >
                 <Plus size={14} />
@@ -194,7 +183,7 @@ export function ProvidersPage() {
                           provider={provider}
                           stats={providerStats[provider.id]}
                           streamingCount={countsByProvider.get(provider.id) || 0}
-                          onClick={() => setEditingProvider(provider)}
+                          onClick={() => navigate(`/providers/${provider.id}/edit`)}
                         />
                       ))}
                     </div>

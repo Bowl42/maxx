@@ -40,11 +40,9 @@ function ClientNavItem({
         <ClientIcon type={clientType} size={18} className="relative z-10" />
         <span className="relative z-10">{clientName}</span>
       </SidebarMenuButton>
-      {streamingCount > 0 && (
-        <SidebarMenuBadge>
-          <StreamingBadge count={streamingCount} color={color} />
-        </SidebarMenuBadge>
-      )}
+      <SidebarMenuBadge>
+        <StreamingBadge count={streamingCount} color={color} />
+      </SidebarMenuBadge>
     </SidebarMenuItem>
   );
 }

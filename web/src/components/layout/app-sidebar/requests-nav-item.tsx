@@ -34,11 +34,9 @@ export function RequestsNavItem() {
         <Activity className="relative z-10" />
         <span className="relative z-10">{t('requests.title')}</span>
       </SidebarMenuButton>
-      {total > 0 && (
-        <SidebarMenuBadge>
-          <StreamingBadge count={total} color={color} />
-        </SidebarMenuBadge>
-      )}
+      <SidebarMenuBadge>
+        <StreamingBadge count={total} color={color} />
+      </SidebarMenuBadge>
     </SidebarMenuItem>
   );
 }

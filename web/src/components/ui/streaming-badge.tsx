@@ -3,7 +3,7 @@
  * 显示实时活动请求数，带延迟消失效果
  */
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { cn } from '@/lib/utils';
 
 interface StreamingBadgeProps {
@@ -32,32 +32,24 @@ export function StreamingBadge({
 }: StreamingBadgeProps) {
   // 使用 count 作为初始值，当 count > 0 时直接显示
   const [displayCount, setDisplayCount] = useState(count > 0 ? count : 0);
-  const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  // Effect 1: 处理 count 变化 - 当 count > 0 时立即显示
   useEffect(() => {
-    // 计数 > 0: 立即显示，清除任何待执行的隐藏定时器
     if (count > 0) {
-      if (timeoutRef.current) {
-        clearTimeout(timeoutRef.current);
-        timeoutRef.current = null;
-      }
       setDisplayCount(count);
-    } else if (displayCount > 0) {
-      // 计数 = 0: 延迟后隐藏（防止闪烁）
-      if (!timeoutRef.current) {
-        timeoutRef.current = setTimeout(() => {
-          setDisplayCount(0);
-          timeoutRef.current = null;
-        }, hideDelay);
-      }
     }
+  }, [count]);
 
-    return () => {
-      if (timeoutRef.current) {
-        clearTimeout(timeoutRef.current);
-      }
-    };
-  }, [count, hideDelay]); // eslint-disable-line react-hooks/exhaustive-deps
+  // Effect 2: 处理延迟隐藏 - 当 count = 0 且 displayCount > 0 时延迟隐藏
+  useEffect(() => {
+    if (count === 0 && displayCount > 0) {
+      const timer = setTimeout(() => {
+        setDisplayCount(0);
+      }, hideDelay);
+
+      return () => clearTimeout(timer);
+    }
+  }, [count, displayCount, hideDelay]);
 
   // 不显示时返回 null
   if (displayCount === 0) {
