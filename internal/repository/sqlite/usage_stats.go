@@ -256,16 +256,14 @@ func (r *UsageStatsRepository) GetLatestHour() (*time.Time, error) {
 		return nil, nil
 	}
 
-	// 尝试多种格式解析
-	hour, err := time.Parse(time.RFC3339, *hourStr)
+	// 截取前 19 个字符 "2006-01-02 15:04:05" 来解析，忽略后面的时区信息
+	str := *hourStr
+	if len(str) >= 19 {
+		str = str[:19]
+	}
+	hour, err := time.Parse("2006-01-02 15:04:05", str)
 	if err != nil {
-		hour, err = time.Parse("2006-01-02 15:04:05", *hourStr)
-		if err != nil {
-			hour, err = time.Parse("2006-01-02 15", *hourStr)
-			if err != nil {
-				return nil, err
-			}
-		}
+		return nil, err
 	}
 	return &hour, nil
 }
