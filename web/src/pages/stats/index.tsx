@@ -1,7 +1,7 @@
 import { useState, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { BarChart3 } from 'lucide-react';
-import dayjs from 'dayjs';
+import { subHours, subDays, format, parseISO, isValid } from 'date-fns';
 import { PageHeader } from '@/components/layout/page-header';
 import {
   Card,
@@ -33,22 +33,22 @@ import {
 type TimeRange = '24h' | '7d' | '30d';
 
 function getTimeRange(range: TimeRange): { start: string; end: string } {
-  const now = dayjs();
+  const now = new Date();
   const end = now.toISOString();
-  let start: dayjs.Dayjs;
+  let start: Date;
 
   switch (range) {
     case '24h':
-      start = now.subtract(24, 'hour');
+      start = subHours(now, 24);
       break;
     case '7d':
-      start = now.subtract(7, 'day');
+      start = subDays(now, 7);
       break;
     case '30d':
-      start = now.subtract(30, 'day');
+      start = subDays(now, 30);
       break;
     default:
-      start = now.subtract(7, 'day'); // 默认 7 天
+      start = subDays(now, 7); // 默认 7 天
       break;
   }
 
@@ -58,7 +58,7 @@ function getTimeRange(range: TimeRange): { start: string; end: string } {
 // 按时间范围聚合数据用于图表
 function aggregateByHour(stats: UsageStats[] | undefined, timeRange: TimeRange) {
   // 生成完整的时间序列
-  const now = dayjs();
+  const now = new Date();
   const isHourly = timeRange === '24h';
   const pointsToShow = timeRange === '24h' ? 24 : timeRange === '7d' ? 7 : 30;
   const timeMap = new Map<string, {
@@ -73,24 +73,24 @@ function aggregateByHour(stats: UsageStats[] | undefined, timeRange: TimeRange) 
   }>();
 
   // 生成时间键的辅助函数（使用本地时间）
-  const getTimeKey = (date: dayjs.Dayjs, hourly: boolean): string => {
+  const getTimeKey = (date: Date, hourly: boolean): string => {
     if (hourly) {
-      return date.format('YYYY-MM-DDTHH');
+      return format(date, 'yyyy-MM-dd HH');
     } else {
-      return date.format('YYYY-MM-DD');
+      return format(date, 'yyyy-MM-dd');
     }
   };
 
   // 填充完整的时间序列
   for (let i = pointsToShow - 1; i >= 0; i--) {
-    let date: dayjs.Dayjs;
+    let date: Date;
 
     if (isHourly) {
       // 24h: 按小时
-      date = now.subtract(i, 'hour');
+      date = subHours(now, i);
     } else {
       // 7d/30d: 按天
-      date = now.subtract(i, 'day');
+      date = subDays(now, i);
     }
 
     const timeKey = getTimeKey(date, isHourly);
@@ -112,8 +112,8 @@ function aggregateByHour(stats: UsageStats[] | undefined, timeRange: TimeRange) 
       if (!s || !s.hour) return; // 跳过无效数据
 
       // 解析后端返回的时间（可能带时区）
-      const date = dayjs(s.hour);
-      if (!date.isValid()) return; // 跳过无效日期
+      const date = parseISO(s.hour);
+      if (!isValid(date)) return; // 跳过无效日期
 
       const timeKey = getTimeKey(date, isHourly);
       const existing = timeMap.get(timeKey);
@@ -143,14 +143,20 @@ function aggregateByHour(stats: UsageStats[] | undefined, timeRange: TimeRange) 
 function formatHourLabel(hour: string, timeRange: TimeRange): string {
   if (!hour) return '';
 
-  if (timeRange === '24h') {
-    // 24h: 显示时间 "14:00"
-    const date = dayjs(hour + ':00:00');
-    return date.isValid() ? date.format('HH:mm') : '';
-  } else {
-    // 7d/30d: 显示日期 "1/17"
-    const date = dayjs(hour);
-    return date.isValid() ? `${date.month() + 1}/${date.date()}` : '';
+  try {
+    if (timeRange === '24h') {
+      // 24h: 显示时间 "14:00"
+      // hour 格式是 "yyyy-MM-dd HH"
+      const date = parseISO(hour.replace(' ', 'T') + ':00:00');
+      return isValid(date) ? format(date, 'HH:mm') : '';
+    } else {
+      // 7d/30d: 显示日期 "1/17"
+      const date = parseISO(hour);
+      if (!isValid(date)) return '';
+      return `${date.getMonth() + 1}/${date.getDate()}`;
+    }
+  } catch {
+    return '';
   }
 }
 
