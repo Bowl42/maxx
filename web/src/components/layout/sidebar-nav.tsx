@@ -91,7 +91,7 @@ function RequestsNavItem() {
 export function SidebarNav() {
   const { t } = useTranslation()
   const { data: proxyStatus } = useProxyStatus()
-  const versionDisplay = proxyStatus?.version ? `v${proxyStatus.version}` : '...'
+  const versionDisplay = proxyStatus?.version ?? '...'
   return (
     <Sidebar collapsible="icon">
       <SidebarHeader>
