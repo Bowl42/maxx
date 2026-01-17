@@ -5,7 +5,7 @@ import { OverviewPage } from '@/pages/overview';
 import { RequestsPage } from '@/pages/requests';
 import { RequestDetailPage } from '@/pages/requests/detail';
 import { ProvidersPage } from '@/pages/providers';
-import { ProviderCreatePage } from '@/pages/providers/create';
+import { ProviderCreateLayout } from '@/pages/providers/create-layout';
 import { ProviderEditPage } from '@/pages/providers/edit';
 import { RoutesPage } from '@/pages/routes';
 import { ClientRoutesPage } from '@/pages/client-routes';
@@ -47,7 +47,7 @@ function AppRoutes() {
           <Route path="requests/:id" element={<RequestDetailPage />} />
           <Route path="console" element={<ConsolePage />} />
           <Route path="providers" element={<ProvidersPage />} />
-          <Route path="providers/create" element={<ProviderCreatePage />} />
+          <Route path="providers/create/*" element={<ProviderCreateLayout />} />
           <Route path="providers/:id/edit" element={<ProviderEditPage />} />
           <Route path="routes" element={<RoutesPage />} />
           <Route path="routes/:clientType" element={<ClientRoutesPage />} />

@@ -21,16 +21,15 @@ import { ANTIGRAVITY_COLOR } from '../types';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
-
-interface AntigravityTokenImportProps {
-  onBack: () => void;
-  onCreateProvider: (data: CreateProviderData) => Promise<void>;
-}
+import { useProviderNavigation } from '../hooks/use-provider-navigation';
+import { useCreateProvider } from '@/hooks/queries';
 
 type ImportMode = 'oauth' | 'token';
 type OAuthStatus = 'idle' | 'waiting' | 'success' | 'error';
 
-export function AntigravityTokenImport({ onBack, onCreateProvider }: AntigravityTokenImportProps) {
+export function AntigravityTokenImport() {
+  const { goToSelectType, goToProviders } = useProviderNavigation();
+  const createProvider = useCreateProvider();
   const [mode, setMode] = useState<ImportMode>('token');
   const [email, setEmail] = useState('');
   const [token, setToken] = useState('');
@@ -169,7 +168,8 @@ export function AntigravityTokenImport({ onBack, onCreateProvider }: Antigravity
           },
         },
       };
-      await onCreateProvider(providerData);
+      await createProvider.mutateAsync(providerData);
+      goToProviders();
     } catch (err) {
       setError(err instanceof Error ? err.message : '创建失败');
     } finally {
@@ -202,7 +202,8 @@ export function AntigravityTokenImport({ onBack, onCreateProvider }: Antigravity
           },
         },
       };
-      await onCreateProvider(providerData);
+      await createProvider.mutateAsync(providerData);
+      goToProviders();
     } catch (err) {
       setError(err instanceof Error ? err.message : '创建失败');
     } finally {
@@ -219,7 +220,7 @@ export function AntigravityTokenImport({ onBack, onCreateProvider }: Antigravity
         <Button
           variant="ghost"
           size="icon"
-          onClick={onBack}
+          onClick={goToSelectType}
           className="rounded-full hover:bg-accent -ml-2"
         >
           <ChevronLeft size={20} className="text-muted-foreground" />

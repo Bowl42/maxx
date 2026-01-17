@@ -16,14 +16,13 @@ import { KIRO_COLOR } from '../types';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useTranslation } from 'react-i18next';
+import { useProviderNavigation } from '../hooks/use-provider-navigation';
+import { useCreateProvider } from '@/hooks/queries';
 
-interface KiroTokenImportProps {
-  onBack: () => void;
-  onCreateProvider: (data: CreateProviderData) => Promise<void>;
-}
-
-export function KiroTokenImport({ onBack, onCreateProvider }: KiroTokenImportProps) {
+export function KiroTokenImport() {
   const { t } = useTranslation();
+  const { goToSelectType, goToProviders } = useProviderNavigation();
+  const createProvider = useCreateProvider();
   const [email, setEmail] = useState('');
   const [token, setToken] = useState('');
   const [validating, setValidating] = useState(false);
@@ -86,7 +85,8 @@ export function KiroTokenImport({ onBack, onCreateProvider }: KiroTokenImportPro
           },
         },
       };
-      await onCreateProvider(providerData);
+      await createProvider.mutateAsync(providerData);
+      goToProviders();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to create provider');
     } finally {
@@ -103,7 +103,7 @@ export function KiroTokenImport({ onBack, onCreateProvider }: KiroTokenImportPro
         <Button
           variant="ghost"
           size="icon"
-          onClick={onBack}
+          onClick={goToSelectType}
           className="rounded-full hover:bg-accent -ml-2"
         >
           <ChevronLeft size={20} className="text-muted-foreground" />

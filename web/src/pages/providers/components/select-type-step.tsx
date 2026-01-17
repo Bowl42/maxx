@@ -8,35 +8,52 @@ import {
   FilePlus,
   Cloud,
 } from 'lucide-react';
-import { quickTemplates, PROVIDER_TYPE_CONFIGS, type ProviderFormData } from '../types';
+import { quickTemplates, PROVIDER_TYPE_CONFIGS } from '../types';
 import { Button } from '@/components/ui';
 import { useTranslation } from 'react-i18next';
+import { useProviderForm } from '../context/provider-form-context';
+import { useProviderNavigation } from '../hooks/use-provider-navigation';
 
-interface SelectTypeStepProps {
-  formData: ProviderFormData;
-  onSelectType: (type: 'custom' | 'antigravity' | 'kiro') => void;
-  onApplyTemplate: (templateId: string) => void;
-  onSkipToConfig: () => void;
-  onBack: () => void;
-}
+export function SelectTypeStep() {
+  const { formData, updateFormData } = useProviderForm();
+  const { goToCustomConfig, goToAntigravity, goToKiro, goToProviders } = useProviderNavigation();
+  const { t } = useTranslation();
 
-export function SelectTypeStep({
-  formData,
-  onSelectType,
-  onApplyTemplate,
-  onSkipToConfig,
-  onBack,
-}: SelectTypeStepProps) {
+  const handleSelectType = (type: 'custom' | 'antigravity' | 'kiro') => {
+    updateFormData({ type });
+    if (type === 'antigravity') {
+      goToAntigravity();
+    } else if (type === 'kiro') {
+      goToKiro();
+    }
+  };
+
+  const handleApplyTemplate = (templateId: string) => {
+    const template = quickTemplates.find((t) => t.id === templateId);
+    if (template) {
+      const updatedClients = formData.clients.map((client) => {
+        const isSupported = template.supportedClients.includes(client.id);
+        const baseURL = template.clientBaseURLs[client.id] || '';
+        return { ...client, enabled: isSupported, urlOverride: baseURL };
+      });
+
+      updateFormData({
+        selectedTemplate: templateId,
+        name: template.name,
+        clients: updatedClients,
+      });
+
+      goToCustomConfig();
+    }
+  };
   // 计算可见的 provider 数量
   const visibleProviderCount = Object.values(PROVIDER_TYPE_CONFIGS).filter((c) => !c.hidden).length;
   const gridCols = visibleProviderCount <= 2 ? 'md:grid-cols-2' : 'md:grid-cols-3';
 
-  const { t } = useTranslation();
-
   return (
     <div className="flex flex-col h-full">
       <div className="px-4 sm:px-6 h-[73px] flex items-center gap-4 border-b border-border bg-card">
-        <Button onClick={onBack} variant={'ghost'} size="icon">
+        <Button onClick={goToProviders} variant={'ghost'} size="icon">
           <ChevronLeft className="size-5" />
         </Button>
         <div className="flex-1 min-w-0">
@@ -58,7 +75,7 @@ export function SelectTypeStep({
             </h3>
             <div className={`grid grid-cols-1 ${gridCols} gap-4 items-start`}>
               <Button
-                onClick={() => onSelectType('antigravity')}
+                onClick={() => handleSelectType('antigravity')}
                 variant="ghost"
                 className={`group p-0 rounded-xl border text-left h-auto w-full overflow-hidden transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 ${
                   formData.type === 'antigravity'
@@ -88,7 +105,7 @@ export function SelectTypeStep({
 
               {!PROVIDER_TYPE_CONFIGS.kiro.hidden && (
                 <Button
-                  onClick={() => onSelectType('kiro')}
+                  onClick={() => handleSelectType('kiro')}
                   variant="ghost"
                   className={`group p-0 rounded-lg border text-left transition-all h-auto w-full ${
                     formData.type === 'kiro'
@@ -118,7 +135,7 @@ export function SelectTypeStep({
               )}
 
               <Button
-                onClick={() => onSelectType('custom')}
+                onClick={() => handleSelectType('custom')}
                 variant="ghost"
                 className={`group p-0 rounded-xl border text-left h-auto w-full overflow-hidden transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 ${
                   formData.type === 'custom'
@@ -163,7 +180,7 @@ export function SelectTypeStep({
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4 items-start">
                 {/* Empty Template Card */}
                 <Button
-                  onClick={onSkipToConfig}
+                  onClick={goToCustomConfig}
                   variant="ghost"
                   className="text-left group p-0 rounded-xl border border-dashed h-full w-full min-h-36 sm:min-h-40 transition-all duration-200 border-border bg-card hover:bg-muted hover:border-accent/30 hover:shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
                 >
@@ -196,7 +213,7 @@ export function SelectTypeStep({
                   return (
                     <Button
                       key={template.id}
-                      onClick={() => onApplyTemplate(template.id)}
+                      onClick={() => handleApplyTemplate(template.id)}
                       variant="ghost"
                       className={`group p-0 rounded-xl border text-left h-full w-full min-h-36 sm:min-h-40 transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 ${
                         isSelected
