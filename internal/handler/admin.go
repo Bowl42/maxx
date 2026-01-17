@@ -793,7 +793,7 @@ func (h *AdminHandler) handleProxyStatus(w http.ResponseWriter, r *http.Request)
 		writeJSON(w, http.StatusMethodNotAllowed, map[string]string{"error": "method not allowed"})
 		return
 	}
-	writeJSON(w, http.StatusOK, h.svc.GetProxyStatus())
+	writeJSON(w, http.StatusOK, h.svc.GetProxyStatus(r))
 }
 
 // Provider stats handler
@@ -1158,15 +1158,17 @@ func (h *AdminHandler) handleUsageStats(w http.ResponseWriter, r *http.Request) 
 	query := r.URL.Query()
 	filter := repository.UsageStatsFilter{}
 
-	// Parse time range
+	// Parse time range (转换到本地时区)
 	if startStr := query.Get("start"); startStr != "" {
 		if t, err := time.Parse(time.RFC3339, startStr); err == nil {
-			filter.StartTime = &t
+			local := t.Local()
+			filter.StartTime = &local
 		}
 	}
 	if endStr := query.Get("end"); endStr != "" {
 		if t, err := time.Parse(time.RFC3339, endStr); err == nil {
-			filter.EndTime = &t
+			local := t.Local()
+			filter.EndTime = &local
 		}
 	}
 
