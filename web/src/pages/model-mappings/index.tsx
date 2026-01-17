@@ -204,10 +204,12 @@ export function ModelMappingsPage() {
   }
 
   const handleReset = async () => {
+    if (!window.confirm(t('modelMappings.confirmReset'))) return
     await resetToDefaults.mutateAsync()
   }
 
   const handleClearAll = async () => {
+    if (!window.confirm(t('modelMappings.confirmClearAll'))) return
     await clearAllMappings.mutateAsync()
   }
 

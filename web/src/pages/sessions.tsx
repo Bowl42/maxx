@@ -174,7 +174,7 @@ function SessionDetailModal({
     if (session) {
       setSelectedProjectId(session.projectID)
     }
-  }, [session?.sessionID])
+  }, [session])
 
   const handleSave = async () => {
     if (!session) return

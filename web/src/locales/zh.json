@@ -329,7 +329,9 @@
     "providerID": "P#",
     "projectID": "Proj#",
     "allClients": "全部",
-    "allProviderTypes": "全部"
+    "allProviderTypes": "全部",
+    "confirmReset": "确定要重置为预设吗？这将删除所有自定义映射并恢复默认配置。",
+    "confirmClearAll": "确定要清空所有模型映射吗？此操作不可撤销。"
   },
   "clientRoutes": {
     "claude": "Claude",

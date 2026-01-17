@@ -329,7 +329,9 @@
     "providerID": "P#",
     "projectID": "Proj#",
     "allClients": "All",
-    "allProviderTypes": "All"
+    "allProviderTypes": "All",
+    "confirmReset": "Are you sure you want to reset to preset? This will delete all custom mappings and restore defaults.",
+    "confirmClearAll": "Are you sure you want to clear all model mappings? This action cannot be undone."
   },
   "clientRoutes": {
     "claude": "Claude",
