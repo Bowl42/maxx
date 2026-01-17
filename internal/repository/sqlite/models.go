@@ -127,7 +127,7 @@ type Project struct {
 	SoftDeleteModel
 	Name                string `gorm:"not null"`
 	Slug                string `gorm:"not null;default:''"`
-	EnabledCustomRoutes string `gorm:"type:text;default:'[]'"`
+	EnabledCustomRoutes string `gorm:"type:text"`
 }
 
 func (Project) TableName() string { return "projects" }
@@ -135,7 +135,7 @@ func (Project) TableName() string { return "projects" }
 // Session model
 type Session struct {
 	SoftDeleteModel
-	SessionID  string `gorm:"not null;uniqueIndex"`
+	SessionID  string `gorm:"type:varchar(255);not null;uniqueIndex"`
 	ClientType string `gorm:"not null"`
 	ProjectID  uint64 `gorm:"default:0"`
 	RejectedAt int64  `gorm:"default:0"`
@@ -183,7 +183,7 @@ func (RoutingStrategy) TableName() string { return "routing_strategies" }
 // APIToken model
 type APIToken struct {
 	SoftDeleteModel
-	Token       string `gorm:"not null;uniqueIndex"`
+	Token       string `gorm:"type:varchar(255);not null;uniqueIndex"`
 	TokenPrefix string `gorm:"not null"`
 	Name        string `gorm:"not null"`
 	Description string `gorm:"default:''"`
@@ -216,12 +216,12 @@ func (ModelMapping) TableName() string { return "model_mappings" }
 // AntigravityQuota model
 type AntigravityQuota struct {
 	SoftDeleteModel
-	Email            string `gorm:"not null;uniqueIndex"`
+	Email            string `gorm:"type:varchar(255);not null;uniqueIndex"`
 	SubscriptionTier string `gorm:"default:'FREE'"`
 	IsForbidden      int    `gorm:"default:0"`
 	Models           string `gorm:"type:text"`
 	Name             string `gorm:"default:''"`
-	Picture          string `gorm:"default:''"`
+	Picture          string `gorm:"type:text"`
 	GCPProjectID     string `gorm:"column:gcp_project_id;default:''"`
 }
 
@@ -234,7 +234,7 @@ type ProxyRequest struct {
 	BaseModel
 	InstanceID                  string `gorm:"type:text"`
 	RequestID                   string `gorm:"type:text"`
-	SessionID                   string `gorm:"type:text;index"`
+	SessionID                   string `gorm:"type:varchar(255);index"`
 	ClientType                  string `gorm:"type:text"`
 	RequestModel                string `gorm:"type:text"`
 	ResponseModel               string `gorm:"type:text"`
@@ -293,7 +293,7 @@ func (ProxyUpstreamAttempt) TableName() string { return "proxy_upstream_attempts
 
 // SystemSetting model
 type SystemSetting struct {
-	Key       string `gorm:"primaryKey"`
+	Key       string `gorm:"type:varchar(255);primaryKey"`
 	Value     string `gorm:"not null"`
 	CreatedAt int64  `gorm:"not null"`
 	UpdatedAt int64  `gorm:"not null"`
@@ -305,7 +305,7 @@ func (SystemSetting) TableName() string { return "system_settings" }
 type Cooldown struct {
 	BaseModel
 	ProviderID uint64 `gorm:"not null;uniqueIndex:idx_cooldowns_provider_client"`
-	ClientType string `gorm:"not null;default:'';uniqueIndex:idx_cooldowns_provider_client"`
+	ClientType string `gorm:"type:varchar(255);not null;default:'';uniqueIndex:idx_cooldowns_provider_client"`
 	UntilTime  int64  `gorm:"not null;index"`
 	Reason     string `gorm:"not null;default:'unknown'"`
 }
@@ -316,8 +316,8 @@ func (Cooldown) TableName() string { return "cooldowns" }
 type FailureCount struct {
 	BaseModel
 	ProviderID    uint64 `gorm:"not null;uniqueIndex:idx_failure_counts_provider_client_reason"`
-	ClientType    string `gorm:"not null;default:'';uniqueIndex:idx_failure_counts_provider_client_reason"`
-	Reason        string `gorm:"not null;uniqueIndex:idx_failure_counts_provider_client_reason"`
+	ClientType    string `gorm:"type:varchar(255);not null;default:'';uniqueIndex:idx_failure_counts_provider_client_reason"`
+	Reason        string `gorm:"type:varchar(255);not null;uniqueIndex:idx_failure_counts_provider_client_reason"`
 	Count         int    `gorm:"default:0"`
 	LastFailureAt int64  `gorm:"not null;index"`
 }
@@ -329,13 +329,13 @@ type UsageStats struct {
 	ID                 uint64 `gorm:"primaryKey;autoIncrement"`
 	CreatedAt          int64  `gorm:"not null"`
 	TimeBucket         int64  `gorm:"not null;uniqueIndex:idx_usage_stats_unique"`
-	Granularity        string `gorm:"not null;uniqueIndex:idx_usage_stats_unique;index:idx_usage_stats_granularity_time"`
+	Granularity        string `gorm:"type:varchar(32);not null;uniqueIndex:idx_usage_stats_unique;index:idx_usage_stats_granularity_time"`
 	RouteID            uint64 `gorm:"default:0;uniqueIndex:idx_usage_stats_unique;index:idx_usage_stats_route_id"`
 	ProviderID         uint64 `gorm:"default:0;uniqueIndex:idx_usage_stats_unique;index:idx_usage_stats_provider_id"`
 	ProjectID          uint64 `gorm:"default:0;uniqueIndex:idx_usage_stats_unique;index:idx_usage_stats_project_id"`
 	APITokenID         uint64 `gorm:"default:0;uniqueIndex:idx_usage_stats_unique;index:idx_usage_stats_api_token_id"`
-	ClientType         string `gorm:"default:'';uniqueIndex:idx_usage_stats_unique"`
-	Model              string `gorm:"default:'';uniqueIndex:idx_usage_stats_unique;index:idx_usage_stats_model"`
+	ClientType         string `gorm:"type:varchar(64);default:'';uniqueIndex:idx_usage_stats_unique"`
+	Model              string `gorm:"type:varchar(128);default:'';uniqueIndex:idx_usage_stats_unique;index:idx_usage_stats_model"`
 	TotalRequests      uint64 `gorm:"default:0"`
 	SuccessfulRequests uint64 `gorm:"default:0"`
 	FailedRequests     uint64 `gorm:"default:0"`
@@ -353,7 +353,7 @@ func (UsageStats) TableName() string { return "usage_stats" }
 type ResponseModel struct {
 	ID         uint64 `gorm:"primaryKey;autoIncrement"`
 	CreatedAt  int64  `gorm:"not null"`
-	Name       string `gorm:"not null;uniqueIndex"`
+	Name       string `gorm:"type:varchar(255);not null;uniqueIndex"`
 	LastSeenAt int64  `gorm:"not null"`
 	UseCount   uint64 `gorm:"default:0"`
 }
