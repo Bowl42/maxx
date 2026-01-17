@@ -149,15 +149,16 @@ export function ProviderRow({ provider, stats, streamingCount, onClick }: Provid
       )}
 
       {/* Supported Clients - 左侧居中 */}
-      <div className="relative z-10 w-12 flex flex-col items-center justify-center gap-1 shrink-0">
-        <div className="flex items-center -space-x-1.5 group/clients">
+      <div className="relative z-10 w-20 flex items-center justify-center shrink-0">
+        <div className="flex flex-wrap items-center justify-center gap-1 w-full">
           {provider.supportedClientTypes?.length > 0 ? (
             provider.supportedClientTypes.map((ct) => (
               <div
                 key={ct}
-                className="relative z-0 hover:z-10 bg-card rounded-full p-0.5 border border-border transition-all hover:scale-125 hover:-translate-y-0.5 shadow-sm"
+                className="relative bg-background rounded-md p-1 border border-border/60 transition-all hover:border-accent/50 hover:shadow-md hover:-translate-y-0.5 shadow-sm"
+                title={ct}
               >
-                <ClientIcon type={ct} size={16} />
+                <ClientIcon type={ct} size={18} />
               </div>
             ))
           ) : (
