@@ -1,6 +1,7 @@
 import { ChevronRight, Activity, Mail, Globe } from 'lucide-react';
 import { ClientIcon } from '@/components/icons/client-icons';
 import { StreamingBadge } from '@/components/ui/streaming-badge';
+import { MarqueeBackground } from '@/components/ui/marquee-background';
 import type { Provider, ProviderStats, AntigravityQuotaData, KiroQuotaData } from '@/lib/transport';
 import { getProviderTypeConfig } from '../types';
 import { cn } from '@/lib/utils';
@@ -138,13 +139,7 @@ export function ProviderRow({ provider, stats, streamingCount, onClick }: Provid
         boxShadow: streamingCount > 0 ? `0 0 20px ${color}15` : undefined,
       }}
     >
-      {/* Marquee 背景动画 (仅在有 streaming 请求时显示) */}
-      {streamingCount > 0 && (
-        <div
-          className="absolute inset-0 animate-marquee pointer-events-none opacity-40"
-          style={{ backgroundColor: `${color}15` }}
-        />
-      )}
+      <MarqueeBackground show={streamingCount > 0} color={`${color}15`} opacity={0.4} />
 
       {/* Streaming Badge - 右上角 */}
       {streamingCount > 0 && (

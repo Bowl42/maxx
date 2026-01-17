@@ -44,3 +44,6 @@ export { Switch } from './switch';
 
 // Tabs
 export { Tabs, TabsList, TabsTrigger, TabsContent } from './tabs';
+
+// Marquee Background
+export { MarqueeBackground } from './marquee-background';

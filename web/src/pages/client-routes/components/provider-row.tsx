@@ -1,6 +1,7 @@
 import { GripVertical, Zap, RefreshCw, Activity, Snowflake, Info } from 'lucide-react';
 import { Button, Switch } from '@/components/ui';
 import { StreamingBadge } from '@/components/ui/streaming-badge';
+import { MarqueeBackground } from '@/components/ui/marquee-background';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { getProviderColorVar, type ProviderType } from '@/lib/theme';
@@ -249,13 +250,11 @@ export function ProviderRowContent({
           !isInCooldown && enabled && streamingCount > 0 ? `0 0 20px ${color}15` : undefined,
       }}
     >
-      {/* Marquee 背景动画 (仅在有 streaming 请求时显示) */}
-      {streamingCount > 0 && enabled && !isInCooldown && (
-        <div
-          className="absolute inset-0 animate-marquee pointer-events-none opacity-40"
-          style={{ backgroundColor: `${color}15` }}
-        />
-      )}
+      <MarqueeBackground
+        show={streamingCount > 0 && enabled && !isInCooldown}
+        color={`${color}15`}
+        opacity={0.4}
+      />
 
       {/* Cooldown 冰冻效果 - 增强版 */}
       {isInCooldown && (

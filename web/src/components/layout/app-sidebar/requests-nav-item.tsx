@@ -2,6 +2,7 @@ import { NavLink, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { Activity } from 'lucide-react';
 import { StreamingBadge } from '@/components/ui/streaming-badge';
+import { MarqueeBackground } from '@/components/ui/marquee-background';
 import { useStreamingRequests } from '@/hooks/use-streaming';
 import { SidebarMenuBadge, SidebarMenuButton, SidebarMenuItem } from '@/components/ui/sidebar';
 
@@ -24,13 +25,7 @@ export function RequestsNavItem() {
         tooltip={t('requests.title')}
         className="relative"
       >
-        {/* Marquee 背景动画 (仅在有 streaming 请求且未激活时显示) */}
-        {total > 0 && !isActive && (
-          <div
-            className="absolute inset-0 animate-marquee pointer-events-none opacity-40"
-            style={{ backgroundColor: color }}
-          />
-        )}
+        <MarqueeBackground show={total > 0 && !isActive} color={color} opacity={0.4} />
         <Activity className="relative z-10" />
         <span className="relative z-10">{t('requests.title')}</span>
       </SidebarMenuButton>
