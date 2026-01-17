@@ -34,6 +34,7 @@ import { ThemeToggle } from '@/components/theme-toggle'
 const mainNavItems = [
   { to: '/', icon: LayoutDashboard, labelKey: 'nav.dashboard' },
   { to: '/console', icon: Terminal, labelKey: 'nav.console' },
+  { to: '/stats', icon: BarChart3, labelKey: 'nav.stats' },
 ]
 
 const managementItems = [
@@ -98,16 +99,6 @@ export function SidebarNav() {
       <SidebarContent>
         <NavMain items={mainNavItems}>
           <RequestsNavItem />
-          <SidebarMenuItem>
-            <SidebarMenuButton
-              render={<NavLink to="/stats" />}
-              isActive={location.pathname.startsWith('/stats')}
-              tooltip={t('nav.stats')}
-            >
-              <BarChart3 />
-              <span>{t('nav.stats')}</span>
-            </SidebarMenuButton>
-          </SidebarMenuItem>
         </NavMain>
         <NavRoutes />
         <NavManagement items={managementItems} title={t('nav.management')} />
