@@ -12,6 +12,7 @@ import (
 
 	"github.com/awsl-project/maxx/internal/domain"
 	"github.com/awsl-project/maxx/internal/repository"
+	"github.com/awsl-project/maxx/internal/version"
 )
 
 // ProviderAdapterRefresher is an interface for refreshing provider adapters
@@ -428,6 +429,8 @@ type ProxyStatus struct {
 	Running bool   `json:"running"`
 	Address string `json:"address"`
 	Port    int    `json:"port"`
+	Version string `json:"version"`
+	Commit  string `json:"commit"`
 }
 
 func (s *AdminService) GetProxyStatus(r *http.Request) *ProxyStatus {
@@ -470,6 +473,8 @@ func (s *AdminService) GetProxyStatus(r *http.Request) *ProxyStatus {
 		Running: true,
 		Address: displayAddr,
 		Port:    port,
+		Version: version.Version,
+		Commit:  version.Commit,
 	}
 }
 

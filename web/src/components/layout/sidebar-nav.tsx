@@ -15,6 +15,7 @@ import {
 } from 'lucide-react'
 import { StreamingBadge } from '@/components/ui/streaming-badge'
 import { useStreamingRequests } from '@/hooks/use-streaming'
+import { useProxyStatus } from '@/hooks/queries'
 import {
   Sidebar,
   SidebarContent,
@@ -89,7 +90,8 @@ function RequestsNavItem() {
 
 export function SidebarNav() {
   const { t } = useTranslation()
-  const versionDisplay = `v${__APP_VERSION__}`
+  const { data: proxyStatus } = useProxyStatus()
+  const versionDisplay = proxyStatus?.version ? `v${proxyStatus.version}` : '...'
   return (
     <Sidebar collapsible="icon">
       <SidebarHeader>

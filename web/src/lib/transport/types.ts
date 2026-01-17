@@ -284,6 +284,8 @@ export interface ProxyStatus {
   running: boolean;
   address: string;
   port: number;
+  version: string;
+  commit: string;
 }
 
 // ===== Provider Stats =====
