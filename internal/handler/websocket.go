@@ -20,7 +20,7 @@ var upgrader = websocket.Upgrader{
 }
 
 type WSMessage struct {
-	Type string      `json:"type"` // "proxy_request_update", "stats_update"
+	Type string      `json:"type"` // "proxy_request_update", "proxy_upstream_attempt_update", etc.
 	Data interface{} `json:"data"`
 }
 
@@ -91,13 +91,6 @@ func (h *WebSocketHub) BroadcastProxyUpstreamAttempt(attempt *domain.ProxyUpstre
 	h.broadcast <- WSMessage{
 		Type: "proxy_upstream_attempt_update",
 		Data: attempt,
-	}
-}
-
-func (h *WebSocketHub) BroadcastStats(stats interface{}) {
-	h.broadcast <- WSMessage{
-		Type: "stats_update",
-		Data: stats,
 	}
 }
 

@@ -11,7 +11,7 @@ interface ActivityHeatmapProps {
   data: HeatmapDataPoint[];
   className?: string;
   colorScheme?: 'green' | 'blue' | 'purple' | 'orange';
-  maxWeeks?: number; // 最大显示周数，超出部分从前面截取
+  maxWeeks?: number; // 显示的周数，默认 53 周（约一年）
   timezone?: string; // 后端配置的时区，如 "Asia/Shanghai"
 }
 
@@ -113,12 +113,6 @@ export function ActivityHeatmap({
 
   // 生成网格数据（按周组织，类似 GitHub）
   const gridData = useMemo(() => {
-    if (data.length === 0) return [];
-
-    // 获取日期范围
-    const dates = data.map((d) => new Date(d.date)).sort((a, b) => a.getTime() - b.getTime());
-    const startDate = dates[0];
-
     // 使用配置的时区确定"今天"
     const todayStr = getTodayInTimezone(timezone);
     const today = new Date(todayStr + 'T00:00:00');
@@ -130,6 +124,12 @@ export function ActivityHeatmap({
       const day = String(d.getDate()).padStart(2, '0');
       return `${year}-${month}-${day}`;
     };
+
+    // 计算开始日期：从 maxWeeks 周前开始（默认 53 周，约一年）
+    // 这样无论数据从何时开始，都能填满显示区域
+    const weeksToShow = maxWeeks || 53;
+    const startDate = new Date(today);
+    startDate.setDate(startDate.getDate() - (weeksToShow * 7));
 
     // 调整到周日开始
     const adjustedStart = new Date(startDate);
@@ -165,13 +165,8 @@ export function ActivityHeatmap({
       weeks.push(currentWeek);
     }
 
-    // 如果设置了 maxWeeks，只保留最后 maxWeeks 周（优先显示今天）
-    if (maxWeeks && weeks.length > maxWeeks) {
-      return weeks.slice(-maxWeeks);
-    }
-
     return weeks;
-  }, [data, dataMap, maxWeeks, timezone]);
+  }, [dataMap, maxWeeks, timezone]);
 
   if (data.length === 0) {
     return (

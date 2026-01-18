@@ -13,7 +13,7 @@ export function useCooldowns() {
   } = useQuery({
     queryKey: ['cooldowns'],
     queryFn: () => getTransport().getCooldowns(),
-    refetchInterval: 5000, // Refetch every 5 seconds from server
+    // 不再轮询，改为通过 WebSocket 事件触发刷新 (useProxyRequestUpdates)
     staleTime: 3000,
   });
 

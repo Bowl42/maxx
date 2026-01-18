@@ -52,13 +52,6 @@ func (w *WailsBroadcaster) BroadcastLog(message string) {
 	}
 }
 
-// BroadcastStats broadcasts stats update
-func (w *WailsBroadcaster) BroadcastStats(stats interface{}) {
-	if w.inner != nil {
-		w.inner.BroadcastStats(stats)
-	}
-}
-
 // BroadcastMessage broadcasts a custom message
 func (w *WailsBroadcaster) BroadcastMessage(messageType string, data interface{}) {
 	if w.inner != nil {

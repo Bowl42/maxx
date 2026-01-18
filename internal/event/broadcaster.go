@@ -8,7 +8,6 @@ type Broadcaster interface {
 	BroadcastProxyRequest(req *domain.ProxyRequest)
 	BroadcastProxyUpstreamAttempt(attempt *domain.ProxyUpstreamAttempt)
 	BroadcastLog(message string)
-	BroadcastStats(stats interface{})
 	BroadcastMessage(messageType string, data interface{})
 }
 
@@ -18,5 +17,4 @@ type NopBroadcaster struct{}
 func (n *NopBroadcaster) BroadcastProxyRequest(req *domain.ProxyRequest)                {}
 func (n *NopBroadcaster) BroadcastProxyUpstreamAttempt(attempt *domain.ProxyUpstreamAttempt) {}
 func (n *NopBroadcaster) BroadcastLog(message string)                                   {}
-func (n *NopBroadcaster) BroadcastStats(stats interface{})                              {}
 func (n *NopBroadcaster) BroadcastMessage(messageType string, data interface{})         {}
