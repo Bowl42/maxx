@@ -33,8 +33,9 @@ func (r *UsageStatsRepository) getConfiguredTimezone() *time.Location {
 
 	loc, err := time.LoadLocation(value)
 	if err != nil {
-		log.Printf("[UsageStats] Invalid timezone %q, falling back to Asia/Shanghai: %v", value, err)
-		loc, _ = time.LoadLocation("Asia/Shanghai")
+		log.Printf("[UsageStats] Invalid timezone %q, falling back to UTC+8: %v", value, err)
+		// 手动创建 UTC+8 时区作为 fallback（避免 Docker 容器无 tzdata 导致 panic）
+		loc = time.FixedZone("UTC+8", 8*60*60)
 	}
 	return loc
 }
