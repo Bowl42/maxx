@@ -277,10 +277,23 @@ func InitializeServerComponents(
 		r,
 	)
 
+	log.Printf("[Core] Creating backup service")
+	backupService := service.NewBackupService(
+		repos.CachedProviderRepo,
+		repos.CachedRouteRepo,
+		repos.CachedProjectRepo,
+		repos.CachedRetryConfigRepo,
+		repos.CachedRoutingStrategyRepo,
+		repos.SettingRepo,
+		repos.CachedAPITokenRepo,
+		repos.CachedModelMappingRepo,
+		r,
+	)
+
 	log.Printf("[Core] Creating handlers")
 	tokenAuthMiddleware := handler.NewTokenAuthMiddleware(repos.CachedAPITokenRepo, repos.SettingRepo)
 	proxyHandler := handler.NewProxyHandler(clientAdapter, exec, repos.CachedSessionRepo, tokenAuthMiddleware)
-	adminHandler := handler.NewAdminHandler(adminService, logPath)
+	adminHandler := handler.NewAdminHandler(adminService, backupService, logPath)
 	antigravityHandler := handler.NewAntigravityHandler(adminService, repos.AntigravityQuotaRepo, wailsBroadcaster)
 	kiroHandler := handler.NewKiroHandler(adminService)
 	projectProxyHandler := handler.NewProjectProxyHandler(proxyHandler, repos.CachedProjectRepo)

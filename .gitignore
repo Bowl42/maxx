@@ -4,7 +4,7 @@
 *.db-wal
 
 # Binary
-maxx
+/maxx
 build/bin/
 
 # Wails build artifacts

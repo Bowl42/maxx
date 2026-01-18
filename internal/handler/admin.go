@@ -16,15 +16,17 @@ import (
 // AdminHandler handles admin API requests over HTTP
 // Delegates business logic to AdminService
 type AdminHandler struct {
-	svc     *service.AdminService
-	logPath string
+	svc       *service.AdminService
+	backupSvc *service.BackupService
+	logPath   string
 }
 
 // NewAdminHandler creates a new admin handler
-func NewAdminHandler(svc *service.AdminService, logPath string) *AdminHandler {
+func NewAdminHandler(svc *service.AdminService, backupSvc *service.BackupService, logPath string) *AdminHandler {
 	return &AdminHandler{
-		svc:     svc,
-		logPath: logPath,
+		svc:       svc,
+		backupSvc: backupSvc,
+		logPath:   logPath,
 	}
 }
 
@@ -84,6 +86,8 @@ func (h *AdminHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		h.handleDashboard(w, r)
 	case "response-models":
 		h.handleResponseModels(w, r)
+	case "backup":
+		h.handleBackup(w, r, parts)
 	default:
 		writeJSON(w, http.StatusNotFound, map[string]string{"error": "not found"})
 	}
@@ -1263,6 +1267,75 @@ func (h *AdminHandler) handleDashboard(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	writeJSON(w, http.StatusOK, data)
+}
+
+// handleBackup routes backup requests
+func (h *AdminHandler) handleBackup(w http.ResponseWriter, r *http.Request, parts []string) {
+	if len(parts) < 3 {
+		writeJSON(w, http.StatusNotFound, map[string]string{"error": "not found"})
+		return
+	}
+
+	action := parts[2]
+	switch action {
+	case "export":
+		h.handleBackupExport(w, r)
+	case "import":
+		h.handleBackupImport(w, r)
+	default:
+		writeJSON(w, http.StatusNotFound, map[string]string{"error": "not found"})
+	}
+}
+
+// handleBackupExport exports all configuration data
+func (h *AdminHandler) handleBackupExport(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		writeJSON(w, http.StatusMethodNotAllowed, map[string]string{"error": "method not allowed"})
+		return
+	}
+
+	backup, err := h.backupSvc.Export()
+	if err != nil {
+		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": err.Error()})
+		return
+	}
+
+	// Set download headers
+	filename := "maxx-backup-" + time.Now().Format("2006-01-02") + ".json"
+	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set("Content-Disposition", "attachment; filename="+filename)
+	json.NewEncoder(w).Encode(backup)
+}
+
+// handleBackupImport imports configuration data from backup
+func (h *AdminHandler) handleBackupImport(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		writeJSON(w, http.StatusMethodNotAllowed, map[string]string{"error": "method not allowed"})
+		return
+	}
+
+	var backup domain.BackupFile
+	if err := json.NewDecoder(r.Body).Decode(&backup); err != nil {
+		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "invalid JSON: " + err.Error()})
+		return
+	}
+
+	// Parse options from query params
+	opts := domain.ImportOptions{
+		ConflictStrategy: r.URL.Query().Get("conflictStrategy"),
+		DryRun:           r.URL.Query().Get("dryRun") == "true",
+	}
+	if opts.ConflictStrategy == "" {
+		opts.ConflictStrategy = "skip"
+	}
+
+	result, err := h.backupSvc.Import(&backup, opts)
+	if err != nil {
+		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": err.Error()})
+		return
+	}
+
+	writeJSON(w, http.StatusOK, result)
 }
 
 func writeJSON(w http.ResponseWriter, status int, data interface{}) {

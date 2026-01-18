@@ -580,6 +580,113 @@ export interface ResponseModel {
   useCount: number;
 }
 
+// ===== Backup API Types =====
+
+/** 备份文件结构 */
+export interface BackupFile {
+  version: string;
+  exportedAt: string;
+  appVersion: string;
+  data: BackupData;
+}
+
+export interface BackupData {
+  systemSettings?: BackupSystemSetting[];
+  providers?: BackupProvider[];
+  projects?: BackupProject[];
+  retryConfigs?: BackupRetryConfig[];
+  routes?: BackupRoute[];
+  routingStrategies?: BackupRoutingStrategy[];
+  apiTokens?: BackupAPIToken[];
+  modelMappings?: BackupModelMapping[];
+}
+
+export interface BackupSystemSetting {
+  key: string;
+  value: string;
+}
+
+export interface BackupProvider {
+  name: string;
+  type: string;
+  config?: ProviderConfig;
+  supportedClientTypes?: ClientType[];
+  supportModels?: string[];
+}
+
+export interface BackupProject {
+  name: string;
+  slug: string;
+  enabledCustomRoutes?: ClientType[];
+}
+
+export interface BackupRetryConfig {
+  name: string;
+  isDefault: boolean;
+  maxRetries: number;
+  initialIntervalMs: number;
+  backoffRate: number;
+  maxIntervalMs: number;
+}
+
+export interface BackupRoute {
+  isEnabled: boolean;
+  isNative: boolean;
+  projectSlug: string;
+  clientType: ClientType;
+  providerName: string;
+  position: number;
+  retryConfigName: string;
+}
+
+export interface BackupRoutingStrategy {
+  projectSlug: string;
+  type: RoutingStrategyType;
+  config?: RoutingStrategyConfig;
+}
+
+export interface BackupAPIToken {
+  name: string;
+  description: string;
+  projectSlug: string;
+  isEnabled: boolean;
+  expiresAt?: string;
+}
+
+export interface BackupModelMapping {
+  scope: ModelMappingScope;
+  clientType?: ClientType;
+  providerType?: string;
+  providerName?: string;
+  projectSlug?: string;
+  routeName?: string;
+  apiTokenName?: string;
+  pattern: string;
+  target: string;
+  priority: number;
+}
+
+/** 导入选项 */
+export interface BackupImportOptions {
+  conflictStrategy?: 'skip' | 'overwrite' | 'error';
+  dryRun?: boolean;
+}
+
+/** 导入摘要 */
+export interface BackupImportSummary {
+  imported: number;
+  skipped: number;
+  updated: number;
+}
+
+/** 导入结果 */
+export interface BackupImportResult {
+  success: boolean;
+  summary: Record<string, BackupImportSummary>;
+  errors: string[];
+  warnings: string[];
+}
+
 // ===== Dashboard API Types =====
 
 /** Dashboard 日统计摘要 */

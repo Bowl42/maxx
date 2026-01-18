@@ -219,6 +219,19 @@ func main() {
 		r, // Router implements ProviderAdapterRefresher interface
 	)
 
+	// Create backup service
+	backupService := service.NewBackupService(
+		cachedProviderRepo,
+		cachedRouteRepo,
+		cachedProjectRepo,
+		cachedRetryConfigRepo,
+		cachedRoutingStrategyRepo,
+		settingRepo,
+		cachedAPITokenRepo,
+		cachedModelMappingRepo,
+		r, // Router implements ProviderAdapterRefresher interface
+	)
+
 	// Create auth middleware
 	authMiddleware := handler.NewAuthMiddleware()
 	if authMiddleware.IsEnabled() {
@@ -235,7 +248,7 @@ func main() {
 
 	// Create handlers
 	proxyHandler := handler.NewProxyHandler(clientAdapter, exec, cachedSessionRepo, tokenAuthMiddleware)
-	adminHandler := handler.NewAdminHandler(adminService, logPath)
+	adminHandler := handler.NewAdminHandler(adminService, backupService, logPath)
 	authHandler := handler.NewAuthHandler(authMiddleware)
 	antigravityHandler := handler.NewAntigravityHandler(adminService, antigravityQuotaRepo, wsHub)
 	kiroHandler := handler.NewKiroHandler(adminService)

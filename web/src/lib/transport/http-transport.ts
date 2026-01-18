@@ -45,6 +45,9 @@ import type {
   UsageStats,
   UsageStatsFilter,
   DashboardData,
+  BackupFile,
+  BackupImportOptions,
+  BackupImportResult,
 } from './types';
 
 export class HttpTransport implements Transport {
@@ -529,6 +532,24 @@ export class HttpTransport implements Transport {
   async getResponseModels(): Promise<string[]> {
     const { data } = await this.client.get<string[]>('/response-models');
     return data ?? [];
+  }
+
+  // ===== Backup API =====
+
+  async exportBackup(): Promise<BackupFile> {
+    const { data } = await this.client.get<BackupFile>('/backup/export');
+    return data;
+  }
+
+  async importBackup(backup: BackupFile, options?: BackupImportOptions): Promise<BackupImportResult> {
+    const params = new URLSearchParams();
+    if (options?.conflictStrategy) params.set('conflictStrategy', options.conflictStrategy);
+    if (options?.dryRun) params.set('dryRun', 'true');
+
+    const query = params.toString();
+    const url = query ? `/backup/import?${query}` : '/backup/import';
+    const { data } = await this.client.post<BackupImportResult>(url, backup);
+    return data;
   }
 
   // ===== WebSocket 订阅 =====

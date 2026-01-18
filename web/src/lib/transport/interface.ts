@@ -42,6 +42,9 @@ import type {
   UsageStats,
   UsageStatsFilter,
   DashboardData,
+  BackupFile,
+  BackupImportOptions,
+  BackupImportResult,
 } from './types';
 
 /**
@@ -165,6 +168,10 @@ export interface Transport {
 
   // ===== Response Model API =====
   getResponseModels(): Promise<string[]>;
+
+  // ===== Backup API =====
+  exportBackup(): Promise<BackupFile>;
+  importBackup(backup: BackupFile, options?: BackupImportOptions): Promise<BackupImportResult>;
 
   // ===== 实时订阅 =====
   subscribe<T = unknown>(eventType: WSMessageType, callback: EventCallback<T>): UnsubscribeFn;

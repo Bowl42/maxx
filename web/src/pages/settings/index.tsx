@@ -1,10 +1,12 @@
-import { useState, useEffect } from 'react';
-import { Settings, Moon, Sun, Monitor, Laptop, FolderOpen, Database, Globe } from 'lucide-react';
+import { useState, useEffect, useRef } from 'react';
+import { Settings, Moon, Sun, Monitor, Laptop, FolderOpen, Database, Globe, Archive, Download, Upload, AlertTriangle, CheckCircle } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '@/components/theme-provider';
 import { Card, CardContent, CardHeader, CardTitle, Button, Input, Switch, Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui';
 import { PageHeader } from '@/components/layout/page-header';
 import { useSettings, useUpdateSetting } from '@/hooks/queries';
+import { useTransport } from '@/lib/transport/context';
+import type { BackupFile, BackupImportResult } from '@/lib/transport/types';
 
 type Theme = 'light' | 'dark' | 'system';
 
@@ -26,6 +28,7 @@ export function SettingsPage() {
           <TimezoneSection />
           <DataRetentionSection />
           <ForceProjectSection />
+          <BackupSection />
         </div>
       </div>
     </div>
@@ -304,6 +307,178 @@ function ForceProjectSection() {
               disabled={updateSetting.isPending}
             />
             <span className="text-xs text-muted-foreground">{t('settings.waitTimeoutRange')}</span>
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
+function BackupSection() {
+  const { t } = useTranslation();
+  const { transport } = useTransport();
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const [isExporting, setIsExporting] = useState(false);
+  const [isImporting, setIsImporting] = useState(false);
+  const [importResult, setImportResult] = useState<BackupImportResult | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  const handleExport = async () => {
+    setIsExporting(true);
+    setError(null);
+    try {
+      const backup = await transport.exportBackup();
+      // Download as JSON file
+      const blob = new Blob([JSON.stringify(backup, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `maxx-backup-${new Date().toISOString().split('T')[0]}.json`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      setError(t('settings.exportFailed'));
+      console.error('Export failed:', err);
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
+  const handleImport = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    setIsImporting(true);
+    setError(null);
+    setImportResult(null);
+
+    try {
+      const text = await file.text();
+      const backup: BackupFile = JSON.parse(text);
+      const result = await transport.importBackup(backup, { conflictStrategy: 'skip' });
+      setImportResult(result);
+    } catch (err) {
+      setError(t('settings.importFailed'));
+      console.error('Import failed:', err);
+    } finally {
+      setIsImporting(false);
+      // Reset file input
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+    }
+  };
+
+  return (
+    <Card className="border-border bg-card">
+      <CardHeader className="border-b border-border py-4">
+        <div>
+          <CardTitle className="text-base font-medium flex items-center gap-2">
+            <Archive className="h-4 w-4 text-muted-foreground" />
+            {t('settings.backup')}
+          </CardTitle>
+          <p className="text-xs text-muted-foreground mt-1">{t('settings.backupDesc')}</p>
+        </div>
+      </CardHeader>
+      <CardContent className="p-6 space-y-4">
+        {/* Warning about sensitive data */}
+        <div className="flex items-start gap-2 p-3 rounded-md bg-amber-500/10 border border-amber-500/20">
+          <AlertTriangle className="h-4 w-4 text-amber-500 mt-0.5 shrink-0" />
+          <p className="text-xs text-amber-600 dark:text-amber-400">{t('settings.backupContainsSensitive')}</p>
+        </div>
+
+        {/* Export/Import buttons */}
+        <div className="flex flex-wrap gap-3">
+          <div className="flex-1 min-w-[200px]">
+            <p className="text-sm font-medium mb-2">{t('settings.exportBackup')}</p>
+            <p className="text-xs text-muted-foreground mb-3">{t('settings.exportBackupDesc')}</p>
+            <Button onClick={handleExport} disabled={isExporting} variant="outline" size="sm">
+              <Download className="h-4 w-4 mr-2" />
+              {isExporting ? t('settings.exporting') : t('settings.exportBackup')}
+            </Button>
+          </div>
+
+          <div className="flex-1 min-w-[200px]">
+            <p className="text-sm font-medium mb-2">{t('settings.importBackup')}</p>
+            <p className="text-xs text-muted-foreground mb-3">{t('settings.importBackupDesc')}</p>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept=".json"
+              onChange={handleImport}
+              className="hidden"
+              id="backup-file-input"
+            />
+            <Button
+              onClick={() => fileInputRef.current?.click()}
+              disabled={isImporting}
+              variant="outline"
+              size="sm"
+            >
+              <Upload className="h-4 w-4 mr-2" />
+              {isImporting ? t('settings.importing') : t('settings.selectBackupFile')}
+            </Button>
+          </div>
+        </div>
+
+        {/* Error message */}
+        {error && (
+          <div className="flex items-center gap-2 p-3 rounded-md bg-destructive/10 border border-destructive/20">
+            <AlertTriangle className="h-4 w-4 text-destructive" />
+            <p className="text-sm text-destructive">{error}</p>
+          </div>
+        )}
+
+        {/* Import result */}
+        {importResult && (
+          <div className="space-y-3 p-4 rounded-md border border-border bg-muted/30">
+            <div className="flex items-center gap-2">
+              <CheckCircle className="h-4 w-4 text-green-500" />
+              <p className="text-sm font-medium">{t('settings.importSummary')}</p>
+            </div>
+
+            {/* Summary table */}
+            <div className="grid grid-cols-4 gap-2 text-xs">
+              <div className="font-medium text-muted-foreground"></div>
+              <div className="font-medium text-muted-foreground text-center">{t('settings.imported')}</div>
+              <div className="font-medium text-muted-foreground text-center">{t('settings.skipped')}</div>
+              <div className="font-medium text-muted-foreground text-center">{t('settings.updated')}</div>
+              {Object.entries(importResult.summary).map(([key, summary]) => (
+                <>
+                  <div key={`${key}-label`} className="capitalize">{key}</div>
+                  <div key={`${key}-imported`} className="text-center text-green-600">{summary.imported}</div>
+                  <div key={`${key}-skipped`} className="text-center text-muted-foreground">{summary.skipped}</div>
+                  <div key={`${key}-updated`} className="text-center text-blue-600">{summary.updated}</div>
+                </>
+              ))}
+            </div>
+
+            {/* Warnings */}
+            {importResult.warnings && importResult.warnings.length > 0 && (
+              <div className="space-y-1">
+                <p className="text-xs font-medium text-amber-600">{t('settings.importWarnings')}:</p>
+                <div className="max-h-32 overflow-y-auto space-y-1">
+                  {importResult.warnings.map((warning, i) => (
+                    <p key={i} className="text-xs text-amber-600 dark:text-amber-400 pl-2 border-l-2 border-amber-500/30">{warning}</p>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Errors */}
+            {importResult.errors && importResult.errors.length > 0 && (
+              <div className="space-y-1">
+                <p className="text-xs font-medium text-destructive">{t('settings.importErrors')}:</p>
+                <div className="max-h-32 overflow-y-auto space-y-1">
+                  {importResult.errors.map((err, i) => (
+                    <p key={i} className="text-xs text-destructive pl-2 border-l-2 border-destructive/30">{err}</p>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         )}
       </CardContent>
