@@ -2,7 +2,6 @@ import { NavLink, useLocation } from 'react-router-dom';
 import { StreamingBadge } from '@/components/ui/streaming-badge';
 import { MarqueeBackground } from '@/components/ui/marquee-background';
 import { SidebarMenuBadge, SidebarMenuButton, SidebarMenuItem } from '@/components/ui/sidebar';
-import { cn } from '@/lib/utils';
 import type { ReactNode } from 'react';
 
 interface AnimatedNavItemProps {
@@ -43,14 +42,11 @@ export function AnimatedNavItem({
         render={<NavLink to={to} />}
         isActive={isActive}
         tooltip={tooltip}
-        className={cn(
-          'relative overflow-hidden',
-          isActive && 'bg-transparent! hover:bg-sidebar-accent/50!',
-        )}
+        className="relative overflow-hidden"
       >
         <MarqueeBackground show={streamingCount > 0} color={color} opacity={0.3} />
-        <span className="relative z-10">{icon}</span>
-        <span className="relative z-10">{label}</span>
+        {icon}
+        <span>{label}</span>
       </SidebarMenuButton>
       <SidebarMenuBadge>
         <StreamingBadge count={streamingCount} color={color} />
