@@ -47,7 +47,7 @@ export function NavProxyStatus() {
         </TooltipTrigger>
         <TooltipContent side="right" align="center">
           <div className="flex flex-col gap-1">
-            <span className="text-xs text-muted-foreground">v{versionDisplay}</span>
+            <span className="text-xs text-muted-foreground">{versionDisplay}</span>
             <span className="text-xs text-text-muted">{t('proxy.listeningOn')}</span>
             <span className="font-mono font-medium">{proxyAddress}</span>
             <span className="text-xs text-emerald-400">
@@ -60,12 +60,12 @@ export function NavProxyStatus() {
   }
 
   return (
-    <div className="h-auto border-none p-2 flex items-center gap-2 w-full rounded-lg transition-all group">
+    <div className="h-auto border-none p-2 flex items-center gap-2 w-full rounded-lg transition-all group cursor-pointer" onClick={handleCopy}>
       <div className="w-8 h-8 rounded-lg bg-emerald-400/10 flex items-center justify-center shrink-0 transition-colors cursor-default">
         <Radio size={16} className="text-emerald-400" />
       </div>
       <div className="flex flex-col items-start flex-1 min-w-0">
-        <span className="text-caption text-text-muted">v{versionDisplay} {t('proxy.listeningOn')}</span>
+        <span className="text-caption text-text-muted">{versionDisplay} {t('proxy.listeningOn')}</span>
         <span className="font-mono font-medium text-text-primary break-all">{proxyAddress}</span>
       </div>
       <button
