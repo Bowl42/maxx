@@ -36,7 +36,7 @@ func (r *APITokenRepository) Update(t *domain.APIToken) error {
 		Updates(map[string]any{
 			"updated_at":  toTimestamp(t.UpdatedAt),
 			"name":        t.Name,
-			"description": t.Description,
+			"description": LongText(t.Description),
 			"project_id":  t.ProjectID,
 			"is_enabled":  boolToInt(t.IsEnabled),
 			"expires_at":  toTimestampPtr(t.ExpiresAt),

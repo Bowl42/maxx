@@ -38,7 +38,7 @@ func (r *SystemSettingRepository) Set(key, value string) error {
 	}
 	return r.db.gorm.Clauses(clause.OnConflict{
 		Columns:   []clause.Column{{Name: "setting_key"}},
-		DoUpdates: clause.Assignments(map[string]any{"value": value, "updated_at": now}),
+		DoUpdates: clause.Assignments(map[string]any{"value": LongText(value), "updated_at": now}),
 	}).Create(model).Error
 }
 

@@ -24,7 +24,7 @@ func (d *DB) GormDB() *gorm.DB {
 	return d.gorm
 }
 
-// Dialector returns the database dialector type ("sqlite" or "mysql")
+// Dialector returns the database dialector type ("sqlite", "mysql", or "postgres")
 func (d *DB) Dialector() string {
 	return d.dialector
 }
