@@ -193,7 +193,7 @@ export function ActivityHeatmap({
       <TooltipProvider delay={0} closeDelay={100}>
         <div className="flex gap-[3px] pb-1 overflow-hidden justify-end">
           {/* 内层容器添加 padding 给 shadow 留空间，负 margin 抵消偏移 */}
-          <div className="flex gap-[3px] p-1 -m-1">
+          <div className="flex gap-[3px] p-1.5 -m-1.5">
             {gridData.map((week, weekIndex) => (
               <div key={weekIndex} className="flex flex-col gap-[3px]">
                 {week.map((day) =>
