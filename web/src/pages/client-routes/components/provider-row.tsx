@@ -266,7 +266,7 @@ export function ProviderRowContent({
       className={cn(
         'group relative flex items-center gap-4 p-3 rounded-xl border transition-all duration-300 overflow-hidden w-full h-auto cursor-pointer active:cursor-grab',
         effectiveIsInCooldown
-          ? 'bg-teal-200/70 dark:bg-teal-950/80 border-teal-400/60 shadow-[0_0_25px_rgba(20,184,166,0.3)]'
+          ? 'bg-transparent border-slate-400/50 dark:border-slate-500/40 hover:bg-slate-200/50 dark:hover:bg-slate-700/30 hover:border-slate-500 dark:hover:border-slate-400 hover:shadow-md'
           : enabled
             ? streamingCount > 0
               ? 'bg-accent/5 border-transparent ring-1 ring-black/5 dark:ring-white/10'
@@ -286,14 +286,12 @@ export function ProviderRowContent({
         opacity={0.4}
       />
 
-      {/* Cooldown 冰冻效果 - 增强版 */}
+      {/* Cooldown 冰冻效果 - 落雪 */}
       {effectiveIsInCooldown && (
         <>
-          <div className="absolute inset-0 bg-linear-to-br from-cyan-500/5 via-transparent to-blue-600/5 pointer-events-none animate-pulse" />
-          <div className="absolute inset-x-0 top-0 h-[1px] bg-linear-to-r from-transparent via-cyan-400/20 to-transparent" />
-          {/* 雪花动画 (CSS Background) */}
-          <div className="absolute inset-0 animate-snowing pointer-events-none opacity-60" />
-          <div className="absolute inset-0 animate-snowing-secondary pointer-events-none opacity-60" />
+          {/* 雪花动画 (CSS Background) - z-0 置于所有元素后面 */}
+          <div className="absolute inset-0 z-0 animate-snowing pointer-events-none opacity-80" />
+          <div className="absolute inset-0 z-0 animate-snowing-secondary pointer-events-none opacity-80" />
         </>
       )}
 
@@ -320,7 +318,7 @@ export function ProviderRowContent({
           className={cn(
             'relative w-11 h-11 rounded-xl flex items-center justify-center shrink-0 transition-all duration-500 overflow-hidden',
             effectiveIsInCooldown
-              ? 'bg-cyan-900/40 border border-cyan-500/30'
+              ? 'bg-slate-200 dark:bg-slate-800 border border-slate-400/30 dark:border-slate-600/30'
               : 'bg-muted border border-border shadow-inner',
           )}
           style={!effectiveIsInCooldown && enabled ? { color } : {}}
@@ -329,7 +327,7 @@ export function ProviderRowContent({
             className={cn(
               'text-xl font-black transition-all',
               effectiveIsInCooldown
-                ? 'text-cyan-400 opacity-20 scale-150 blur-[1px]'
+                ? 'opacity-0'
                 : enabled
                   ? 'scale-100'
                   : 'opacity-30 grayscale',
@@ -340,7 +338,7 @@ export function ProviderRowContent({
           {effectiveIsInCooldown && (
             <Snowflake
               size={22}
-              className="absolute text-cyan-400 animate-pulse drop-shadow-[0_0_8px_rgba(34,211,238,0.5)]"
+              className="absolute text-slate-500/70 dark:text-white/70 animate-pulse drop-shadow-[0_0_8px_rgba(100,116,139,0.4)] dark:drop-shadow-[0_0_8px_rgba(255,255,255,0.4)]"
             />
           )}
           {enabled && streamingCount > 0 && !effectiveIsInCooldown && (
@@ -433,24 +431,24 @@ export function ProviderRowContent({
             }}
             disabled={isClearingCooldown}
             title={t('provider.clearCooldown')}
-            className="flex items-center gap-3 bg-white/80 dark:bg-teal-950/60 rounded-xl border border-teal-500/50 p-1 px-3 backdrop-blur-md shadow-[0_0_15px_rgba(20,184,166,0.15)] cursor-pointer hover:bg-teal-50 dark:hover:bg-teal-900/60 hover:border-teal-400 transition-all disabled:opacity-50"
+            className="flex items-center gap-3 bg-transparent rounded-xl border border-slate-400/50 dark:border-slate-500/40 p-1 px-3 cursor-pointer hover:bg-slate-100/50 dark:hover:bg-slate-700/30 hover:border-slate-500 dark:hover:border-slate-400 transition-all disabled:opacity-50"
           >
             <div className="flex flex-col items-center">
-              <span className="text-[8px] font-black text-teal-600 dark:text-teal-500/60 uppercase tracking-tight">
+              <span className="text-[8px] font-black text-slate-500 dark:text-slate-400/60 uppercase tracking-tight">
                 Remaining
               </span>
               <div className="flex items-center gap-1.5">
                 <Snowflake
                   size={12}
-                  className="text-teal-500 dark:text-teal-400 animate-spin-slow"
+                  className="text-slate-500 dark:text-slate-400 animate-spin-slow"
                 />
-                <span className="text-sm font-mono font-black text-teal-600 dark:text-teal-400">
+                <span className="text-sm font-mono font-black text-slate-600 dark:text-slate-300">
                   {liveCountdown}
                 </span>
               </div>
             </div>
-            <div className="w-px h-6 bg-teal-500/20" />
-            <div className="flex flex-col items-center text-teal-600/60 dark:text-teal-500/40">
+            <div className="w-px h-6 bg-slate-300/40 dark:bg-slate-600/40" />
+            <div className="flex flex-col items-center text-slate-500/70 dark:text-slate-400/50">
               <Zap size={14} />
               <span className="text-[8px] font-bold">{t('provider.unfreeze')}</span>
             </div>
