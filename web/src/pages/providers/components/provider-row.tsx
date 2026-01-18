@@ -32,6 +32,49 @@ function formatCost(microUsd: number): string {
   return `$${usd.toFixed(4)}`;
 }
 
+// 图标位置计算
+type IconSlot = { left: number; top: number; zIndex: number };
+
+function getIconSlots(count: number): IconSlot[] {
+  const iconSize = 32; // h-8 w-8
+  const overlapRatio = 0.15;
+  const step = iconSize * (1 - overlapRatio); // 27.2px
+  const containerWidth = 104;
+
+  if (count === 1) {
+    return [{ left: (containerWidth - iconSize) / 2, top: 0, zIndex: 1 }];
+  }
+
+  if (count === 2) {
+    const totalWidth = iconSize + step;
+    const startX = (containerWidth - totalWidth) / 2;
+    return [
+      { left: startX, top: 0, zIndex: 1 },
+      { left: startX + step, top: 0, zIndex: 2 },
+    ];
+  }
+
+  if (count === 3) {
+    const totalWidth = iconSize + step;
+    const startX = (containerWidth - totalWidth) / 2;
+    return [
+      { left: startX + step / 2, top: 0, zIndex: 3 }, // 上方居中
+      { left: startX, top: step, zIndex: 1 }, // 下方左
+      { left: startX + step, top: step, zIndex: 2 }, // 下方右
+    ];
+  }
+
+  // count >= 4
+  const totalWidth = iconSize + step;
+  const startX = (containerWidth - totalWidth) / 2;
+  return [
+    { left: startX, top: 0, zIndex: 1 },
+    { left: startX + step, top: 0, zIndex: 2 },
+    { left: startX, top: step, zIndex: 3 },
+    { left: startX + step, top: step, zIndex: 4 },
+  ];
+}
+
 interface ProviderRowProps {
   provider: Provider;
   stats?: ProviderStats;
@@ -149,22 +192,44 @@ export function ProviderRow({ provider, stats, streamingCount, onClick }: Provid
       )}
 
       {/* Supported Clients - 左侧居中 */}
-      <div className="relative z-10 w-20 flex items-center justify-center shrink-0">
-        <div className="flex flex-wrap items-center justify-center gap-1 w-full">
-          {provider.supportedClientTypes?.length > 0 ? (
-            provider.supportedClientTypes.map((ct) => (
-              <div
-                key={ct}
-                className="relative bg-background rounded-md p-1 border border-border/60 transition-all hover:border-accent/50 hover:shadow-md hover:-translate-y-0.5 shadow-sm"
-                title={ct}
-              >
-                <ClientIcon type={ct} size={18} />
-              </div>
-            ))
-          ) : (
-            <span className="text-xs text-muted-foreground font-mono">-</span>
-          )}
-        </div>
+      <div
+        className={cn(
+          'relative z-10 flex shrink-0 items-center w-[104px] overflow-visible',
+          provider.supportedClientTypes && provider.supportedClientTypes.length >= 3
+            ? 'h-[60px]'
+            : 'h-[32px]',
+        )}
+      >
+        {provider.supportedClientTypes?.length > 0 ? (
+          <div className="relative w-full h-full">
+            {getIconSlots(
+              Math.min(provider.supportedClientTypes.length, 4),
+            ).map((slot, index) => {
+              const ct = provider.supportedClientTypes[index];
+              if (!ct) return null;
+              return (
+                <div
+                  key={ct}
+                  className="absolute flex h-8 w-8 items-center justify-center rounded-full bg-background ring-2 ring-border transition-all hover:scale-110 hover:z-50"
+                  style={{
+                    left: `${slot.left}px`,
+                    top: `${slot.top}px`,
+                    zIndex: slot.zIndex,
+                  }}
+                  title={
+                    index === 3 && provider.supportedClientTypes.length > 4
+                      ? `${ct} +${provider.supportedClientTypes.length - 4}`
+                      : ct
+                  }
+                >
+                  <ClientIcon type={ct} size={20} />
+                </div>
+              );
+            })}
+          </div>
+        ) : (
+          <span className="text-xs text-muted-foreground font-mono">-</span>
+        )}
       </div>
 
       {/* Provider Info */}
