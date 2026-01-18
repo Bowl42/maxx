@@ -102,6 +102,8 @@ export function SortableProviderRow({
           onRowClick={handleRowClick}
           isInCooldown={!!cooldown}
           dragHandleListeners={listeners}
+          onClearCooldown={handleClearCooldown}
+          isClearingCooldown={isClearingCooldown}
         />
       </div>
 
@@ -137,6 +139,8 @@ type ProviderRowContentProps = {
   onRowClick?: (e: React.MouseEvent) => void;
   isInCooldown?: boolean;
   dragHandleListeners?: any;
+  onClearCooldown?: () => void;
+  isClearingCooldown?: boolean;
 };
 
 // 获取 Claude 模型额度百分比和重置时间
@@ -189,6 +193,8 @@ export function ProviderRowContent({
   onRowClick,
   isInCooldown: isInCooldownProp,
   dragHandleListeners,
+  onClearCooldown,
+  isClearingCooldown,
 }: ProviderRowContentProps) {
   const { t } = useTranslation();
   const { provider, enabled, isNative } = item;
@@ -200,30 +206,53 @@ export function ProviderRowContent({
   const claudeInfo = isAntigravity ? getClaudeQuotaInfo(quota) : null;
 
   // 获取 cooldown 状态
-  const { getCooldownForProvider, formatRemaining } = useCooldowns();
+  const { getCooldownForProvider, formatRemaining, getRemainingSeconds } = useCooldowns();
   const cooldown = getCooldownForProvider(provider.id, clientType);
   const isInCooldown = isInCooldownProp ?? !!cooldown;
 
   // 实时倒计时状态
   const [liveCountdown, setLiveCountdown] = useState<string>('');
+  // 本地过期状态，用于在倒计时结束时立即更新 UI
+  const [isLocalExpired, setIsLocalExpired] = useState(false);
 
-  // 每秒更新倒计时
+  // 每秒更新倒计时 (使用递归 setTimeout 而不是 setInterval)
   useEffect(() => {
     if (!cooldown) {
       setLiveCountdown('');
+      setIsLocalExpired(false);
       return;
     }
 
-    // 立即更新一次
-    setLiveCountdown(formatRemaining(cooldown));
+    // Reset local expired state when cooldown changes
+    setIsLocalExpired(false);
 
-    // 每秒更新
-    const interval = setInterval(() => {
+    let timeoutId: ReturnType<typeof setTimeout>;
+
+    const tick = () => {
+      const remaining = getRemainingSeconds(cooldown);
+      if (remaining <= 0) {
+        // Cooldown expired, clear the countdown display and mark as locally expired
+        setLiveCountdown('');
+        setIsLocalExpired(true);
+        return;
+      }
       setLiveCountdown(formatRemaining(cooldown));
-    }, 1000);
+      // Schedule next tick
+      timeoutId = setTimeout(tick, 1000);
+    };
 
-    return () => clearInterval(interval);
-  }, [cooldown, formatRemaining]);
+    // Start immediately
+    tick();
+
+    return () => {
+      if (timeoutId) {
+        clearTimeout(timeoutId);
+      }
+    };
+  }, [cooldown, formatRemaining, getRemainingSeconds]);
+
+  // 如果本地已过期，则不显示 cooldown 状态
+  const effectiveIsInCooldown = isInCooldown && !isLocalExpired;
 
   const handleContentClick = (e: React.MouseEvent) => {
     // 所有状态都打开详情弹窗
@@ -235,8 +264,8 @@ export function ProviderRowContent({
       variant={null}
       onClick={handleContentClick}
       className={cn(
-        'group relative flex items-center gap-4 p-3 rounded-xl border transition-all duration-300 overflow-hidden w-full h-auto cursor-grab active:cursor-grabbing',
-        isInCooldown
+        'group relative flex items-center gap-4 p-3 rounded-xl border transition-all duration-300 overflow-hidden w-full h-auto cursor-pointer active:cursor-grab',
+        effectiveIsInCooldown
           ? 'bg-teal-200/70 dark:bg-teal-950/80 border-teal-400/60 shadow-[0_0_25px_rgba(20,184,166,0.3)]'
           : enabled
             ? streamingCount > 0
@@ -245,20 +274,20 @@ export function ProviderRowContent({
             : 'bg-muted/40 border-dashed border-border opacity-70 grayscale-[0.5] hover:opacity-100 hover:grayscale-0',
       )}
       style={{
-        borderColor: !isInCooldown && enabled && streamingCount > 0 ? `${color}40` : undefined,
+        borderColor: !effectiveIsInCooldown && enabled && streamingCount > 0 ? `${color}40` : undefined,
         boxShadow:
-          !isInCooldown && enabled && streamingCount > 0 ? `0 0 20px ${color}15` : undefined,
+          !effectiveIsInCooldown && enabled && streamingCount > 0 ? `0 0 20px ${color}15` : undefined,
       }}
       {...dragHandleListeners}
     >
       <MarqueeBackground
-        show={streamingCount > 0 && enabled && !isInCooldown}
+        show={streamingCount > 0 && enabled && !effectiveIsInCooldown}
         color={`${color}15`}
         opacity={0.4}
       />
 
       {/* Cooldown 冰冻效果 - 增强版 */}
-      {isInCooldown && (
+      {effectiveIsInCooldown && (
         <>
           <div className="absolute inset-0 bg-linear-to-br from-cyan-500/5 via-transparent to-blue-600/5 pointer-events-none animate-pulse" />
           <div className="absolute inset-x-0 top-0 h-[1px] bg-linear-to-r from-transparent via-cyan-400/20 to-transparent" />
@@ -290,16 +319,16 @@ export function ProviderRowContent({
         <div
           className={cn(
             'relative w-11 h-11 rounded-xl flex items-center justify-center shrink-0 transition-all duration-500 overflow-hidden',
-            isInCooldown
+            effectiveIsInCooldown
               ? 'bg-cyan-900/40 border border-cyan-500/30'
               : 'bg-muted border border-border shadow-inner',
           )}
-          style={!isInCooldown && enabled ? { color } : {}}
+          style={!effectiveIsInCooldown && enabled ? { color } : {}}
         >
           <span
             className={cn(
               'text-xl font-black transition-all',
-              isInCooldown
+              effectiveIsInCooldown
                 ? 'text-cyan-400 opacity-20 scale-150 blur-[1px]'
                 : enabled
                   ? 'scale-100'
@@ -308,13 +337,13 @@ export function ProviderRowContent({
           >
             {provider.name.charAt(0).toUpperCase()}
           </span>
-          {isInCooldown && (
+          {effectiveIsInCooldown && (
             <Snowflake
               size={22}
               className="absolute text-cyan-400 animate-pulse drop-shadow-[0_0_8px_rgba(34,211,238,0.5)]"
             />
           )}
-          {enabled && streamingCount > 0 && !isInCooldown && (
+          {enabled && streamingCount > 0 && !effectiveIsInCooldown && (
             <div className="absolute inset-0 bg-black/5 dark:bg-white/5 animate-pulse" />
           )}
         </div>
@@ -325,7 +354,7 @@ export function ProviderRowContent({
             <span
               className={cn(
                 'text-[14px] font-bold truncate transition-colors',
-                isInCooldown
+                effectiveIsInCooldown
                   ? 'text-foreground'
                   : enabled
                     ? 'text-foreground'
@@ -375,7 +404,7 @@ export function ProviderRowContent({
               <div
                 className={cn(
                   'text-[11px] font-medium truncate flex items-center gap-1',
-                  isInCooldown
+                  effectiveIsInCooldown
                     ? 'text-muted-foreground'
                     : enabled
                       ? 'text-muted-foreground'
@@ -396,8 +425,16 @@ export function ProviderRowContent({
       {/* Quota & Center Countdown Area */}
       <div className="relative z-10 flex items-center gap-4 shrink-0">
         {/* Center-placed Countdown (when in cooldown) or Stats Grid */}
-        {isInCooldown && cooldown ? (
-          <div className="flex items-center gap-3 bg-white/80 dark:bg-teal-950/60 rounded-xl border border-teal-500/50 p-1 px-3 backdrop-blur-md shadow-[0_0_15px_rgba(20,184,166,0.15)]">
+        {effectiveIsInCooldown && cooldown ? (
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              onClearCooldown?.();
+            }}
+            disabled={isClearingCooldown}
+            title={t('provider.clearCooldown')}
+            className="flex items-center gap-3 bg-white/80 dark:bg-teal-950/60 rounded-xl border border-teal-500/50 p-1 px-3 backdrop-blur-md shadow-[0_0_15px_rgba(20,184,166,0.15)] cursor-pointer hover:bg-teal-50 dark:hover:bg-teal-900/60 hover:border-teal-400 transition-all disabled:opacity-50"
+          >
             <div className="flex flex-col items-center">
               <span className="text-[8px] font-black text-teal-600 dark:text-teal-500/60 uppercase tracking-tight">
                 Remaining
@@ -415,9 +452,9 @@ export function ProviderRowContent({
             <div className="w-px h-6 bg-teal-500/20" />
             <div className="flex flex-col items-center text-teal-600/60 dark:text-teal-500/40">
               <Zap size={14} />
-              <span className="text-[8px] font-bold">FROZEN</span>
+              <span className="text-[8px] font-bold">{t('provider.unfreeze')}</span>
             </div>
-          </div>
+          </button>
         ) : (
           <div
             className={cn(
@@ -476,7 +513,7 @@ export function ProviderRowContent({
         )}
       </div>
       {/* Streaming Indicator - Inline before Switch */}
-      {enabled && streamingCount > 0 && !isInCooldown && (
+      {enabled && streamingCount > 0 && !effectiveIsInCooldown && (
         <div className="relative z-10 flex items-center shrink-0">
           <StreamingBadge count={streamingCount} color={color} />
         </div>

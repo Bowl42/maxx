@@ -609,6 +609,12 @@ body,
     letter-spacing: var(--tracking-normal);
   }
 
+  /* Global cursor during drag */
+  body.is-dragging,
+  body.is-dragging * {
+    cursor: grab !important;
+  }
+
   button,
   [role='button'] {
     cursor: pointer;
