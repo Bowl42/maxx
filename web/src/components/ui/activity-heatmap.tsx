@@ -192,38 +192,41 @@ export function ActivityHeatmap({
       {/* 使用共享 TooltipProvider，设置 closeDelay 避免格子间移动时 tooltip 闪烁 */}
       <TooltipProvider delay={0} closeDelay={100}>
         <div className="flex gap-[3px] pb-1 overflow-hidden justify-end">
-          {gridData.map((week, weekIndex) => (
-            <div key={weekIndex} className="flex flex-col gap-[3px]">
-              {week.map((day) =>
-                day.isFuture ? (
-                  // 未来日期：显示为空白/禁用状态，不可交互
-                  <div
-                    key={day.date}
-                    className="w-3 h-3 rounded-sm bg-muted/30 border border-dashed border-muted-foreground/20"
-                  />
-                ) : (
-                  <Tooltip key={day.date}>
-                    <TooltipTrigger>
-                      <div
-                        className={cn(
-                          'w-3 h-3 rounded-sm cursor-default transition-shadow hover:shadow-[0_0_0_2px_var(--color-background),0_0_0_4px_var(--color-foreground)]',
-                          getColorLevel(day.count, maxCount, colorScheme)
-                        )}
-                      />
-                    </TooltipTrigger>
-                    <TooltipContent side="top" sideOffset={8}>
-                      <div className="flex flex-col gap-0.5">
-                        <span className="font-semibold">{formatDate(day.date)}</span>
-                        <span className="tabular-nums">
-                          {day.count.toLocaleString()} 次请求
-                        </span>
-                      </div>
-                    </TooltipContent>
-                  </Tooltip>
-                )
-              )}
-            </div>
-          ))}
+          {/* 内层容器添加 padding 给 shadow 留空间，负 margin 抵消偏移 */}
+          <div className="flex gap-[3px] p-1 -m-1">
+            {gridData.map((week, weekIndex) => (
+              <div key={weekIndex} className="flex flex-col gap-[3px]">
+                {week.map((day) =>
+                  day.isFuture ? (
+                    // 未来日期：显示为空白/禁用状态，不可交互
+                    <div
+                      key={day.date}
+                      className="w-3 h-3 rounded-sm bg-muted/30 border border-dashed border-muted-foreground/20"
+                    />
+                  ) : (
+                    <Tooltip key={day.date}>
+                      <TooltipTrigger>
+                        <div
+                          className={cn(
+                            'w-3 h-3 rounded-sm cursor-default transition-shadow hover:shadow-[0_0_0_2px_var(--color-background),0_0_0_4px_var(--color-foreground)]',
+                            getColorLevel(day.count, maxCount, colorScheme)
+                          )}
+                        />
+                      </TooltipTrigger>
+                      <TooltipContent side="top" sideOffset={8}>
+                        <div className="flex flex-col gap-0.5">
+                          <span className="font-semibold">{formatDate(day.date)}</span>
+                          <span className="tabular-nums">
+                            {day.count.toLocaleString()} 次请求
+                          </span>
+                        </div>
+                      </TooltipContent>
+                    </Tooltip>
+                  )
+                )}
+              </div>
+            ))}
+          </div>
         </div>
       </TooltipProvider>
 
