@@ -3,7 +3,6 @@ import { Radio, Check, Copy } from 'lucide-react';
 import { useProxyStatus } from '@/hooks/queries';
 import { useSidebar } from '@/components/ui/sidebar';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
-import { Button } from '../ui';
 import { useTranslation } from 'react-i18next';
 
 export function NavProxyStatus() {
@@ -60,20 +59,20 @@ export function NavProxyStatus() {
   }
 
   return (
-    <Button
-      variant={'ghost'}
-      onClick={handleCopy}
-      className="h-auto border-none p-2 flex items-center gap-2 group w-full rounded-lg transition-all cursor-pointer"
-      title={`Click to copy: ${fullUrl}`}
-    >
-      <div className="w-8 h-8 rounded-lg bg-emerald-400/10 flex items-center justify-center shrink-0 group-hover:bg-emerald-400/20 transition-colors">
+    <div className="h-auto border-none p-2 flex items-center gap-2 w-full rounded-lg transition-all group">
+      <div className="w-8 h-8 rounded-lg bg-emerald-400/10 flex items-center justify-center shrink-0 transition-colors cursor-default">
         <Radio size={16} className="text-emerald-400" />
       </div>
       <div className="flex flex-col items-start flex-1 min-w-0">
         <span className="text-caption text-text-muted">{t('proxy.listeningOn')}</span>
-        <span className="font-mono font-medium text-text-primary  truncate">{proxyAddress}</span>
+        <span className="font-mono font-medium text-text-primary truncate">{proxyAddress}</span>
       </div>
-      <div className="shrink-0 text-muted-foreground relative w-4 h-4">
+      <button
+        type="button"
+        onClick={handleCopy}
+        className="shrink-0 text-muted-foreground relative w-4 h-4 cursor-pointer hover:text-foreground transition-colors"
+        title={`Click to copy: ${fullUrl}`}
+      >
         <Copy
           size={14}
           className={`absolute inset-0 transition-all ${
@@ -86,7 +85,7 @@ export function NavProxyStatus() {
             copied ? 'scale-100 opacity-100' : 'scale-0 opacity-0'
           }`}
         />
-      </div>
-    </Button>
+      </button>
+    </div>
   );
 }

@@ -1,5 +1,5 @@
 export { AppLayout } from './app-layout';
-export { SidebarNav } from './app-sidebar';
+export { AppSidebar } from './app-sidebar';
 export { PageHeader } from './page-header';
 export { NavProxyStatus } from './nav-proxy-status';
 export { SidebarRenderer } from './app-sidebar/sidebar-renderer';

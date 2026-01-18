@@ -13,14 +13,14 @@ export function AppLayout() {
   const timeoutSeconds = parseInt(settings?.force_project_timeout || '30', 10);
 
   return (
-    <SidebarProvider>
+    <SidebarProvider className="h-svh! min-h-0! overflow-hidden">
       <AppSidebar />
-      <SidebarInset>
+      <SidebarInset className="flex flex-col">
         {/* Mobile header with sidebar trigger */}
-        <header className="flex h-12 items-center gap-2 border-b px-4 md:hidden">
+        <header className="flex h-12 shrink-0 items-center gap-2 border-b px-4 md:hidden">
           <SidebarTrigger />
         </header>
-        <div className="@container/main h-full">
+        <div className="@container/main flex-1 min-h-0 overflow-hidden">
           <Outlet />
         </div>
       </SidebarInset>

@@ -11,7 +11,16 @@ import { useProviderNavigation } from '../hooks/use-provider-navigation';
 
 export function CustomConfigStep() {
   const { t } = useTranslation();
-  const { formData, updateFormData, updateClient, isValid, isSaving, setSaving, saveStatus, setSaveStatus } = useProviderForm();
+  const {
+    formData,
+    updateFormData,
+    updateClient,
+    isValid,
+    isSaving,
+    setSaving,
+    saveStatus,
+    setSaveStatus,
+  } = useProviderForm();
   const { goToSelectType, goToProviders } = useProviderNavigation();
   const createProvider = useCreateProvider();
   const createModelMapping = useCreateModelMapping();
@@ -179,7 +188,10 @@ export function CustomConfigStep() {
                 variant="outline"
                 size="sm"
                 onClick={() => {
-                  const newMappings = [...(formData.modelMappings || []), { pattern: '', target: '' }];
+                  const newMappings = [
+                    ...(formData.modelMappings || []),
+                    { pattern: '', target: '' },
+                  ];
                   updateFormData({ modelMappings: newMappings });
                 }}
               >
@@ -228,7 +240,9 @@ export function CustomConfigStep() {
                       size="icon"
                       className="shrink-0 mt-5 text-muted-foreground hover:text-destructive"
                       onClick={() => {
-                        const newMappings = (formData.modelMappings || []).filter((_, i) => i !== index);
+                        const newMappings = (formData.modelMappings || []).filter(
+                          (_, i) => i !== index,
+                        );
                         updateFormData({ modelMappings: newMappings });
                       }}
                     >

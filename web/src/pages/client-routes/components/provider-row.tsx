@@ -235,20 +235,21 @@ export function ProviderRowContent({
       variant={null}
       onClick={handleContentClick}
       className={cn(
-        'group relative flex items-center gap-4 p-3 rounded-xl border transition-all duration-300 overflow-hidden w-full h-auto',
+        'group relative flex items-center gap-4 p-3 rounded-xl border transition-all duration-300 overflow-hidden w-full h-auto cursor-grab active:cursor-grabbing',
         isInCooldown
-          ? 'bg-teal-200/70 dark:bg-teal-950/80 border-teal-400/60 shadow-[0_0_25px_rgba(20,184,166,0.3)] cursor-pointer'
+          ? 'bg-teal-200/70 dark:bg-teal-950/80 border-teal-400/60 shadow-[0_0_25px_rgba(20,184,166,0.3)]'
           : enabled
             ? streamingCount > 0
               ? 'bg-accent/5 border-transparent ring-1 ring-black/5 dark:ring-white/10'
-              : 'bg-card/60 border-border hover:border-emerald-500/30 hover:bg-card shadow-sm cursor-pointer'
-            : 'bg-muted/40 border-dashed border-border opacity-70 cursor-pointer grayscale-[0.5] hover:opacity-100 hover:grayscale-0',
+              : 'bg-card/60 border-border hover:border-emerald-500/30 hover:bg-card shadow-sm'
+            : 'bg-muted/40 border-dashed border-border opacity-70 grayscale-[0.5] hover:opacity-100 hover:grayscale-0',
       )}
       style={{
         borderColor: !isInCooldown && enabled && streamingCount > 0 ? `${color}40` : undefined,
         boxShadow:
           !isInCooldown && enabled && streamingCount > 0 ? `0 0 20px ${color}15` : undefined,
       }}
+      {...dragHandleListeners}
     >
       <MarqueeBackground
         show={streamingCount > 0 && enabled && !isInCooldown}
@@ -269,10 +270,7 @@ export function ProviderRowContent({
 
       {/* Drag Handle & Index */}
       <div className="relative z-10 flex flex-col items-center gap-1.5 w-7 shrink-0">
-        <div
-          className="p-1 rounded-md hover:bg-accent transition-colors cursor-grab active:cursor-grabbing"
-          {...dragHandleListeners}
-        >
+        <div className="p-1 rounded-md hover:bg-accent transition-colors">
           <GripVertical
             size={14}
             className="text-muted-foreground group-hover:text-muted-foreground"
@@ -353,7 +351,9 @@ export function ProviderRowContent({
             {/* 对于 Antigravity，显示 Claude Quota；对于其他类型，显示 endpoint */}
             {isAntigravity && claudeInfo ? (
               <div className={cn('flex items-center gap-2 shrink-0', !enabled && 'opacity-40')}>
-                <span className="text-[9px] font-black text-muted-foreground/60 uppercase">Claude</span>
+                <span className="text-[9px] font-black text-muted-foreground/60 uppercase">
+                  Claude
+                </span>
                 <div className="w-20 h-1.5 bg-muted rounded-full overflow-hidden border border-border/50">
                   <div
                     className={cn(

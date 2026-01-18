@@ -123,7 +123,7 @@ export function RequestsPage() {
       </PageHeader>
 
       {/* Content */}
-      <div className="flex-1 overflow-hidden flex flex-col">
+      <div className="flex-1 min-h-0 flex flex-col">
         {isLoading && requests.length === 0 ? (
           <div className="flex-1 flex items-center justify-center">
             <Loader2 className="w-8 h-8 animate-spin text-accent" />
@@ -137,7 +137,7 @@ export function RequestsPage() {
             <p className="text-caption mt-1">{t('requests.noRequestsHint')}</p>
           </div>
         ) : (
-          <div className="flex-1 overflow-auto">
+          <div className="flex-1 min-h-0 overflow-auto">
             <Table>
               <TableHeader className="bg-card/80 backdrop-blur-md sticky top-0 z-10 shadow-sm border-b border-border">
                 <TableRow className="hover:bg-transparent border-none text-sm">
@@ -205,7 +205,7 @@ export function RequestsPage() {
       </div>
 
       {/* Pagination */}
-      <div className="h-[53px] flex items-center justify-between px-6 border-t border-border bg-surface-primary shrink-0">
+      <div className="py-2 flex items-center justify-between px-6 border-t border-border bg-surface-primary shrink-0">
         <span className="text-xs text-text-secondary">
           {total > 0
             ? t('requests.pageInfo', {
@@ -216,21 +216,13 @@ export function RequestsPage() {
             : t('requests.noItems')}
         </span>
         <div className="flex items-center gap-1">
-          <Button
-            onClick={goToPrevPage}
-            disabled={pageIndex === 0}
-            className="p-1.5 rounded-md hover:bg-accent text-muted-foreground disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
-          >
+          <Button onClick={goToPrevPage} disabled={pageIndex === 0}>
             <ChevronLeft size={16} />
           </Button>
           <span className="text-xs text-text-secondary min-w-[60px] text-center font-medium">
             {t('requests.page', { current: pageIndex + 1 })}
           </span>
-          <Button
-            onClick={goToNextPage}
-            disabled={!hasMore}
-            className="p-1.5 rounded-md hover:bg-accent text-muted-foreground disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
-          >
+          <Button onClick={goToNextPage} disabled={!hasMore}>
             <ChevronRight size={16} />
           </Button>
         </div>

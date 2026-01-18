@@ -39,10 +39,7 @@ export function ProvidersPage() {
       const query = searchQuery.toLowerCase();
       const config = PROVIDER_TYPE_CONFIGS[p.type as ProviderTypeKey];
       const displayInfo = config?.getDisplayInfo(p) || '';
-      return (
-        p.name.toLowerCase().includes(query) ||
-        displayInfo.toLowerCase().includes(query)
-      );
+      return p.name.toLowerCase().includes(query) || displayInfo.toLowerCase().includes(query);
     });
 
     filteredProviders?.forEach((p) => {

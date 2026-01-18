@@ -8,7 +8,7 @@ function Tabs({ className, orientation = 'horizontal', ...props }: TabsPrimitive
     <TabsPrimitive.Root
       data-slot="tabs"
       data-orientation={orientation}
-      className={cn('group/tabs flex data-[orientation=horizontal]:flex-col', className)}
+      className={cn('gap-2 group/tabs flex data-[orientation=horizontal]:flex-col', className)}
       {...props}
     />
   );
@@ -64,7 +64,7 @@ function TabsContent({ className, ...props }: TabsPrimitive.Panel.Props) {
   return (
     <TabsPrimitive.Panel
       data-slot="tabs-content"
-      className={cn('text-sm flex-1 outline-none min-h-0', className)}
+      className={cn('text-sm flex-1 outline-none', className)}
       {...props}
     />
   );

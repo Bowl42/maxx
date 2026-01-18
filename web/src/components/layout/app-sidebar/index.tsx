@@ -16,7 +16,7 @@ export function AppSidebar() {
   const versionDisplay = proxyStatus?.version ?? '...';
 
   return (
-    <Sidebar collapsible="icon">
+    <Sidebar collapsible="icon" className="border-border">
       <SidebarHeader>
         <NavProxyStatus />
       </SidebarHeader>
@@ -37,6 +37,3 @@ export function AppSidebar() {
     </Sidebar>
   );
 }
-
-// Alias for backwards compatibility
-export { AppSidebar as SidebarNav };
