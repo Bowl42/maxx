@@ -1,14 +1,40 @@
 import { useState, useEffect, useRef } from 'react';
-import { Settings, Moon, Sun, Monitor, Laptop, FolderOpen, Database, Globe, Archive, Download, Upload, AlertTriangle, CheckCircle, Zap } from 'lucide-react';
+import {
+  Settings,
+  Monitor,
+  FolderOpen,
+  Database,
+  Globe,
+  Archive,
+  Download,
+  Upload,
+  AlertTriangle,
+  CheckCircle,
+  Check,
+} from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '@/components/theme-provider';
-import { Card, CardContent, CardHeader, CardTitle, Button, Input, Switch, Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui';
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  Button,
+  Input,
+  Switch,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui';
+import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
 import { PageHeader } from '@/components/layout/page-header';
 import { useSettings, useUpdateSetting } from '@/hooks/queries';
 import { useTransport } from '@/lib/transport/context';
 import type { BackupFile, BackupImportResult } from '@/lib/transport/types';
-
-type Theme = 'light' | 'dark' | 'system';
+import { getDefaultThemes, getLuxuryThemes } from '@/lib/theme';
+import { cn } from '@/lib/utils';
 
 export function SettingsPage() {
   const { t } = useTranslation();
@@ -40,11 +66,8 @@ function GeneralSection() {
   const { theme, setTheme } = useTheme();
   const { t, i18n } = useTranslation();
 
-  const themes: { value: Theme; label: string; icon: typeof Sun }[] = [
-    { value: 'light', label: t('settings.theme.light'), icon: Sun },
-    { value: 'dark', label: t('settings.theme.dark'), icon: Moon },
-    { value: 'system', label: t('settings.theme.system'), icon: Laptop },
-  ];
+  const defaultThemes = getDefaultThemes();
+  const luxuryThemes = getLuxuryThemes();
 
   const languages = [
     { value: 'en', label: t('settings.languages.en') },
@@ -59,25 +82,228 @@ function GeneralSection() {
           {t('settings.general')}
         </CardTitle>
       </CardHeader>
-      <CardContent className="p-6 space-y-4">
-        <div className="flex items-center gap-6">
-          <label className="text-sm font-medium text-muted-foreground w-40 shrink-0">
+      <CardContent className="p-6 space-y-6">
+        {/* Theme Selection */}
+        <div className="space-y-3">
+          <label className="text-sm font-medium text-foreground">
             {t('settings.themePreference')}
           </label>
-          <div className="flex flex-wrap gap-3">
-            {themes.map(({ value, label, icon: Icon }) => (
-              <Button
-                key={value}
-                onClick={() => setTheme(value)}
-                variant={theme === value ? 'default' : 'outline'}
-              >
-                <Icon size={16} />
-                <span className="text-sm font-medium">{label}</span>
-              </Button>
-            ))}
+
+          {/* Default Themes */}
+          <div>
+            <p className="text-xs text-muted-foreground mb-2">Default Themes</p>
+            <div className="grid grid-cols-3 gap-2">
+              {defaultThemes.map((themeOption) => (
+                <Tooltip key={themeOption.id}>
+                  <TooltipTrigger
+                    render={(props) => (
+                      <button
+                        {...props}
+                        type="button"
+                        onClick={() => setTheme(themeOption.id)}
+                        className={cn(
+                          'relative flex flex-col items-center gap-2 rounded-lg p-3 transition-colors border-2',
+                          'hover:bg-accent/50',
+                          theme === themeOption.id
+                            ? 'border-primary bg-accent/30'
+                            : 'border-border bg-card',
+                        )}
+                        title={themeOption.description}
+                      >
+                        {/* Color Swatch */}
+                        <div className="relative">
+                          <div
+                            className={cn(
+                              'h-10 w-10 rounded-full border-2 transition-all',
+                              theme === themeOption.id
+                                ? 'border-primary scale-110'
+                                : 'border-border',
+                            )}
+                            style={{
+                              background:
+                                themeOption.id === 'system'
+                                  ? 'linear-gradient(135deg, oklch(0.3261 0 0) 50%, oklch(0.9848 0 0) 50%)'
+                                  : themeOption.accentColor,
+                            }}
+                          />
+                          {theme === themeOption.id && (
+                            <div className="absolute inset-0 flex items-center justify-center">
+                              <div className="rounded-full bg-background p-0.5">
+                                <Check className="h-4 w-4 text-primary" />
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                        {/* Theme Name */}
+                        <span
+                          className={cn(
+                            'text-xs font-medium text-center leading-tight',
+                            theme === themeOption.id ? 'text-foreground' : 'text-muted-foreground',
+                          )}
+                        >
+                          {themeOption.name}
+                        </span>
+                      </button>
+                    )}
+                  />
+                  <TooltipContent side="top" className="w-56 p-4 bg-card border border-border">
+                    <div className="space-y-2">
+                      <div className="font-semibold text-sm text-foreground">
+                        {themeOption.name}
+                      </div>
+                      <div className="text-xs text-muted-foreground">{themeOption.description}</div>
+                      {/* Color Preview Swatches */}
+                      <div className="space-y-1.5 pt-2 border-t border-border">
+                        <div className="text-xs font-medium text-muted-foreground">
+                          Color Preview
+                        </div>
+                        <div className="grid grid-cols-3 gap-2">
+                          <div className="space-y-1">
+                            <div
+                              className="h-10 rounded-md border-2 border-border shadow-sm"
+                              style={{ background: themeOption.accentColor }}
+                            />
+                            <div className="text-[10px] text-center text-muted-foreground">
+                              Accent
+                            </div>
+                          </div>
+                          <div className="space-y-1">
+                            <div
+                              className="h-10 rounded-md border-2 border-border shadow-sm"
+                              style={{ background: themeOption.primaryColor }}
+                            />
+                            <div className="text-[10px] text-center text-muted-foreground">
+                              Primary
+                            </div>
+                          </div>
+                          <div className="space-y-1">
+                            <div
+                              className="h-10 rounded-md border-2 border-border shadow-sm"
+                              style={{ background: themeOption.secondaryColor }}
+                            />
+                            <div className="text-[10px] text-center text-muted-foreground">
+                              Secondary
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </TooltipContent>
+                </Tooltip>
+              ))}
+            </div>
+          </div>
+
+          {/* Luxury Themes */}
+          <div>
+            <p className="text-xs text-muted-foreground mb-2">Luxury Themes</p>
+            <div className="grid grid-cols-3 gap-2">
+              {luxuryThemes.map((themeOption) => (
+                <Tooltip key={themeOption.id}>
+                  <TooltipTrigger
+                    render={(props) => (
+                      <button
+                        {...props}
+                        type="button"
+                        onClick={() => setTheme(themeOption.id)}
+                        className={cn(
+                          'relative flex flex-col items-center gap-2 rounded-lg p-3 transition-colors border-2',
+                          'hover:bg-accent/50',
+                          theme === themeOption.id
+                            ? 'border-primary bg-accent/30'
+                            : 'border-border bg-card',
+                        )}
+                        title={`${themeOption.description}${themeOption.brandInspiration ? ` • Inspired by ${themeOption.brandInspiration}` : ''}`}
+                      >
+                        {/* Color Swatch */}
+                        <div className="relative">
+                          <div
+                            className={cn(
+                              'h-10 w-10 rounded-full border-2 transition-all',
+                              theme === themeOption.id
+                                ? 'border-primary scale-110'
+                                : 'border-border',
+                            )}
+                            style={{
+                              background: themeOption.accentColor,
+                            }}
+                          />
+                          {theme === themeOption.id && (
+                            <div className="absolute inset-0 flex items-center justify-center">
+                              <div className="rounded-full bg-background p-0.5">
+                                <Check className="h-4 w-4 text-primary" />
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                        {/* Theme Name */}
+                        <span
+                          className={cn(
+                            'text-xs font-medium text-center leading-tight',
+                            theme === themeOption.id ? 'text-foreground' : 'text-muted-foreground',
+                          )}
+                        >
+                          {themeOption.name}
+                        </span>
+                      </button>
+                    )}
+                  />
+                  <TooltipContent side="top" className="w-56 p-4 bg-card border border-border">
+                    <div className="space-y-2">
+                      <div className="font-semibold text-sm text-foreground">
+                        {themeOption.name}
+                      </div>
+                      <div className="text-xs text-muted-foreground">{themeOption.description}</div>
+                      {themeOption.brandInspiration && (
+                        <div className="text-xs text-muted-foreground italic border-l-2 border-accent pl-2">
+                          Inspired by {themeOption.brandInspiration}
+                        </div>
+                      )}
+                      {/* Color Preview Swatches */}
+                      <div className="space-y-1.5 pt-2 border-t border-border">
+                        <div className="text-xs font-medium text-muted-foreground">
+                          Color Preview
+                        </div>
+                        <div className="grid grid-cols-3 gap-2">
+                          <div className="space-y-1">
+                            <div
+                              className="h-10 rounded-md border-2 border-border shadow-sm"
+                              style={{ background: themeOption.accentColor }}
+                            />
+                            <div className="text-[10px] text-center text-muted-foreground">
+                              Accent
+                            </div>
+                          </div>
+                          <div className="space-y-1">
+                            <div
+                              className="h-10 rounded-md border-2 border-border shadow-sm"
+                              style={{ background: themeOption.primaryColor }}
+                            />
+                            <div className="text-[10px] text-center text-muted-foreground">
+                              Primary
+                            </div>
+                          </div>
+                          <div className="space-y-1">
+                            <div
+                              className="h-10 rounded-md border-2 border-border shadow-sm"
+                              style={{ background: themeOption.secondaryColor }}
+                            />
+                            <div className="text-[10px] text-center text-muted-foreground">
+                              Secondary
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </TooltipContent>
+                </Tooltip>
+              ))}
+            </div>
           </div>
         </div>
-        <div className="flex items-center gap-6">
+
+        {/* Language Selection */}
+        <div className="flex items-center gap-6 pt-4 border-t border-border">
           <label className="text-sm font-medium text-muted-foreground w-40 shrink-0">
             {t('settings.languagePreference')}
           </label>
@@ -150,7 +376,11 @@ function TimezoneSection() {
         </div>
       </CardHeader>
       <CardContent className="p-6">
-        <Select value={currentTimezone} onValueChange={(v) => v && handleTimezoneChange(v)} disabled={updateSetting.isPending}>
+        <Select
+          value={currentTimezone}
+          onValueChange={(v) => v && handleTimezoneChange(v)}
+          disabled={updateSetting.isPending}
+        >
           <SelectTrigger className="w-64">
             <SelectValue>{currentTimezone}</SelectValue>
           </SelectTrigger>
@@ -371,7 +601,11 @@ function AntigravitySection() {
             </CardTitle>
             <p className="text-xs text-muted-foreground mt-1">{t('settings.antigravityDesc')}</p>
           </div>
-          <Button onClick={handleSaveInterval} disabled={!hasChanges || updateSetting.isPending} size="sm">
+          <Button
+            onClick={handleSaveInterval}
+            disabled={!hasChanges || updateSetting.isPending}
+            size="sm"
+          >
             {updateSetting.isPending ? t('common.saving') : t('common.save')}
           </Button>
         </div>
@@ -390,7 +624,9 @@ function AntigravitySection() {
             disabled={updateSetting.isPending}
           />
           <span className="text-xs text-muted-foreground">{t('settings.minutes')}</span>
-          <span className="text-xs text-muted-foreground">({t('settings.quotaRefreshIntervalDesc')})</span>
+          <span className="text-xs text-muted-foreground">
+            ({t('settings.quotaRefreshIntervalDesc')})
+          </span>
         </div>
 
         <div className="flex items-center justify-between pt-4 border-t border-border">
@@ -486,7 +722,9 @@ function BackupSection() {
         {/* Warning about sensitive data */}
         <div className="flex items-start gap-2 p-3 rounded-md bg-amber-500/10 border border-amber-500/20">
           <AlertTriangle className="h-4 w-4 text-amber-500 mt-0.5 shrink-0" />
-          <p className="text-xs text-amber-600 dark:text-amber-400">{t('settings.backupContainsSensitive')}</p>
+          <p className="text-xs text-amber-600 dark:text-amber-400">
+            {t('settings.backupContainsSensitive')}
+          </p>
         </div>
 
         {/* Export/Import buttons */}
@@ -542,15 +780,29 @@ function BackupSection() {
             {/* Summary table */}
             <div className="grid grid-cols-4 gap-2 text-xs">
               <div className="font-medium text-muted-foreground"></div>
-              <div className="font-medium text-muted-foreground text-center">{t('settings.imported')}</div>
-              <div className="font-medium text-muted-foreground text-center">{t('settings.skipped')}</div>
-              <div className="font-medium text-muted-foreground text-center">{t('settings.updated')}</div>
+              <div className="font-medium text-muted-foreground text-center">
+                {t('settings.imported')}
+              </div>
+              <div className="font-medium text-muted-foreground text-center">
+                {t('settings.skipped')}
+              </div>
+              <div className="font-medium text-muted-foreground text-center">
+                {t('settings.updated')}
+              </div>
               {Object.entries(importResult.summary).map(([key, summary]) => (
                 <>
-                  <div key={`${key}-label`} className="capitalize">{key}</div>
-                  <div key={`${key}-imported`} className="text-center text-green-600">{summary.imported}</div>
-                  <div key={`${key}-skipped`} className="text-center text-muted-foreground">{summary.skipped}</div>
-                  <div key={`${key}-updated`} className="text-center text-blue-600">{summary.updated}</div>
+                  <div key={`${key}-label`} className="capitalize">
+                    {key}
+                  </div>
+                  <div key={`${key}-imported`} className="text-center text-green-600">
+                    {summary.imported}
+                  </div>
+                  <div key={`${key}-skipped`} className="text-center text-muted-foreground">
+                    {summary.skipped}
+                  </div>
+                  <div key={`${key}-updated`} className="text-center text-blue-600">
+                    {summary.updated}
+                  </div>
                 </>
               ))}
             </div>
@@ -558,10 +810,17 @@ function BackupSection() {
             {/* Warnings */}
             {importResult.warnings && importResult.warnings.length > 0 && (
               <div className="space-y-1">
-                <p className="text-xs font-medium text-amber-600">{t('settings.importWarnings')}:</p>
+                <p className="text-xs font-medium text-amber-600">
+                  {t('settings.importWarnings')}:
+                </p>
                 <div className="max-h-32 overflow-y-auto space-y-1">
                   {importResult.warnings.map((warning, i) => (
-                    <p key={i} className="text-xs text-amber-600 dark:text-amber-400 pl-2 border-l-2 border-amber-500/30">{warning}</p>
+                    <p
+                      key={i}
+                      className="text-xs text-amber-600 dark:text-amber-400 pl-2 border-l-2 border-amber-500/30"
+                    >
+                      {warning}
+                    </p>
                   ))}
                 </div>
               </div>
@@ -570,10 +829,17 @@ function BackupSection() {
             {/* Errors */}
             {importResult.errors && importResult.errors.length > 0 && (
               <div className="space-y-1">
-                <p className="text-xs font-medium text-destructive">{t('settings.importErrors')}:</p>
+                <p className="text-xs font-medium text-destructive">
+                  {t('settings.importErrors')}:
+                </p>
                 <div className="max-h-32 overflow-y-auto space-y-1">
                   {importResult.errors.map((err, i) => (
-                    <p key={i} className="text-xs text-destructive pl-2 border-l-2 border-destructive/30">{err}</p>
+                    <p
+                      key={i}
+                      className="text-xs text-destructive pl-2 border-l-2 border-destructive/30"
+                    >
+                      {err}
+                    </p>
                   ))}
                 </div>
               </div>

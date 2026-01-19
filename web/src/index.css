@@ -5,6 +5,11 @@
 
 @custom-variant dark (&:is(.dark *));
 
+/* Theme transition animations */
+* {
+  transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
+}
+
 :root {
   --background: oklch(1 0 0);
   --foreground: oklch(0.2644 0 0);
@@ -143,6 +148,265 @@
   --shadow-lg: 0 1px 3px 0px hsl(0 0% 0% / 0.1), 0 4px 6px -1px hsl(0 0% 0% / 0.1);
   --shadow-xl: 0 1px 3px 0px hsl(0 0% 0% / 0.1), 0 8px 10px -1px hsl(0 0% 0% / 0.1);
   --shadow-2xl: 0 1px 3px 0px hsl(0 0% 0% / 0.25);
+}
+
+/* Luxury Theme: Hermès Orange */
+.theme-hermes {
+  --background: oklch(0.97 0.015 65);
+  --foreground: oklch(0.25 0.04 45);
+  --card: oklch(0.97 0.015 65);
+  --card-foreground: oklch(0.25 0.04 45);
+  --popover: oklch(0.97 0.015 65);
+  --popover-foreground: oklch(0.25 0.04 45);
+  --primary: oklch(0.65 0.15 55);
+  --primary-foreground: oklch(0.98 0.01 65);
+  --secondary: oklch(0.45 0.08 50);
+  --secondary-foreground: oklch(0.97 0.015 65);
+  --muted: oklch(0.92 0.01 60);
+  --muted-foreground: oklch(0.50 0.03 50);
+  --accent: oklch(0.75 0.12 85);
+  --accent-foreground: oklch(0.25 0.04 45);
+  --destructive: oklch(0.55 0.20 25);
+  --destructive-foreground: oklch(0.98 0.01 65);
+  --border: oklch(0.85 0.02 55);
+  --input: oklch(0.88 0.02 55);
+  --ring: oklch(0.65 0.15 55);
+  --chart-1: oklch(0.75 0.15 55);
+  --chart-2: oklch(0.65 0.12 85);
+  --chart-3: oklch(0.45 0.08 50);
+  --chart-4: oklch(0.70 0.10 70);
+  --chart-5: oklch(0.60 0.14 40);
+  --radius: 0.625rem;
+  --sidebar: oklch(0.95 0.02 60);
+  --sidebar-foreground: oklch(0.30 0.04 45);
+  --sidebar-primary: oklch(0.65 0.15 55);
+  --sidebar-primary-foreground: oklch(0.98 0.01 65);
+  --sidebar-accent: oklch(0.90 0.02 58);
+  --sidebar-accent-foreground: oklch(0.30 0.04 45);
+  --sidebar-border: oklch(0.85 0.02 55);
+  --sidebar-ring: oklch(0.65 0.15 55);
+}
+
+/* Luxury Theme: Tiffany Blue */
+.theme-tiffany {
+  --background: oklch(0.98 0.005 200);
+  --foreground: oklch(0.25 0.02 220);
+  --card: oklch(0.98 0.005 200);
+  --card-foreground: oklch(0.25 0.02 220);
+  --popover: oklch(0.98 0.005 200);
+  --popover-foreground: oklch(0.25 0.02 220);
+  --primary: oklch(0.70 0.10 195);
+  --primary-foreground: oklch(0.98 0.005 200);
+  --secondary: oklch(0.75 0.01 240);
+  --secondary-foreground: oklch(0.25 0.02 220);
+  --muted: oklch(0.94 0.01 200);
+  --muted-foreground: oklch(0.55 0.03 210);
+  --accent: oklch(0.75 0.12 190);
+  --accent-foreground: oklch(0.98 0.005 200);
+  --destructive: oklch(0.55 0.20 25);
+  --destructive-foreground: oklch(0.98 0.005 200);
+  --border: oklch(0.88 0.02 195);
+  --input: oklch(0.90 0.02 195);
+  --ring: oklch(0.70 0.10 195);
+  --chart-1: oklch(0.70 0.10 195);
+  --chart-2: oklch(0.75 0.12 190);
+  --chart-3: oklch(0.65 0.08 200);
+  --chart-4: oklch(0.75 0.01 240);
+  --chart-5: oklch(0.60 0.09 185);
+  --radius: 0.625rem;
+  --sidebar: oklch(0.96 0.01 195);
+  --sidebar-foreground: oklch(0.30 0.02 220);
+  --sidebar-primary: oklch(0.70 0.10 195);
+  --sidebar-primary-foreground: oklch(0.98 0.005 200);
+  --sidebar-accent: oklch(0.92 0.02 195);
+  --sidebar-accent-foreground: oklch(0.30 0.02 220);
+  --sidebar-border: oklch(0.88 0.02 195);
+  --sidebar-ring: oklch(0.70 0.10 195);
+}
+
+/* Luxury Theme: Chanel Black */
+.theme-chanel {
+  --background: oklch(0.15 0.005 280);
+  --foreground: oklch(0.98 0.005 280);
+  --card: oklch(0.15 0.005 280);
+  --card-foreground: oklch(0.98 0.005 280);
+  --popover: oklch(0.15 0.005 280);
+  --popover-foreground: oklch(0.98 0.005 280);
+  --primary: oklch(0.98 0.005 280);
+  --primary-foreground: oklch(0.15 0.005 280);
+  --secondary: oklch(0.25 0.01 280);
+  --secondary-foreground: oklch(0.98 0.005 280);
+  --muted: oklch(0.22 0.01 280);
+  --muted-foreground: oklch(0.70 0.01 280);
+  --accent: oklch(0.75 0.12 85);
+  --accent-foreground: oklch(0.15 0.005 280);
+  --destructive: oklch(0.55 0.20 25);
+  --destructive-foreground: oklch(0.98 0.005 280);
+  --border: oklch(0.30 0.01 280);
+  --input: oklch(0.28 0.01 280);
+  --ring: oklch(0.75 0.12 85);
+  --chart-1: oklch(0.75 0.12 85);
+  --chart-2: oklch(0.98 0.005 280);
+  --chart-3: oklch(0.70 0.01 280);
+  --chart-4: oklch(0.60 0.10 80);
+  --chart-5: oklch(0.50 0.08 90);
+  --radius: 0.625rem;
+  --sidebar: oklch(0.18 0.005 280);
+  --sidebar-foreground: oklch(0.95 0.005 280);
+  --sidebar-primary: oklch(0.98 0.005 280);
+  --sidebar-primary-foreground: oklch(0.15 0.005 280);
+  --sidebar-accent: oklch(0.25 0.01 280);
+  --sidebar-accent-foreground: oklch(0.95 0.005 280);
+  --sidebar-border: oklch(0.30 0.01 280);
+  --sidebar-ring: oklch(0.75 0.12 85);
+}
+
+/* Luxury Theme: Cartier Red */
+.theme-cartier {
+  --background: oklch(0.20 0.04 15);
+  --foreground: oklch(0.95 0.02 50);
+  --card: oklch(0.20 0.04 15);
+  --card-foreground: oklch(0.95 0.02 50);
+  --popover: oklch(0.20 0.04 15);
+  --popover-foreground: oklch(0.95 0.02 50);
+  --primary: oklch(0.45 0.18 20);
+  --primary-foreground: oklch(0.98 0.01 50);
+  --secondary: oklch(0.70 0.12 80);
+  --secondary-foreground: oklch(0.20 0.04 15);
+  --muted: oklch(0.28 0.03 20);
+  --muted-foreground: oklch(0.65 0.03 30);
+  --accent: oklch(0.75 0.14 85);
+  --accent-foreground: oklch(0.20 0.04 15);
+  --destructive: oklch(0.55 0.22 25);
+  --destructive-foreground: oklch(0.98 0.01 50);
+  --border: oklch(0.35 0.05 20);
+  --input: oklch(0.32 0.05 20);
+  --ring: oklch(0.70 0.12 80);
+  --chart-1: oklch(0.45 0.18 20);
+  --chart-2: oklch(0.75 0.14 85);
+  --chart-3: oklch(0.70 0.12 80);
+  --chart-4: oklch(0.55 0.15 30);
+  --chart-5: oklch(0.60 0.10 70);
+  --radius: 0.625rem;
+  --sidebar: oklch(0.25 0.04 18);
+  --sidebar-foreground: oklch(0.92 0.02 50);
+  --sidebar-primary: oklch(0.45 0.18 20);
+  --sidebar-primary-foreground: oklch(0.98 0.01 50);
+  --sidebar-accent: oklch(0.32 0.04 20);
+  --sidebar-accent-foreground: oklch(0.92 0.02 50);
+  --sidebar-border: oklch(0.35 0.05 20);
+  --sidebar-ring: oklch(0.70 0.12 80);
+}
+
+/* Luxury Theme: Burberry Beige */
+.theme-burberry {
+  --background: oklch(0.95 0.02 70);
+  --foreground: oklch(0.20 0.01 70);
+  --card: oklch(0.95 0.02 70);
+  --card-foreground: oklch(0.20 0.01 70);
+  --popover: oklch(0.95 0.02 70);
+  --popover-foreground: oklch(0.20 0.01 70);
+  --primary: oklch(0.60 0.08 65);
+  --primary-foreground: oklch(0.98 0.01 70);
+  --secondary: oklch(0.25 0.01 280);
+  --secondary-foreground: oklch(0.95 0.02 70);
+  --muted: oklch(0.88 0.02 68);
+  --muted-foreground: oklch(0.50 0.03 65);
+  --accent: oklch(0.50 0.18 25);
+  --accent-foreground: oklch(0.98 0.01 70);
+  --destructive: oklch(0.55 0.20 25);
+  --destructive-foreground: oklch(0.98 0.01 70);
+  --border: oklch(0.80 0.03 68);
+  --input: oklch(0.83 0.03 68);
+  --ring: oklch(0.60 0.08 65);
+  --chart-1: oklch(0.60 0.08 65);
+  --chart-2: oklch(0.50 0.18 25);
+  --chart-3: oklch(0.25 0.01 280);
+  --chart-4: oklch(0.70 0.06 70);
+  --chart-5: oklch(0.55 0.10 60);
+  --radius: 0.625rem;
+  --sidebar: oklch(0.92 0.02 68);
+  --sidebar-foreground: oklch(0.25 0.01 70);
+  --sidebar-primary: oklch(0.60 0.08 65);
+  --sidebar-primary-foreground: oklch(0.98 0.01 70);
+  --sidebar-accent: oklch(0.86 0.02 68);
+  --sidebar-accent-foreground: oklch(0.25 0.01 70);
+  --sidebar-border: oklch(0.80 0.03 68);
+  --sidebar-ring: oklch(0.60 0.08 65);
+}
+
+/* Luxury Theme: Gucci Green */
+.theme-gucci {
+  --background: oklch(0.18 0.04 160);
+  --foreground: oklch(0.95 0.02 85);
+  --card: oklch(0.18 0.04 160);
+  --card-foreground: oklch(0.95 0.02 85);
+  --popover: oklch(0.18 0.04 160);
+  --popover-foreground: oklch(0.95 0.02 85);
+  --primary: oklch(0.40 0.12 155);
+  --primary-foreground: oklch(0.98 0.01 85);
+  --secondary: oklch(0.45 0.18 20);
+  --secondary-foreground: oklch(0.98 0.01 85);
+  --muted: oklch(0.28 0.04 158);
+  --muted-foreground: oklch(0.65 0.04 150);
+  --accent: oklch(0.72 0.13 82);
+  --accent-foreground: oklch(0.18 0.04 160);
+  --destructive: oklch(0.55 0.22 25);
+  --destructive-foreground: oklch(0.98 0.01 85);
+  --border: oklch(0.32 0.06 158);
+  --input: oklch(0.30 0.06 158);
+  --ring: oklch(0.72 0.13 82);
+  --chart-1: oklch(0.40 0.12 155);
+  --chart-2: oklch(0.72 0.13 82);
+  --chart-3: oklch(0.45 0.18 20);
+  --chart-4: oklch(0.50 0.10 165);
+  --chart-5: oklch(0.60 0.08 145);
+  --radius: 0.625rem;
+  --sidebar: oklch(0.22 0.04 158);
+  --sidebar-foreground: oklch(0.92 0.02 85);
+  --sidebar-primary: oklch(0.40 0.12 155);
+  --sidebar-primary-foreground: oklch(0.98 0.01 85);
+  --sidebar-accent: oklch(0.30 0.05 158);
+  --sidebar-accent-foreground: oklch(0.92 0.02 85);
+  --sidebar-border: oklch(0.32 0.06 158);
+  --sidebar-ring: oklch(0.72 0.13 82);
+}
+
+/* Luxury Theme: Dior Gray */
+.theme-dior {
+  --background: oklch(0.96 0.005 260);
+  --foreground: oklch(0.28 0.01 260);
+  --card: oklch(0.96 0.005 260);
+  --card-foreground: oklch(0.28 0.01 260);
+  --popover: oklch(0.96 0.005 260);
+  --popover-foreground: oklch(0.28 0.01 260);
+  --primary: oklch(0.55 0.02 260);
+  --primary-foreground: oklch(0.98 0.005 260);
+  --secondary: oklch(0.70 0.01 250);
+  --secondary-foreground: oklch(0.28 0.01 260);
+  --muted: oklch(0.90 0.01 260);
+  --muted-foreground: oklch(0.52 0.02 260);
+  --accent: oklch(0.68 0.08 25);
+  --accent-foreground: oklch(0.98 0.005 260);
+  --destructive: oklch(0.55 0.20 25);
+  --destructive-foreground: oklch(0.98 0.005 260);
+  --border: oklch(0.85 0.01 260);
+  --input: oklch(0.88 0.01 260);
+  --ring: oklch(0.68 0.08 25);
+  --chart-1: oklch(0.55 0.02 260);
+  --chart-2: oklch(0.68 0.08 25);
+  --chart-3: oklch(0.70 0.01 250);
+  --chart-4: oklch(0.60 0.03 255);
+  --chart-5: oklch(0.65 0.05 265);
+  --radius: 0.625rem;
+  --sidebar: oklch(0.94 0.005 260);
+  --sidebar-foreground: oklch(0.32 0.01 260);
+  --sidebar-primary: oklch(0.55 0.02 260);
+  --sidebar-primary-foreground: oklch(0.98 0.005 260);
+  --sidebar-accent: oklch(0.88 0.01 260);
+  --sidebar-accent-foreground: oklch(0.32 0.01 260);
+  --sidebar-border: oklch(0.85 0.01 260);
+  --sidebar-ring: oklch(0.68 0.08 25);
 }
 
 @theme inline {

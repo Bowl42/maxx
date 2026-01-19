@@ -25,6 +25,191 @@ export type ProviderType =
 export type ClientType = 'claude' | 'openai' | 'codex' | 'gemini';
 
 /**
+ * Theme mode types
+ */
+export type ThemeMode = 'light' | 'dark' | 'system';
+
+/**
+ * Luxury theme types
+ */
+export type LuxuryTheme =
+  | 'hermes'
+  | 'tiffany'
+  | 'chanel'
+  | 'cartier'
+  | 'burberry'
+  | 'gucci'
+  | 'dior';
+
+/**
+ * All available themes
+ */
+export type Theme = ThemeMode | LuxuryTheme;
+
+/**
+ * Theme metadata interface
+ */
+export interface ThemeMetadata {
+  id: Theme;
+  name: string;
+  description: string;
+  baseMode: 'light' | 'dark';
+  category: 'default' | 'luxury';
+  brandInspiration?: string;
+  accentColor: string;
+  primaryColor: string;
+  secondaryColor: string;
+}
+
+/**
+ * Theme registry with metadata for all themes
+ */
+export const THEME_REGISTRY: Record<Theme, ThemeMetadata> = {
+  light: {
+    id: 'light',
+    name: 'Light',
+    description: 'Clean and bright',
+    baseMode: 'light',
+    category: 'default',
+    accentColor: 'oklch(0.9772 0 0)', // Light gray background
+    primaryColor: 'oklch(0.3261 0 0)', // Black
+    secondaryColor: 'oklch(0.9772 0 0)', // Light gray
+  },
+  dark: {
+    id: 'dark',
+    name: 'Dark',
+    description: 'Easy on the eyes',
+    baseMode: 'dark',
+    category: 'default',
+    accentColor: 'oklch(0.2741 0.0055 286.0329)', // Dark gray background
+    primaryColor: 'oklch(0.9848 0 0)', // White
+    secondaryColor: 'oklch(0.2741 0.0055 286.0329)', // Dark gray
+  },
+  system: {
+    id: 'system',
+    name: 'System',
+    description: 'Matches your system preference',
+    baseMode: 'light',
+    category: 'default',
+    accentColor: 'oklch(0.5 0 0)', // Medium gray (represents both light and dark)
+    primaryColor: 'oklch(0.3261 0 0)', // Black
+    secondaryColor: 'oklch(0.9772 0 0)', // Light gray
+  },
+  hermes: {
+    id: 'hermes',
+    name: 'Hermès',
+    description: 'Warm sophistication with iconic orange',
+    baseMode: 'light',
+    category: 'luxury',
+    brandInspiration: 'Hermès',
+    accentColor: 'oklch(0.65 0.15 55)',
+    primaryColor: 'oklch(0.65 0.15 55)',
+    secondaryColor: 'oklch(0.45 0.08 50)',
+  },
+  tiffany: {
+    id: 'tiffany',
+    name: 'Tiffany',
+    description: 'Elegant robin\'s egg blue',
+    baseMode: 'light',
+    category: 'luxury',
+    brandInspiration: 'Tiffany & Co.',
+    accentColor: 'oklch(0.70 0.10 195)',
+    primaryColor: 'oklch(0.70 0.10 195)',
+    secondaryColor: 'oklch(0.75 0.01 240)',
+  },
+  chanel: {
+    id: 'chanel',
+    name: 'Chanel',
+    description: 'Timeless black and white elegance',
+    baseMode: 'dark',
+    category: 'luxury',
+    brandInspiration: 'Chanel',
+    accentColor: 'oklch(0.75 0.12 85)', // Gold accent
+    primaryColor: 'oklch(0.98 0.005 280)', // White
+    secondaryColor: 'oklch(0.25 0.01 280)', // Black
+  },
+  cartier: {
+    id: 'cartier',
+    name: 'Cartier',
+    description: 'Rich burgundy with gold accents',
+    baseMode: 'dark',
+    category: 'luxury',
+    brandInspiration: 'Cartier',
+    accentColor: 'oklch(0.75 0.14 85)', // Gold accent
+    primaryColor: 'oklch(0.45 0.18 20)', // Burgundy red
+    secondaryColor: 'oklch(0.70 0.12 80)', // Gold
+  },
+  burberry: {
+    id: 'burberry',
+    name: 'Burberry',
+    description: 'Classic heritage tan',
+    baseMode: 'light',
+    category: 'luxury',
+    brandInspiration: 'Burberry',
+    accentColor: 'oklch(0.50 0.18 25)', // Red accent
+    primaryColor: 'oklch(0.60 0.08 65)', // Tan/Beige
+    secondaryColor: 'oklch(0.25 0.01 280)', // Black
+  },
+  gucci: {
+    id: 'gucci',
+    name: 'Gucci',
+    description: 'Bold forest green with gold',
+    baseMode: 'dark',
+    category: 'luxury',
+    brandInspiration: 'Gucci',
+    accentColor: 'oklch(0.72 0.13 82)', // Gold accent
+    primaryColor: 'oklch(0.40 0.12 155)', // Forest green
+    secondaryColor: 'oklch(0.45 0.18 20)', // Red
+  },
+  dior: {
+    id: 'dior',
+    name: 'Dior',
+    description: 'Soft understated elegance',
+    baseMode: 'light',
+    category: 'luxury',
+    brandInspiration: 'Dior',
+    accentColor: 'oklch(0.68 0.08 25)', // Rose gold accent
+    primaryColor: 'oklch(0.55 0.02 260)', // Gray
+    secondaryColor: 'oklch(0.70 0.01 250)', // Light gray
+  },
+};
+
+/**
+ * Get theme metadata
+ */
+export function getThemeMetadata(theme: Theme): ThemeMetadata {
+  return THEME_REGISTRY[theme];
+}
+
+/**
+ * Check if theme is a luxury theme
+ */
+export function isLuxuryTheme(theme: Theme): boolean {
+  return THEME_REGISTRY[theme].category === 'luxury';
+}
+
+/**
+ * Get the base mode (light/dark) for a theme
+ */
+export function getThemeBaseMode(theme: Theme): 'light' | 'dark' {
+  return THEME_REGISTRY[theme].baseMode;
+}
+
+/**
+ * Get all luxury themes
+ */
+export function getLuxuryThemes(): ThemeMetadata[] {
+  return Object.values(THEME_REGISTRY).filter(t => t.category === 'luxury');
+}
+
+/**
+ * Get all default themes
+ */
+export function getDefaultThemes(): ThemeMetadata[] {
+  return Object.values(THEME_REGISTRY).filter(t => t.category === 'default');
+}
+
+/**
  * 颜色变量名称类型（所有可用的 CSS 变量）
  */
 export type ColorVariable =
