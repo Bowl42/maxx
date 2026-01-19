@@ -280,7 +280,11 @@ export class HttpTransport implements Transport {
 
   async getActiveProxyRequests(): Promise<ProxyRequest[]> {
     const { data } = await this.client.get<ProxyRequest[]>('/requests/active');
-    return data ?? [];
+    // Ensure we always return an array
+    if (!data || !Array.isArray(data)) {
+      return [];
+    }
+    return data;
   }
 
   async getProxyRequest(id: number): Promise<ProxyRequest> {
