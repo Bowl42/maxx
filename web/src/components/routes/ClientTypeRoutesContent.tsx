@@ -44,6 +44,7 @@ import {
 import type { ProviderConfigItem } from '@/pages/client-routes/types';
 import { Button } from '../ui';
 import { AntigravityQuotasProvider } from '@/contexts/antigravity-quotas-context';
+import { CooldownsProvider } from '@/contexts/cooldowns-context';
 
 interface ClientTypeRoutesContentProps {
   clientType: ClientType;
@@ -51,7 +52,19 @@ interface ClientTypeRoutesContentProps {
   searchQuery?: string; // Optional search query from parent
 }
 
-export function ClientTypeRoutesContent({
+// Wrapper component that provides the AntigravityQuotasProvider and CooldownsProvider
+export function ClientTypeRoutesContent(props: ClientTypeRoutesContentProps) {
+  return (
+    <AntigravityQuotasProvider>
+      <CooldownsProvider>
+        <ClientTypeRoutesContentInner {...props} />
+      </CooldownsProvider>
+    </AntigravityQuotasProvider>
+  );
+}
+
+// Inner component that can access the contexts
+function ClientTypeRoutesContentInner({
   clientType,
   projectID,
   searchQuery = '',
@@ -237,10 +250,9 @@ export function ClientTypeRoutesContent({
   }
 
   return (
-    <AntigravityQuotasProvider>
-      <div className="flex flex-col h-full px-6">
-        <div className="flex-1 overflow-y-auto px-lg py-6">
-          <div className="mx-auto max-w-[1400px] space-y-6">
+    <div className="flex flex-col h-full px-6">
+      <div className="flex-1 overflow-y-auto px-lg py-6">
+        <div className="mx-auto max-w-[1400px] space-y-6">
             {/* Routes List */}
             {items.length > 0 ? (
               <DndContext
@@ -366,9 +378,8 @@ export function ClientTypeRoutesContent({
                 </div>
               </div>
             )}
-          </div>
         </div>
       </div>
-    </AntigravityQuotasProvider>
+    </div>
   );
 }

@@ -17,7 +17,7 @@ import {
   Activity,
 } from 'lucide-react';
 import type { Cooldown } from '@/lib/transport/types';
-import { useCooldowns } from '@/hooks/use-cooldowns';
+import { useCooldownsContext } from '@/contexts/cooldowns-context';
 
 interface CooldownDetailsDialogProps {
   cooldown: Cooldown | null;
@@ -93,7 +93,7 @@ export function CooldownDetailsDialog({
   const { t, i18n } = useTranslation();
   const REASON_INFO = getReasonInfo(t);
   // 获取 formatRemaining 函数用于实时倒计时
-  const { formatRemaining } = useCooldowns();
+  const { formatRemaining } = useCooldownsContext();
 
   // 计算初始倒计时值
   const getInitialCountdown = useCallback(() => {

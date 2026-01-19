@@ -9,7 +9,7 @@ import { cn } from '@/lib/utils';
 import type { ClientType, ProviderStats, AntigravityQuotaData } from '@/lib/transport';
 import type { ProviderConfigItem } from '../types';
 import { useAntigravityQuotaFromContext } from '@/contexts/antigravity-quotas-context';
-import { useCooldowns } from '@/hooks/use-cooldowns';
+import { useCooldownsContext } from '@/contexts/cooldowns-context';
 import { ProviderDetailsDialog } from '@/components/provider-details-dialog';
 import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -60,7 +60,7 @@ export function SortableProviderRow({
   onDelete,
 }: SortableProviderRowProps) {
   const [showDetailsDialog, setShowDetailsDialog] = useState(false);
-  const { getCooldownForProvider, clearCooldown, isClearingCooldown } = useCooldowns();
+  const { getCooldownForProvider, clearCooldown, isClearingCooldown } = useCooldownsContext();
   const cooldown = getCooldownForProvider(item.provider.id, clientType);
 
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
@@ -206,7 +206,7 @@ export function ProviderRowContent({
   const claudeInfo = isAntigravity ? getClaudeQuotaInfo(quota) : null;
 
   // 获取 cooldown 状态
-  const { getCooldownForProvider, formatRemaining, getRemainingSeconds } = useCooldowns();
+  const { getCooldownForProvider, formatRemaining, getRemainingSeconds } = useCooldownsContext();
   const cooldown = getCooldownForProvider(provider.id, clientType);
   const isInCooldown = isInCooldownProp ?? !!cooldown;
 

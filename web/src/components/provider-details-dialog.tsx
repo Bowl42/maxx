@@ -23,7 +23,7 @@ import {
 } from 'lucide-react';
 import type { Cooldown, ProviderStats, ClientType } from '@/lib/transport/types';
 import type { ProviderConfigItem } from '@/pages/client-routes/types';
-import { useCooldowns } from '@/hooks/use-cooldowns';
+import { useCooldownsContext } from '@/contexts/cooldowns-context';
 import { Button, Switch } from '@/components/ui';
 import { getProviderColor, type ProviderType } from '@/lib/theme';
 import { cn } from '@/lib/utils';
@@ -145,7 +145,7 @@ export function ProviderDetailsDialog({
 }: ProviderDetailsDialogProps) {
   const { t, i18n } = useTranslation();
   const REASON_INFO = getReasonInfo(t);
-  const { formatRemaining } = useCooldowns();
+  const { formatRemaining } = useCooldownsContext();
 
   // 计算初始倒计时值
   const getInitialCountdown = useCallback(() => {
