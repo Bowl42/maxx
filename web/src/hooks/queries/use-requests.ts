@@ -98,6 +98,16 @@ export function useProxyRequestUpdates() {
         if (isNewRequest) {
           queryClient.setQueryData<number>(['requestsCount'], (old) => (old ?? 0) + 1);
         }
+
+        // 请求完成或失败时刷新相关数据
+        if (updatedRequest.status === 'COMPLETED' || updatedRequest.status === 'FAILED') {
+          // 刷新 dashboard 数据
+          queryClient.invalidateQueries({ queryKey: ['dashboard'] });
+          // 刷新 provider stats（因为统计数据变化了）
+          queryClient.invalidateQueries({ queryKey: ['providers', 'stats'] });
+          // 刷新 cooldowns（请求可能触发了冷却，即使最终成功也可能有 provider 进入冷却）
+          queryClient.invalidateQueries({ queryKey: ['cooldowns'] });
+        }
       },
     );
 

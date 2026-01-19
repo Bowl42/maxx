@@ -62,7 +62,7 @@ export function useDashboardData() {
     queryKey: ['dashboard'],
     queryFn: () => getTransport().getDashboardData(),
     staleTime: 5 * 1000, // 5 seconds
-    refetchInterval: 5 * 1000, // 每 5 秒自动刷新
+    // 不再轮询，改为通过 WebSocket 事件触发刷新 (useProxyRequestUpdates)
     refetchOnWindowFocus: false,
   });
 }

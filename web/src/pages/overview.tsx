@@ -41,6 +41,8 @@ import {
   useSessions,
 } from '@/hooks/queries';
 import { useCooldowns } from '@/hooks/use-cooldowns';
+import { CooldownTimer } from '@/components/cooldown-timer';
+import { useStreamingRequests } from '@/hooks/use-streaming';
 import {
   AreaChart,
   Area,
@@ -129,6 +131,8 @@ function StatCard({
   trend,
   icon: Icon,
   iconClassName,
+  badge,
+  badgeColor = '#3b82f6',
 }: {
   title: string;
   value: string;
@@ -136,7 +140,11 @@ function StatCard({
   trend?: number;
   icon: React.ElementType;
   iconClassName?: string;
+  badge?: number;
+  badgeColor?: string;
 }) {
+  const showBadge = badge !== undefined && badge > 0;
+
   return (
     <Card className="border-border/50 bg-card/50 backdrop-blur-sm">
       <CardContent className="p-4">
@@ -155,8 +163,24 @@ function StatCard({
               {trend !== undefined && <TrendIndicator value={trend} />}
             </div>
           </div>
-          <div className={cn('p-2.5 rounded-xl bg-muted', iconClassName)}>
-            <Icon className="h-5 w-5" />
+          <div
+            className={cn(
+              'w-10 h-10 rounded-xl bg-muted flex items-center justify-center box-border border-2 border-transparent transition-shadow duration-300',
+              showBadge && 'animate-pulse-soft',
+              iconClassName
+            )}
+            style={showBadge ? {
+              borderColor: badgeColor,
+              boxShadow: `0 0 10px ${badgeColor}60`,
+            } : undefined}
+          >
+            {showBadge ? (
+              <span className="text-lg font-extrabold">
+                {badge > 99 ? '99+' : badge}
+              </span>
+            ) : (
+              <Icon className="h-5 w-5" />
+            )}
           </div>
         </div>
       </CardContent>
@@ -178,12 +202,13 @@ export function OverviewPage() {
   const { data: providerStats } = useDashboardProviderStats();
   const { data: requestsData } = useProxyRequests({ limit: 10 });
   const { data: sessions } = useSessions();
-  const { cooldowns, formatRemaining } = useCooldowns();
+  const { cooldowns } = useCooldowns();
+  const { total: activeRequestsCount } = useStreamingRequests();
 
   // 启用请求实时更新
   useProxyRequestUpdates();
 
-  const recentRequests = requestsData?.items ?? [];
+  const recentRequests = useMemo(() => requestsData?.items ?? [], [requestsData?.items]);
 
   // 计算 Provider 使用分布
   const providerDistribution = useMemo(() => {
@@ -282,6 +307,7 @@ export function OverviewPage() {
               trend={summary?.requestsChange}
               icon={Activity}
               iconClassName="text-blue-600 dark:text-blue-400"
+              badge={activeRequestsCount}
             />
             <StatCard
               title={t('dashboard.todayTokens')}
@@ -553,7 +579,7 @@ export function OverviewPage() {
                                 {provider?.name || `Provider #${cd.providerID}`}
                               </span>
                               <span className="font-mono text-amber-600 dark:text-amber-400">
-                                {formatRemaining(cd)}
+                                <CooldownTimer cooldown={cd} />
                               </span>
                             </div>
                           );

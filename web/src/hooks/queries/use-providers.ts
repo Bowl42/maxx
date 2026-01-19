@@ -79,8 +79,7 @@ export function useProviderStats(clientType?: string, projectId?: number) {
   return useQuery({
     queryKey: [...providerKeys.stats(), clientType, projectId],
     queryFn: () => getTransport().getProviderStats(clientType, projectId),
-    // 每 30 秒刷新一次
-    refetchInterval: 30000,
+    // 不再轮询，改为通过 WebSocket 事件触发刷新 (useProxyRequestUpdates)
     enabled: !!clientType, // 只在有 clientType 时才查询
   });
 }
@@ -90,8 +89,7 @@ export function useAllProviderStats() {
   return useQuery({
     queryKey: [...providerKeys.stats(), 'all'],
     queryFn: () => getTransport().getProviderStats(),
-    // 每 30 秒刷新一次
-    refetchInterval: 30000,
+    // 不再轮询，改为通过 WebSocket 事件触发刷新 (useProxyRequestUpdates)
   });
 }
 

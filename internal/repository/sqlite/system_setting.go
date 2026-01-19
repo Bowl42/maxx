@@ -25,20 +25,20 @@ func (r *SystemSettingRepository) Get(key string) (string, error) {
 		}
 		return "", err
 	}
-	return model.Value, nil
+	return string(model.Value), nil
 }
 
 func (r *SystemSettingRepository) Set(key, value string) error {
 	now := time.Now().UnixMilli()
 	model := &SystemSetting{
 		Key:       key,
-		Value:     value,
+		Value:     LongText(value),
 		CreatedAt: now,
 		UpdatedAt: now,
 	}
 	return r.db.gorm.Clauses(clause.OnConflict{
 		Columns:   []clause.Column{{Name: "setting_key"}},
-		DoUpdates: clause.Assignments(map[string]any{"value": value, "updated_at": now}),
+		DoUpdates: clause.Assignments(map[string]any{"value": LongText(value), "updated_at": now}),
 	}).Create(model).Error
 }
 
@@ -52,7 +52,7 @@ func (r *SystemSettingRepository) GetAll() ([]*domain.SystemSetting, error) {
 	for i, m := range models {
 		settings[i] = &domain.SystemSetting{
 			Key:       m.Key,
-			Value:     m.Value,
+			Value:     string(m.Value),
 			CreatedAt: fromTimestamp(m.CreatedAt),
 			UpdatedAt: fromTimestamp(m.UpdatedAt),
 		}

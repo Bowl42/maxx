@@ -1585,15 +1585,18 @@ func (r *UsageStatsRepository) QueryDashboardData() (*domain.DashboardData, erro
 			}
 		}
 
-		// 暂存热力图数据（后面会补充今天的）
+		// 暂存热力图数据（后面会补充今天的）- 只保留有数据的日期
 		result.Heatmap = make([]domain.DashboardHeatmapPoint, 0, days)
 		for i := 0; i < days; i++ {
 			date := days371Ago.Add(time.Duration(i) * 24 * time.Hour).In(loc)
 			dateStr := date.Format("2006-01-02")
-			result.Heatmap = append(result.Heatmap, domain.DashboardHeatmapPoint{
-				Date:  dateStr,
-				Count: heatmapData[dateStr],
-			})
+			count := heatmapData[dateStr]
+			if count > 0 {
+				result.Heatmap = append(result.Heatmap, domain.DashboardHeatmapPoint{
+					Date:  dateStr,
+					Count: count,
+				})
+			}
 		}
 		mu.Unlock()
 		return nil
@@ -1687,14 +1690,23 @@ func (r *UsageStatsRepository) QueryDashboardData() (*domain.DashboardData, erro
 		result.Today = todaySummary
 		result.Trend24h = trend
 
-		// 补充今日热力图
-		if len(result.Heatmap) > 0 {
+		// 补充今日热力图（今日数据可能不在历史查询中）
+		if todayRequests > 0 {
 			todayDateStr := todayStart.Format("2006-01-02")
+			found := false
 			for i := range result.Heatmap {
 				if result.Heatmap[i].Date == todayDateStr {
 					result.Heatmap[i].Count = todayRequests
+					found = true
 					break
 				}
+			}
+			// 如果今日条目不存在，添加它
+			if !found {
+				result.Heatmap = append(result.Heatmap, domain.DashboardHeatmapPoint{
+					Date:  todayDateStr,
+					Count: todayRequests,
+				})
 			}
 		}
 
