@@ -10,7 +10,7 @@ import {
   Upload,
   AlertTriangle,
   CheckCircle,
-  Check,
+  Zap,
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '@/components/theme-provider';
@@ -661,18 +661,10 @@ function BackupSection() {
               </div>
               {Object.entries(importResult.summary).map(([key, summary]) => (
                 <Fragment key={key}>
-                  <div className="capitalize">
-                    {key}
-                  </div>
-                  <div className="text-center text-green-600">
-                    {summary.imported}
-                  </div>
-                  <div className="text-center text-muted-foreground">
-                    {summary.skipped}
-                  </div>
-                  <div className="text-center text-blue-600">
-                    {summary.updated}
-                  </div>
+                  <div className="capitalize">{key}</div>
+                  <div className="text-center text-green-600">{summary.imported}</div>
+                  <div className="text-center text-muted-foreground">{summary.skipped}</div>
+                  <div className="text-center text-blue-600">{summary.updated}</div>
                 </Fragment>
               ))}
             </div>
