@@ -1,14 +1,43 @@
-import { useState, useEffect, useRef } from 'react';
-import { Settings, Moon, Sun, Monitor, Laptop, FolderOpen, Database, Globe, Archive, Download, Upload, AlertTriangle, CheckCircle, Zap } from 'lucide-react';
+import { useState, useEffect, useRef, Fragment } from 'react';
+import {
+  Settings,
+  Monitor,
+  FolderOpen,
+  Database,
+  Globe,
+  Archive,
+  Download,
+  Upload,
+  AlertTriangle,
+  CheckCircle,
+  Zap,
+} from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '@/components/theme-provider';
-import { Card, CardContent, CardHeader, CardTitle, Button, Input, Switch, Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui';
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  Button,
+  Input,
+  Switch,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+  Tabs,
+  TabsList,
+  TabsTrigger,
+  TabsContent,
+} from '@/components/ui';
 import { PageHeader } from '@/components/layout/page-header';
 import { useSettings, useUpdateSetting } from '@/hooks/queries';
 import { useTransport } from '@/lib/transport/context';
 import type { BackupFile, BackupImportResult } from '@/lib/transport/types';
-
-type Theme = 'light' | 'dark' | 'system';
+import { getDefaultThemes, getLuxuryThemes } from '@/lib/theme';
+import { cn } from '@/lib/utils';
 
 export function SettingsPage() {
   const { t } = useTranslation();
@@ -40,11 +69,8 @@ function GeneralSection() {
   const { theme, setTheme } = useTheme();
   const { t, i18n } = useTranslation();
 
-  const themes: { value: Theme; label: string; icon: typeof Sun }[] = [
-    { value: 'light', label: t('settings.theme.light'), icon: Sun },
-    { value: 'dark', label: t('settings.theme.dark'), icon: Moon },
-    { value: 'system', label: t('settings.theme.system'), icon: Laptop },
-  ];
+  const defaultThemes = getDefaultThemes();
+  const luxuryThemes = getLuxuryThemes();
 
   const languages = [
     { value: 'en', label: t('settings.languages.en') },
@@ -53,34 +79,104 @@ function GeneralSection() {
 
   return (
     <Card className="border-border bg-card">
-      <CardHeader className="border-b border-border py-4">
+      <CardHeader className="border-b border-border">
         <CardTitle className="text-base font-medium flex items-center gap-2">
           <Monitor className="h-4 w-4 text-muted-foreground" />
           {t('settings.general')}
         </CardTitle>
       </CardHeader>
-      <CardContent className="p-6 space-y-4">
-        <div className="flex items-center gap-6">
-          <label className="text-sm font-medium text-muted-foreground w-40 shrink-0">
-            {t('settings.themePreference')}
-          </label>
-          <div className="flex flex-wrap gap-3">
-            {themes.map(({ value, label, icon: Icon }) => (
-              <Button
-                key={value}
-                onClick={() => setTheme(value)}
-                variant={theme === value ? 'default' : 'outline'}
-              >
-                <Icon size={16} />
-                <span className="text-sm font-medium">{label}</span>
-              </Button>
-            ))}
-          </div>
+      <CardContent className="space-y-6">
+        {/* Theme Selection */}
+        <div className="space-y-3">
+          <Tabs defaultValue="default" className="w-full">
+            <div className="flex items-center justify-between mb-3 ">
+              <div className="text-sm font-medium text-muted-foreground">
+                {t('settings.themePreference')}
+              </div>
+              <TabsList className="inline-flex">
+                <TabsTrigger value="default">Default</TabsTrigger>
+                <TabsTrigger value="luxury">Luxury</TabsTrigger>
+              </TabsList>
+            </div>
+
+            <TabsContent value="default" className="mt-0">
+              <div className="flex flex-wrap gap-2">
+                {defaultThemes.map((themeOption) => {
+                  const displayColor =
+                    themeOption.id === 'light'
+                      ? 'oklch(0.95 0 0)'
+                      : themeOption.id === 'dark'
+                        ? 'oklch(0.25 0 0)'
+                        : themeOption.accentColor;
+
+                  return (
+                    <button
+                      key={themeOption.id}
+                      type="button"
+                      onClick={() => setTheme(themeOption.id)}
+                      className={cn(
+                        'flex items-center gap-2 px-3 py-2 rounded-md transition-all',
+                        'border',
+                        theme === themeOption.id
+                          ? 'border-primary bg-primary/5'
+                          : 'border-border hover:border-primary/50 hover:bg-muted/50',
+                      )}
+                      aria-label={`Select ${themeOption.name} theme`}
+                    >
+                      {/* Color indicator */}
+                      <div className="flex gap-0.5">
+                        <div
+                          className="w-3 h-3 rounded-full ring-1 ring-black/10"
+                          style={{ background: displayColor }}
+                        />
+                      </div>
+
+                      {/* Theme name */}
+                      <span className="text-sm font-medium">{themeOption.name}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            </TabsContent>
+
+            <TabsContent value="luxury" className="mt-0">
+              <div className="flex flex-wrap gap-2">
+                {luxuryThemes.map((themeOption) => (
+                  <button
+                    key={themeOption.id}
+                    type="button"
+                    onClick={() => setTheme(themeOption.id)}
+                    className={cn(
+                      'flex items-center gap-2 px-3 py-2 rounded-md transition-all',
+                      'border',
+                      theme === themeOption.id
+                        ? 'border-primary bg-primary/5'
+                        : 'border-border hover:border-primary/50 hover:bg-muted/50',
+                    )}
+                    aria-label={`Select ${themeOption.name} theme`}
+                  >
+                    {/* Color indicator */}
+                    <div className="flex gap-0.5">
+                      <div
+                        className="w-3 h-3 rounded-full ring-1 ring-black/10"
+                        style={{ background: themeOption.primaryColor }}
+                      />
+                    </div>
+
+                    {/* Theme name */}
+                    <span className="text-sm font-medium">{themeOption.name}</span>
+                  </button>
+                ))}
+              </div>
+            </TabsContent>
+          </Tabs>
         </div>
-        <div className="flex items-center gap-6">
-          <label className="text-sm font-medium text-muted-foreground w-40 shrink-0">
+
+        {/* Language Selection */}
+        <div className="flex gap-6 pt-4 border-t border-border flex-col">
+          <div className="text-sm font-medium text-muted-foreground w-40 shrink-0">
             {t('settings.languagePreference')}
-          </label>
+          </div>
           <div className="flex flex-wrap gap-3">
             {languages.map(({ value, label }) => (
               <Button
@@ -140,7 +236,7 @@ function TimezoneSection() {
 
   return (
     <Card className="border-border bg-card">
-      <CardHeader className="border-b border-border py-4">
+      <CardHeader className="border-b border-border">
         <div>
           <CardTitle className="text-base font-medium flex items-center gap-2">
             <Globe className="h-4 w-4 text-muted-foreground" />
@@ -149,8 +245,12 @@ function TimezoneSection() {
           <p className="text-xs text-muted-foreground mt-1">{t('settings.timezoneDesc')}</p>
         </div>
       </CardHeader>
-      <CardContent className="p-6">
-        <Select value={currentTimezone} onValueChange={(v) => v && handleTimezoneChange(v)} disabled={updateSetting.isPending}>
+      <CardContent>
+        <Select
+          value={currentTimezone}
+          onValueChange={(v) => v && handleTimezoneChange(v)}
+          disabled={updateSetting.isPending}
+        >
           <SelectTrigger className="w-64">
             <SelectValue>{currentTimezone}</SelectValue>
           </SelectTrigger>
@@ -207,7 +307,7 @@ function DataRetentionSection() {
 
   return (
     <Card className="border-border bg-card">
-      <CardHeader className="border-b border-border py-4">
+      <CardHeader className="border-b border-border">
         <div className="flex items-center justify-between">
           <div>
             <CardTitle className="text-base font-medium flex items-center gap-2">
@@ -221,11 +321,11 @@ function DataRetentionSection() {
           </Button>
         </div>
       </CardHeader>
-      <CardContent className="p-6">
+      <CardContent>
         <div className="flex items-center gap-3">
-          <label className="text-sm font-medium text-muted-foreground shrink-0">
+          <div className="text-sm font-medium text-muted-foreground shrink-0">
             {t('settings.requestRetentionHours')}
-          </label>
+          </div>
           <Input
             type="number"
             value={requestDraft}
@@ -270,18 +370,18 @@ function ForceProjectSection() {
 
   return (
     <Card className="border-border bg-card">
-      <CardHeader className="border-b border-border py-4">
+      <CardHeader className="border-b border-border">
         <CardTitle className="text-base font-medium flex items-center gap-2">
           <FolderOpen className="h-4 w-4 text-muted-foreground" />
           {t('settings.forceProjectBinding')}
         </CardTitle>
       </CardHeader>
-      <CardContent className="p-6 space-y-4">
+      <CardContent className="space-y-4">
         <div className="flex items-center justify-between">
           <div>
-            <label className="text-sm font-medium text-foreground">
+            <div className="text-sm font-medium text-foreground">
               {t('settings.enableForceProjectBinding')}
-            </label>
+            </div>
             <p className="text-xs text-muted-foreground mt-1">
               {t('settings.forceProjectBindingDesc')}
             </p>
@@ -295,9 +395,9 @@ function ForceProjectSection() {
 
         {forceProjectEnabled && (
           <div className="flex items-center gap-6 pt-4 border-t border-border">
-            <label className="text-sm font-medium text-muted-foreground w-32 shrink-0">
+            <div className="text-sm font-medium text-muted-foreground w-32 shrink-0">
               {t('settings.waitTimeout')}
-            </label>
+            </div>
             <Input
               type="number"
               value={timeout}
@@ -371,7 +471,11 @@ function AntigravitySection() {
             </CardTitle>
             <p className="text-xs text-muted-foreground mt-1">{t('settings.antigravityDesc')}</p>
           </div>
-          <Button onClick={handleSaveInterval} disabled={!hasChanges || updateSetting.isPending} size="sm">
+          <Button
+            onClick={handleSaveInterval}
+            disabled={!hasChanges || updateSetting.isPending}
+            size="sm"
+          >
             {updateSetting.isPending ? t('common.saving') : t('common.save')}
           </Button>
         </div>
@@ -390,7 +494,9 @@ function AntigravitySection() {
             disabled={updateSetting.isPending}
           />
           <span className="text-xs text-muted-foreground">{t('settings.minutes')}</span>
-          <span className="text-xs text-muted-foreground">({t('settings.quotaRefreshIntervalDesc')})</span>
+          <span className="text-xs text-muted-foreground">
+            ({t('settings.quotaRefreshIntervalDesc')})
+          </span>
         </div>
 
         <div className="flex items-center justify-between pt-4 border-t border-border">
@@ -473,7 +579,7 @@ function BackupSection() {
 
   return (
     <Card className="border-border bg-card">
-      <CardHeader className="border-b border-border py-4">
+      <CardHeader className="border-b border-border">
         <div>
           <CardTitle className="text-base font-medium flex items-center gap-2">
             <Archive className="h-4 w-4 text-muted-foreground" />
@@ -482,11 +588,13 @@ function BackupSection() {
           <p className="text-xs text-muted-foreground mt-1">{t('settings.backupDesc')}</p>
         </div>
       </CardHeader>
-      <CardContent className="p-6 space-y-4">
+      <CardContent className="space-y-4">
         {/* Warning about sensitive data */}
         <div className="flex items-start gap-2 p-3 rounded-md bg-amber-500/10 border border-amber-500/20">
           <AlertTriangle className="h-4 w-4 text-amber-500 mt-0.5 shrink-0" />
-          <p className="text-xs text-amber-600 dark:text-amber-400">{t('settings.backupContainsSensitive')}</p>
+          <p className="text-xs text-amber-600 dark:text-amber-400">
+            {t('settings.backupContainsSensitive')}
+          </p>
         </div>
 
         {/* Export/Import buttons */}
@@ -542,26 +650,39 @@ function BackupSection() {
             {/* Summary table */}
             <div className="grid grid-cols-4 gap-2 text-xs">
               <div className="font-medium text-muted-foreground"></div>
-              <div className="font-medium text-muted-foreground text-center">{t('settings.imported')}</div>
-              <div className="font-medium text-muted-foreground text-center">{t('settings.skipped')}</div>
-              <div className="font-medium text-muted-foreground text-center">{t('settings.updated')}</div>
+              <div className="font-medium text-muted-foreground text-center">
+                {t('settings.imported')}
+              </div>
+              <div className="font-medium text-muted-foreground text-center">
+                {t('settings.skipped')}
+              </div>
+              <div className="font-medium text-muted-foreground text-center">
+                {t('settings.updated')}
+              </div>
               {Object.entries(importResult.summary).map(([key, summary]) => (
-                <>
-                  <div key={`${key}-label`} className="capitalize">{key}</div>
-                  <div key={`${key}-imported`} className="text-center text-green-600">{summary.imported}</div>
-                  <div key={`${key}-skipped`} className="text-center text-muted-foreground">{summary.skipped}</div>
-                  <div key={`${key}-updated`} className="text-center text-blue-600">{summary.updated}</div>
-                </>
+                <Fragment key={key}>
+                  <div className="capitalize">{key}</div>
+                  <div className="text-center text-green-600">{summary.imported}</div>
+                  <div className="text-center text-muted-foreground">{summary.skipped}</div>
+                  <div className="text-center text-blue-600">{summary.updated}</div>
+                </Fragment>
               ))}
             </div>
 
             {/* Warnings */}
             {importResult.warnings && importResult.warnings.length > 0 && (
               <div className="space-y-1">
-                <p className="text-xs font-medium text-amber-600">{t('settings.importWarnings')}:</p>
+                <p className="text-xs font-medium text-amber-600">
+                  {t('settings.importWarnings')}:
+                </p>
                 <div className="max-h-32 overflow-y-auto space-y-1">
                   {importResult.warnings.map((warning, i) => (
-                    <p key={i} className="text-xs text-amber-600 dark:text-amber-400 pl-2 border-l-2 border-amber-500/30">{warning}</p>
+                    <p
+                      key={i}
+                      className="text-xs text-amber-600 dark:text-amber-400 pl-2 border-l-2 border-amber-500/30"
+                    >
+                      {warning}
+                    </p>
                   ))}
                 </div>
               </div>
@@ -570,10 +691,17 @@ function BackupSection() {
             {/* Errors */}
             {importResult.errors && importResult.errors.length > 0 && (
               <div className="space-y-1">
-                <p className="text-xs font-medium text-destructive">{t('settings.importErrors')}:</p>
+                <p className="text-xs font-medium text-destructive">
+                  {t('settings.importErrors')}:
+                </p>
                 <div className="max-h-32 overflow-y-auto space-y-1">
                   {importResult.errors.map((err, i) => (
-                    <p key={i} className="text-xs text-destructive pl-2 border-l-2 border-destructive/30">{err}</p>
+                    <p
+                      key={i}
+                      className="text-xs text-destructive pl-2 border-l-2 border-destructive/30"
+                    >
+                      {err}
+                    </p>
                   ))}
                 </div>
               </div>

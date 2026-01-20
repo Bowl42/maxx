@@ -44,8 +44,13 @@ export function useStreamingRequests(): StreamingState {
       const activeList = await transport.getActiveProxyRequests();
       const activeMap = new Map<string, ProxyRequest>();
 
-      for (const request of activeList) {
-        activeMap.set(request.requestID, request);
+      // Ensure activeList is an array before iterating
+      if (Array.isArray(activeList)) {
+        for (const request of activeList) {
+          activeMap.set(request.requestID, request);
+        }
+      } else {
+        console.warn('getActiveProxyRequests returned non-array:', activeList);
       }
 
       setActiveRequests(activeMap);
