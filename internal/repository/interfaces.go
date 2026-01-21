@@ -85,6 +85,8 @@ type ProxyRequestRepository interface {
 	// MarkStaleAsFailed marks all IN_PROGRESS/PENDING requests from other instances as FAILED
 	// Also marks requests that have been IN_PROGRESS for too long (> 30 minutes) as timed out
 	MarkStaleAsFailed(currentInstanceID string) (int64, error)
+	// FixFailedRequestsWithoutEndTime fixes FAILED requests that have no end_time set
+	FixFailedRequestsWithoutEndTime() (int64, error)
 	// DeleteOlderThan 删除指定时间之前的请求记录
 	DeleteOlderThan(before time.Time) (int64, error)
 	// HasRecentRequests 检查指定时间之后是否有请求记录
@@ -118,6 +120,8 @@ type ProxyUpstreamAttemptRepository interface {
 	BatchUpdateCosts(updates map[uint64]uint64) error
 	// MarkStaleAttemptsFailed marks stale attempts as failed with proper end_time and duration
 	MarkStaleAttemptsFailed() (int64, error)
+	// FixFailedAttemptsWithoutEndTime fixes FAILED attempts that have no end_time set
+	FixFailedAttemptsWithoutEndTime() (int64, error)
 }
 
 type SystemSettingRepository interface {

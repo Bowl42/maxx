@@ -161,6 +161,29 @@ func (r *ProxyUpstreamAttemptRepository) MarkStaleAttemptsFailed() (int64, error
 	return result.RowsAffected, nil
 }
 
+// FixFailedAttemptsWithoutEndTime fixes FAILED attempts that have no end_time set
+// This handles legacy data where end_time was not properly set
+func (r *ProxyUpstreamAttemptRepository) FixFailedAttemptsWithoutEndTime() (int64, error) {
+	now := time.Now().UnixMilli()
+
+	result := r.db.gorm.Exec(`
+		UPDATE proxy_upstream_attempts
+		SET end_time = CASE
+		        WHEN start_time > 0 THEN start_time
+		        ELSE ?
+		    END,
+		    duration_ms = 0,
+		    updated_at = ?
+		WHERE status = 'FAILED'
+		  AND end_time = 0`,
+		now, now,
+	)
+	if result.Error != nil {
+		return 0, result.Error
+	}
+	return result.RowsAffected, nil
+}
+
 // BatchUpdateCosts updates costs for multiple attempts in a single transaction
 func (r *ProxyUpstreamAttemptRepository) BatchUpdateCosts(updates map[uint64]uint64) error {
 	if len(updates) == 0 {

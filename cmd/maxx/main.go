@@ -127,6 +127,17 @@ func main() {
 	} else if count > 0 {
 		log.Printf("Marked %d stale upstream attempts as failed", count)
 	}
+	// Fix legacy failed requests/attempts without end_time
+	if count, err := proxyRequestRepo.FixFailedRequestsWithoutEndTime(); err != nil {
+		log.Printf("Warning: Failed to fix failed requests without end_time: %v", err)
+	} else if count > 0 {
+		log.Printf("Fixed %d failed requests without end_time", count)
+	}
+	if count, err := attemptRepo.FixFailedAttemptsWithoutEndTime(); err != nil {
+		log.Printf("Warning: Failed to fix failed attempts without end_time: %v", err)
+	} else if count > 0 {
+		log.Printf("Fixed %d failed attempts without end_time", count)
+	}
 
 	// Create cached repositories
 	cachedProviderRepo := cached.NewProviderRepository(providerRepo)

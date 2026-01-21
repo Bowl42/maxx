@@ -178,6 +178,17 @@ func InitializeServerComponents(
 	} else if count > 0 {
 		log.Printf("[Core] Marked %d stale upstream attempts as failed", count)
 	}
+	// Fix legacy failed requests/attempts without end_time
+	if count, err := repos.ProxyRequestRepo.FixFailedRequestsWithoutEndTime(); err != nil {
+		log.Printf("[Core] Warning: Failed to fix failed requests without end_time: %v", err)
+	} else if count > 0 {
+		log.Printf("[Core] Fixed %d failed requests without end_time", count)
+	}
+	if count, err := repos.AttemptRepo.FixFailedAttemptsWithoutEndTime(); err != nil {
+		log.Printf("[Core] Warning: Failed to fix failed attempts without end_time: %v", err)
+	} else if count > 0 {
+		log.Printf("[Core] Fixed %d failed attempts without end_time", count)
+	}
 
 	log.Printf("[Core] Loading cached data")
 	if err := repos.CachedProviderRepo.Load(); err != nil {

@@ -183,6 +183,29 @@ func (r *ProxyRequestRepository) MarkStaleAsFailed(currentInstanceID string) (in
 	return result.RowsAffected, nil
 }
 
+// FixFailedRequestsWithoutEndTime fixes FAILED requests that have no end_time set
+// This handles legacy data where end_time was not properly set
+func (r *ProxyRequestRepository) FixFailedRequestsWithoutEndTime() (int64, error) {
+	now := time.Now().UnixMilli()
+
+	result := r.db.gorm.Exec(`
+		UPDATE proxy_requests
+		SET end_time = CASE
+		        WHEN start_time > 0 THEN start_time
+		        ELSE ?
+		    END,
+		    duration_ms = 0,
+		    updated_at = ?
+		WHERE status = 'FAILED'
+		  AND end_time = 0`,
+		now, now,
+	)
+	if result.Error != nil {
+		return 0, result.Error
+	}
+	return result.RowsAffected, nil
+}
+
 // UpdateProjectIDBySessionID 批量更新指定 sessionID 的所有请求的 projectID
 func (r *ProxyRequestRepository) UpdateProjectIDBySessionID(sessionID string, projectID uint64) (int64, error) {
 	now := time.Now().UnixMilli()
