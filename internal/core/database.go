@@ -70,6 +70,7 @@ type ServerComponents struct {
 	AntigravityHandler  *handler.AntigravityHandler
 	KiroHandler         *handler.KiroHandler
 	ProjectProxyHandler *handler.ProjectProxyHandler
+	RequestTracker      *RequestTracker
 }
 
 // InitializeDatabase 初始化数据库和所有仓库
@@ -299,6 +300,10 @@ func InitializeServerComponents(
 	kiroHandler := handler.NewKiroHandler(adminService)
 	projectProxyHandler := handler.NewProjectProxyHandler(proxyHandler, repos.CachedProjectRepo)
 
+	log.Printf("[Core] Creating request tracker for graceful shutdown")
+	requestTracker := NewRequestTracker()
+	proxyHandler.SetRequestTracker(requestTracker)
+
 	components := &ServerComponents{
 		Router:              r,
 		WebSocketHub:        wsHub,
@@ -311,6 +316,7 @@ func InitializeServerComponents(
 		AntigravityHandler:  antigravityHandler,
 		KiroHandler:         kiroHandler,
 		ProjectProxyHandler: projectProxyHandler,
+		RequestTracker:      requestTracker,
 	}
 
 	log.Printf("[Core] Server components initialized successfully")

@@ -480,9 +480,13 @@ export function StatsPage() {
         successfulRequests: 0,
         failedRequests: 0,
         totalTokens: 0,
+        totalCacheRead: 0,
+        totalCacheWrite: 0,
+        cacheHitRate: 0,
         totalCost: 0,
         avgRpm: 0,
         avgTpm: 0,
+        avgTtft: 0,
       };
     }
 
@@ -491,19 +495,40 @@ export function StatsPage() {
         totalRequests: acc.totalRequests + s.totalRequests,
         successfulRequests: acc.successfulRequests + s.successfulRequests,
         failedRequests: acc.failedRequests + s.failedRequests,
-        totalTokens: acc.totalTokens + s.inputTokens + s.outputTokens,
+        // Total tokens = input + output + cache read + cache write
+        totalTokens: acc.totalTokens + s.inputTokens + s.outputTokens + s.cacheRead + s.cacheWrite,
+        totalInputTokens: acc.totalInputTokens + s.inputTokens,
+        totalCacheRead: acc.totalCacheRead + s.cacheRead,
+        totalCacheWrite: acc.totalCacheWrite + s.cacheWrite,
         totalCost: acc.totalCost + s.cost,
         totalDurationMs: acc.totalDurationMs + s.totalDurationMs,
+        totalTtftMs: acc.totalTtftMs + (s.totalTtftMs || 0),
       }),
       {
         totalRequests: 0,
         successfulRequests: 0,
         failedRequests: 0,
         totalTokens: 0,
+        totalInputTokens: 0,
+        totalCacheRead: 0,
+        totalCacheWrite: 0,
         totalCost: 0,
         totalDurationMs: 0,
+        totalTtftMs: 0,
       },
     );
+
+    // 计算缓存命中率 = cacheRead / (inputTokens + cacheRead)
+    // 即：从缓存读取的 token 占实际输入 token 的比例
+    const totalInputWithCache = totals.totalInputTokens + totals.totalCacheRead;
+    const cacheHitRate = totalInputWithCache > 0
+      ? (totals.totalCacheRead / totalInputWithCache) * 100
+      : 0;
+
+    // 计算平均 TTFT (毫秒转秒)
+    const avgTtft = totals.successfulRequests > 0
+      ? totals.totalTtftMs / totals.successfulRequests / 1000
+      : 0;
 
     // 基于 totalDurationMs 计算 RPM 和 TPM
     // RPM = (totalRequests / totalDurationMs) * 60000
@@ -515,8 +540,10 @@ export function StatsPage() {
 
     return {
       ...totals,
+      cacheHitRate,
       avgRpm,
       avgTpm,
+      avgTtft,
     };
   }, [stats]);
 
@@ -823,14 +850,14 @@ export function StatsPage() {
               <StatCard
                 title={t('stats.requests')}
                 value={summary.totalRequests.toLocaleString()}
-                subtitle={`${formatNumber(summary.avgRpm)} RPM`}
+                subtitle={`${formatNumber(summary.avgRpm)} RPM · ${summary.avgTtft.toFixed(2)}s TTFT`}
                 icon={Activity}
                 iconClassName="text-blue-600 dark:text-blue-400"
               />
               <StatCard
                 title={t('stats.tokens')}
                 value={formatNumber(summary.totalTokens)}
-                subtitle={`${formatNumber(summary.avgTpm)} TPM`}
+                subtitle={`${formatNumber(summary.avgTpm)} TPM · ${summary.cacheHitRate.toFixed(1)}% ${t('stats.cacheHit')}`}
                 icon={Cpu}
                 iconClassName="text-violet-600 dark:text-violet-400"
               />

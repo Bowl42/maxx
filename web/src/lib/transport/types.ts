@@ -548,6 +548,7 @@ export interface UsageStats {
   successfulRequests: number;
   failedRequests: number;
   totalDurationMs: number; // 累计请求耗时（毫秒）
+  totalTtftMs: number; // 累计首字时长（毫秒）
   inputTokens: number;
   outputTokens: number;
   cacheRead: number;

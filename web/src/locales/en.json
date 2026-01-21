@@ -620,6 +620,7 @@
     "outputTokens": "Output Tokens",
     "cacheRead": "Cache Read",
     "cacheWrite": "Cache Write",
+    "cacheHit": "Cache Hit",
     "totalCost": "Total Cost",
     "dataPoints": "Data Points",
     "chart": "Statistics Chart",

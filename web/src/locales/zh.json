@@ -619,6 +619,7 @@
     "outputTokens": "输出 Token",
     "cacheRead": "缓存读取",
     "cacheWrite": "缓存写入",
+    "cacheHit": "缓存命中",
     "totalCost": "总费用",
     "dataPoints": "数据点",
     "chart": "统计图表",
