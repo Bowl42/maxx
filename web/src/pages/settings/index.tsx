@@ -540,6 +540,7 @@ function PprofSection() {
   const [showPassword, setShowPassword] = useState(false);
   const [initialized, setInitialized] = useState(false);
   const [passwordError, setPasswordError] = useState('');
+  const [portError, setPortError] = useState('');
 
   useEffect(() => {
     if (!isLoading && !initialized) {
@@ -552,13 +553,23 @@ function PprofSection() {
   }, [isLoading, initialized, pprofEnabled, pprofPort, pprofPassword]);
 
   useEffect(() => {
+    // 仅在用户无未保存更改时同步外部配置更新
     if (initialized) {
-      setEnabledDraft(pprofEnabled);
-      setPortDraft(pprofPort);
-      setUsePasswordDraft(pprofPassword !== '');
-      setPasswordDraft(pprofPassword);
+      const currentHasChanges =
+        enabledDraft !== pprofEnabled ||
+        portDraft !== pprofPort ||
+        usePasswordDraft !== (pprofPassword !== '') ||
+        (usePasswordDraft && passwordDraft !== pprofPassword);
+
+      // 只在没有未保存的更改时更新 draft 状态
+      if (!currentHasChanges) {
+        setEnabledDraft(pprofEnabled);
+        setPortDraft(pprofPort);
+        setUsePasswordDraft(pprofPassword !== '');
+        setPasswordDraft(pprofPassword);
+      }
     }
-  }, [pprofEnabled, pprofPort, pprofPassword, initialized]);
+  }, [pprofEnabled, pprofPort, pprofPassword, initialized, enabledDraft, portDraft, usePasswordDraft, passwordDraft]);
 
   // Clear password error when password changes
   useEffect(() => {
@@ -567,11 +578,21 @@ function PprofSection() {
     }
   }, [passwordDraft]);
 
+  // Clear port error when port changes
+  useEffect(() => {
+    if (portDraft) {
+      setPortError('');
+    }
+  }, [portDraft]);
+
   const isPasswordInvalid = usePasswordDraft && !passwordDraft.trim();
+  const portNum = parseInt(portDraft, 10);
+  const isPortInvalid = isNaN(portNum) || portNum < 1 || portNum > 65535;
 
   const hasChanges =
     initialized &&
     !isPasswordInvalid &&
+    !isPortInvalid &&
     (enabledDraft !== pprofEnabled ||
       portDraft !== pprofPort ||
       usePasswordDraft !== (pprofPassword !== '') ||
@@ -581,6 +602,13 @@ function PprofSection() {
     // Validate password if protection is enabled
     if (usePasswordDraft && !passwordDraft.trim()) {
       setPasswordError(t('settings.pprofPasswordRequired'));
+      return;
+    }
+
+    // Validate port
+    const portNum = parseInt(portDraft, 10);
+    if (isNaN(portNum) || portNum < 1 || portNum > 65535) {
+      setPortError('端口必须在 1-65535 之间');
       return;
     }
 
@@ -661,22 +689,30 @@ function PprofSection() {
         {enabledDraft && (
           <>
             {/* Port */}
-            <div className="flex items-center gap-3 pt-4 border-t border-border">
-              <label className="text-sm font-medium text-muted-foreground shrink-0 w-20">
-                {t('settings.pprofPort')}
-              </label>
-              <Input
-                type="number"
-                value={portDraft}
-                onChange={(e) => setPortDraft(e.target.value)}
-                className="w-32"
-                min={1}
-                max={65535}
-                disabled={updateSetting.isPending}
-              />
-              <span className="text-xs text-muted-foreground">
-                {t('settings.pprofPortDesc')}
-              </span>
+            <div className="space-y-2 pt-4 border-t border-border">
+              <div className="flex items-center gap-3">
+                <label className="text-sm font-medium text-muted-foreground shrink-0 w-20">
+                  {t('settings.pprofPort')}
+                </label>
+                <Input
+                  type="number"
+                  value={portDraft}
+                  onChange={(e) => setPortDraft(e.target.value)}
+                  className={`w-32 ${portError ? 'border-red-500 focus-visible:ring-red-500' : ''}`}
+                  min={1}
+                  max={65535}
+                  disabled={updateSetting.isPending}
+                />
+                <span className="text-xs text-muted-foreground">
+                  {t('settings.pprofPortDesc')}
+                </span>
+              </div>
+              {portError && (
+                <div className="flex items-center gap-3">
+                  <div className="w-20 shrink-0"></div>
+                  <p className="text-xs text-red-500">{portError}</p>
+                </div>
+              )}
             </div>
 
             {/* Password protection toggle */}
@@ -753,7 +789,7 @@ function PprofSection() {
                 {usePasswordDraft && (
                   <p>
                     {t('settings.pprofAuthHint')}: {t('settings.pprofUsername')}: pprof /{' '}
-                    {t('settings.pprofPasswordRequired')}
+                    {t('settings.pprofPassword')}: ***
                   </p>
                 )}
               </div>

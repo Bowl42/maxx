@@ -200,9 +200,12 @@ func (m *PprofManager) startServerLocked() error {
 	// 端口绑定成功,设置运行状态
 	m.isRunning = true
 
+	// 在启动 goroutine 前复制需要的配置值，避免 goroutine 中访问 m.config 造成数据竞争
+	hasPassword := m.config.Password != ""
+
 	go func() {
 		log.Printf("[Pprof] Starting pprof server on %s", addr)
-		if m.config.Password != "" {
+		if hasPassword {
 			log.Printf("[Pprof] Password protection enabled")
 		}
 		log.Printf("[Pprof] Access pprof at http://%s/debug/pprof/", addr)
