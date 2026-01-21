@@ -258,6 +258,8 @@ export interface CursorPaginationParams {
   after?: number;
   /** 按 Provider ID 过滤 */
   providerId?: number;
+  /** 按状态过滤 */
+  status?: string;
 }
 
 /** 游标分页响应 */

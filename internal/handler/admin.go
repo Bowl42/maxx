@@ -703,11 +703,18 @@ func (h *AdminHandler) handleProxyRequests(w http.ResponseWriter, r *http.Reques
 
 			// 构建过滤条件
 			var filter *repository.ProxyRequestFilter
-			if p := r.URL.Query().Get("providerId"); p != "" {
-				if providerID, err := strconv.ParseUint(p, 10, 64); err == nil {
-					filter = &repository.ProxyRequestFilter{
-						ProviderID: &providerID,
+			providerIDStr := r.URL.Query().Get("providerId")
+			statusStr := r.URL.Query().Get("status")
+
+			if providerIDStr != "" || statusStr != "" {
+				filter = &repository.ProxyRequestFilter{}
+				if providerIDStr != "" {
+					if providerID, err := strconv.ParseUint(providerIDStr, 10, 64); err == nil {
+						filter.ProviderID = &providerID
 					}
+				}
+				if statusStr != "" {
+					filter.Status = &statusStr
 				}
 			}
 
@@ -730,15 +737,24 @@ func (h *AdminHandler) handleProxyRequestsCount(w http.ResponseWriter, r *http.R
 		return
 	}
 
-	// 解析 providerId 过滤参数
+	// 解析过滤参数
 	var filter *repository.ProxyRequestFilter
-	if providerIDStr := r.URL.Query().Get("providerId"); providerIDStr != "" {
-		providerID, err := strconv.ParseUint(providerIDStr, 10, 64)
-		if err != nil {
-			writeJSON(w, http.StatusBadRequest, map[string]string{"error": "invalid providerId"})
-			return
+	providerIDStr := r.URL.Query().Get("providerId")
+	statusStr := r.URL.Query().Get("status")
+
+	if providerIDStr != "" || statusStr != "" {
+		filter = &repository.ProxyRequestFilter{}
+		if providerIDStr != "" {
+			providerID, err := strconv.ParseUint(providerIDStr, 10, 64)
+			if err != nil {
+				writeJSON(w, http.StatusBadRequest, map[string]string{"error": "invalid providerId"})
+				return
+			}
+			filter.ProviderID = &providerID
 		}
-		filter = &repository.ProxyRequestFilter{ProviderID: &providerID}
+		if statusStr != "" {
+			filter.Status = &statusStr
+		}
 	}
 
 	count, err := h.svc.GetProxyRequestsCountWithFilter(filter)

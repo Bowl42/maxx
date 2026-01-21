@@ -62,6 +62,7 @@ type SessionRepository interface {
 // ProxyRequestFilter 请求列表过滤条件
 type ProxyRequestFilter struct {
 	ProviderID *uint64 // Provider ID，nil 表示不过滤
+	Status     *string // 状态，nil 表示不过滤
 }
 
 type ProxyRequestRepository interface {

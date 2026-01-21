@@ -276,10 +276,13 @@ export class HttpTransport implements Transport {
     return data ?? { items: [], hasMore: false };
   }
 
-  async getProxyRequestsCount(providerId?: number): Promise<number> {
+  async getProxyRequestsCount(providerId?: number, status?: string): Promise<number> {
     const params: Record<string, string> = {};
     if (providerId !== undefined) {
       params.providerId = String(providerId);
+    }
+    if (status !== undefined) {
+      params.status = status;
     }
     const { data } = await this.client.get<number>('/requests/count', { params });
     return data ?? 0;

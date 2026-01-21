@@ -10,8 +10,7 @@ function formatCost(nanoUSD: number): string {
   if (nanoUSD === 0) return '-';
   // 向下取整到 6 位小数 (microUSD 精度)
   const usd = Math.floor(nanoUSD / 1000) / 1_000_000;
-  const formatted = usd.toFixed(6).replace(/\.?0+$/, '');
-  return `$${formatted}`;
+  return `$${usd.toFixed(6)}`;
 }
 
 function formatTime(timestamp: string): string {
@@ -91,19 +90,19 @@ export function RequestHeader({
         <div className="flex items-center gap-4 shrink-0">
           <div className="text-center px-3">
             <div className="text-[10px] uppercase tracking-wider text-muted-foreground mb-0.5">
-              Duration
+              TTFT
             </div>
-            <div className="text-sm font-mono font-medium text-foreground">
-              {request.duration ? formatDuration(request.duration) : '-'}
+            <div className="text-sm font-mono font-medium text-muted-foreground">
+              {request.ttft && request.ttft > 0 ? formatDuration(request.ttft) : '-'}
             </div>
           </div>
           <div className="w-px h-8 bg-border" />
           <div className="text-center px-3">
             <div className="text-[10px] uppercase tracking-wider text-muted-foreground mb-0.5">
-              TTFT
+              Duration
             </div>
-            <div className="text-sm font-mono font-medium text-muted-foreground">
-              {request.ttft && request.ttft > 0 ? formatDuration(request.ttft) : '-'}
+            <div className="text-sm font-mono font-medium text-foreground">
+              {request.duration ? formatDuration(request.duration) : '-'}
             </div>
           </div>
           <div className="w-px h-8 bg-border" />

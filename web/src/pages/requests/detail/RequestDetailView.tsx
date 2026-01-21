@@ -12,7 +12,7 @@ import {
 import { Code, Database, Info, Zap } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import type { ProxyRequest, ClientType } from '@/lib/transport';
-import { cn } from '@/lib/utils';
+import { cn, formatDuration } from '@/lib/utils';
 import { ClientIcon, getClientName, getClientColor } from '@/components/icons/client-icons';
 import { CopyButton, CopyAsCurlButton, EmptyState } from './components';
 import type { CostBreakdown } from './RequestDetailPanel';
@@ -357,6 +357,14 @@ export function RequestDetailView({
             </CardHeader>
             <CardContent className="pt-4">
               <dl className="space-y-4">
+                <div className="flex justify-between items-center border-b border-border/30 pb-2">
+                  <dt className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                    TTFT
+                  </dt>
+                  <dd className="text-sm text-foreground font-mono font-medium">
+                    {request.ttft && request.ttft > 0 ? formatDuration(request.ttft) : '-'}
+                  </dd>
+                </div>
                 <div className="flex justify-between items-center border-b border-border/30 pb-2">
                   <dt className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
                     Input Tokens

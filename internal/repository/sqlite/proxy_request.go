@@ -82,7 +82,7 @@ func (r *ProxyRequestRepository) List(limit, offset int) ([]*domain.ProxyRequest
 func (r *ProxyRequestRepository) ListCursor(limit int, before, after uint64, filter *repository.ProxyRequestFilter) ([]*domain.ProxyRequest, error) {
 	// 使用 Select 排除大字段
 	query := r.db.gorm.Model(&ProxyRequest{}).
-		Select("id, created_at, updated_at, instance_id, request_id, session_id, client_type, request_model, response_model, start_time, end_time, duration_ms, is_stream, status, status_code, error, proxy_upstream_attempt_count, final_proxy_upstream_attempt_id, route_id, provider_id, project_id, input_token_count, output_token_count, cache_read_count, cache_write_count, cache_5m_write_count, cache_1h_write_count, cost, api_token_id")
+		Select("id, created_at, updated_at, instance_id, request_id, session_id, client_type, request_model, response_model, start_time, end_time, duration_ms, ttft_ms, is_stream, status, status_code, error, proxy_upstream_attempt_count, final_proxy_upstream_attempt_id, route_id, provider_id, project_id, input_token_count, output_token_count, cache_read_count, cache_write_count, cache_5m_write_count, cache_1h_write_count, cost, api_token_id")
 
 	if after > 0 {
 		query = query.Where("id > ?", after)
@@ -94,6 +94,9 @@ func (r *ProxyRequestRepository) ListCursor(limit int, before, after uint64, fil
 	if filter != nil {
 		if filter.ProviderID != nil {
 			query = query.Where("provider_id = ?", *filter.ProviderID)
+		}
+		if filter.Status != nil {
+			query = query.Where("status = ?", *filter.Status)
 		}
 	}
 
@@ -126,7 +129,7 @@ func (r *ProxyRequestRepository) Count() (int64, error) {
 // CountWithFilter 带过滤条件的计数
 func (r *ProxyRequestRepository) CountWithFilter(filter *repository.ProxyRequestFilter) (int64, error) {
 	// 如果没有过滤条件，使用缓存的总数
-	if filter == nil || filter.ProviderID == nil {
+	if filter == nil || (filter.ProviderID == nil && filter.Status == nil) {
 		return atomic.LoadInt64(&r.count), nil
 	}
 
@@ -135,6 +138,9 @@ func (r *ProxyRequestRepository) CountWithFilter(filter *repository.ProxyRequest
 	query := r.db.gorm.Model(&ProxyRequest{})
 	if filter.ProviderID != nil {
 		query = query.Where("provider_id = ?", *filter.ProviderID)
+	}
+	if filter.Status != nil {
+		query = query.Where("status = ?", *filter.Status)
 	}
 	if err := query.Count(&count).Error; err != nil {
 		return 0, err

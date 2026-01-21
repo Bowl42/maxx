@@ -12,7 +12,7 @@ import {
 import { Server, Code, Database, Info, Zap } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import type { ProxyUpstreamAttempt, ProxyRequest, ModelPricing } from '@/lib/transport';
-import { cn } from '@/lib/utils';
+import { cn, formatDuration } from '@/lib/utils';
 import { CopyButton, CopyAsCurlButton, DiffButton, EmptyState } from './components';
 import { RequestDetailView } from './RequestDetailView';
 import { usePricing } from '@/hooks/queries';
@@ -24,8 +24,7 @@ function formatCost(nanoUSD: number): string {
   if (nanoUSD === 0) return '-';
   // 向下取整到 6 位小数 (microUSD 精度)
   const usd = Math.floor(nanoUSD / 1000) / 1_000_000;
-  const formatted = usd.toFixed(6).replace(/\.?0+$/, '');
-  return `$${formatted}`;
+  return `$${usd.toFixed(6)}`;
 }
 
 // Cost breakdown item
@@ -605,6 +604,14 @@ export function RequestDetailPanel({
             </CardHeader>
             <CardContent className="pt-4">
               <dl className="space-y-4">
+                <div className="flex justify-between items-center border-b border-border/30 pb-2">
+                  <dt className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                    TTFT
+                  </dt>
+                  <dd className="text-sm text-foreground font-mono font-medium">
+                    {selectedAttempt.ttft && selectedAttempt.ttft > 0 ? formatDuration(selectedAttempt.ttft) : '-'}
+                  </dd>
+                </div>
                 <div className="flex justify-between items-center border-b border-border/30 pb-2">
                   <dt className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
                     Input Tokens

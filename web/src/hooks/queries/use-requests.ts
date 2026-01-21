@@ -31,10 +31,10 @@ export function useProxyRequests(params?: CursorPaginationParams) {
 }
 
 // 获取 ProxyRequests 总数
-export function useProxyRequestsCount(providerId?: number) {
+export function useProxyRequestsCount(providerId?: number, status?: string) {
   return useQuery({
-    queryKey: ['requestsCount', providerId] as const,
-    queryFn: () => getTransport().getProxyRequestsCount(providerId),
+    queryKey: ['requestsCount', providerId, status] as const,
+    queryFn: () => getTransport().getProxyRequestsCount(providerId, status),
   });
 }
 
@@ -84,6 +84,18 @@ export function useProxyRequestUpdates() {
           // 从 queryKey 中提取过滤参数: ['requests', 'list', params]
           const params = queryKey[2] as CursorPaginationParams | undefined;
           const filterProviderId = params?.providerId;
+          const filterStatus = params?.status;
+
+          // 检查是否匹配过滤条件的辅助函数
+          const matchesFilter = (request: ProxyRequest) => {
+            if (filterProviderId !== undefined && request.providerID !== filterProviderId) {
+              return false;
+            }
+            if (filterStatus !== undefined && request.status !== filterStatus) {
+              return false;
+            }
+            return true;
+          };
 
           queryClient.setQueryData<CursorPaginationResult<ProxyRequest>>(queryKey, (old) => {
             if (!old || !old.items) return old;
@@ -91,7 +103,7 @@ export function useProxyRequestUpdates() {
             const index = old.items.findIndex((r) => r.id === updatedRequest.id);
             if (index >= 0) {
               // 已存在的请求：检查是否仍然匹配过滤条件
-              if (filterProviderId !== undefined && updatedRequest.providerID !== filterProviderId) {
+              if (!matchesFilter(updatedRequest)) {
                 // 不再匹配过滤条件，从列表中移除
                 const newItems = old.items.filter((r) => r.id !== updatedRequest.id);
                 return { ...old, items: newItems };
@@ -103,7 +115,7 @@ export function useProxyRequestUpdates() {
             }
 
             // 新请求：检查是否匹配过滤条件
-            if (filterProviderId !== undefined && updatedRequest.providerID !== filterProviderId) {
+            if (!matchesFilter(updatedRequest)) {
               // 不匹配过滤条件，不添加
               return old;
             }
@@ -127,10 +139,14 @@ export function useProxyRequestUpdates() {
           // 遍历所有 requestsCount 缓存
           const countQueries = queryCache.findAll({ queryKey: ['requestsCount'] });
           for (const query of countQueries) {
-            // queryKey: ['requestsCount', providerId]
+            // queryKey: ['requestsCount', providerId, status]
             const filterProviderId = query.queryKey[1] as number | undefined;
+            const filterStatus = query.queryKey[2] as string | undefined;
             // 如果有过滤条件且不匹配，不更新计数
             if (filterProviderId !== undefined && updatedRequest.providerID !== filterProviderId) {
+              continue;
+            }
+            if (filterStatus !== undefined && updatedRequest.status !== filterStatus) {
               continue;
             }
             queryClient.setQueryData<number>(query.queryKey, (old) => (old ?? 0) + 1);

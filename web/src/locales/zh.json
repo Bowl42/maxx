@@ -110,6 +110,7 @@
     "noRequestsHint": "请求将自动显示在这里",
     "refresh": "刷新",
     "allProviders": "全部供应商",
+    "allStatuses": "全部状态",
     "time": "时间",
     "client": "客户端",
     "model": "模型",

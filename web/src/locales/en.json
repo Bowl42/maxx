@@ -110,6 +110,7 @@
     "noRequestsHint": "Requests will appear here automatically",
     "refresh": "Refresh",
     "allProviders": "All Providers",
+    "allStatuses": "All Statuses",
     "time": "Time",
     "client": "Client",
     "model": "Model",
