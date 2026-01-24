@@ -28,7 +28,8 @@ type staticFileCache struct {
 }
 
 // NewStaticHandler creates a handler for serving static files from web/dist
-// If StaticFS is set, it uses the embedded filesystem; otherwise, reads from disk
+// NewStaticHandler creates an HTTP handler for serving static assets.
+// If the package-level StaticFS is non-nil it serves from the embedded filesystem; otherwise it serves files from the local disk.
 func NewStaticHandler() http.Handler {
 	if StaticFS != nil {
 		return newEmbeddedStaticHandler(StaticFS)
@@ -36,7 +37,11 @@ func NewStaticHandler() http.Handler {
 	return newFileSystemStaticHandler()
 }
 
-// newFileSystemStaticHandler serves static files from disk (web/dist)
+// newFileSystemStaticHandler returns an http.Handler that serves static files from the local web/dist directory.
+// It lazily caches file contents and metadata for efficient subsequent requests.
+// Requests for root or unknown file paths fall back to index.html to support single-page app routing.
+// If index.html is not present, the handler responds with a short plain-text message indicating the frontend is not built.
+// Served responses include appropriate MIME types, caching headers, ETag handling, and pre-compressed gzip content when available.
 func newFileSystemStaticHandler() http.Handler {
 	// Cache for disk-based serving (with lazy loading)
 	var cache sync.Map
@@ -98,7 +103,11 @@ func newFileSystemStaticHandler() http.Handler {
 	})
 }
 
-// newEmbeddedStaticHandler serves static files from embedded filesystem
+// newEmbeddedStaticHandler returns an http.Handler that serves static files from the provided embedded filesystem.
+// It preloads all regular files from fs.FS into an in-memory cache of staticFileCache entries, normalizes request
+// paths (root -> index.html, strips a leading slash), serves cached entries via serveFromCache, and falls back to
+// index.html for SPA routing when a requested path is missing; if index.html is not available the handler responds
+// with 404.
 func newEmbeddedStaticHandler(fsys fs.FS) http.Handler {
 	// Pre-load all files into cache at startup
 	cache := make(map[string]*staticFileCache)
@@ -145,7 +154,12 @@ func newEmbeddedStaticHandler(fsys fs.FS) http.Handler {
 	})
 }
 
-// buildCacheEntry creates a cache entry with pre-computed metadata and gzip
+// buildCacheEntry creates a staticFileCache for the given URL path and file content.
+// It sets the raw content, derives the MIME type, computes an MD5-based ETag, and
+// marks whether the filename appears to contain a content hash. If the MIME type
+// is compressible and the content is larger than 1024 bytes, it attempts gzip
+// compression and stores the gzipped bytes only when they are smaller than the
+// original content.
 func buildCacheEntry(urlPath string, content []byte) *staticFileCache {
 	cached := &staticFileCache{
 		content:     content,
@@ -171,7 +185,17 @@ func buildCacheEntry(urlPath string, content []byte) *staticFileCache {
 	return cached
 }
 
-// serveFromCache serves a file from cache with proper headers
+// serveFromCache serves a cached static file to the HTTP client, setting appropriate
+// caching headers, ETag, content type, and content encoding while supporting
+// conditional (If-None-Match → 304) and pre-compressed (gzip) responses.
+//
+// It sets Cache-Control based on whether the file name contains a content hash
+// (long-term immutable), forces revalidation for HTML, or applies a short cache
+// for other assets. It writes the ETag header and returns 304 when the request's
+// If-None-Match matches the cached ETag. When a gzipped payload exists and the
+// client accepts gzip, it serves the gzipped bytes with Content-Encoding and
+// Vary headers; otherwise it serves the uncompressed content with Content-Type
+// and Content-Length.
 func serveFromCache(w http.ResponseWriter, r *http.Request, cached *staticFileCache) {
 	// Set cache headers based on whether file has content hash
 	if cached.hasHash {
@@ -213,7 +237,10 @@ func serveFromCache(w http.ResponseWriter, r *http.Request, cached *staticFileCa
 	w.Write(cached.content)
 }
 
-// hasContentHash checks if filename contains a content hash (Vite pattern: name-HASH.ext)
+// hasContentHash reports whether filePath uses a Vite-style content hash.
+// It returns true for paths under the "assets/" directory or when the base
+// filename ends with a hyphen followed by a 6–12 character alphanumeric or
+// underscore token (e.g., "name-abcdef12.ext").
 func hasContentHash(filePath string) bool {
 	// Check if in assets directory (Vite puts hashed files here)
 	if strings.HasPrefix(filePath, "assets/") {
@@ -242,7 +269,8 @@ func hasContentHash(filePath string) bool {
 	return false
 }
 
-// isCompressible checks if content type benefits from gzip compression
+// isCompressible reports whether the given MIME content type is eligible for gzip compression.
+// It returns true for common text-like and SVG types (for example: text/html, text/css, application/json, image/svg+xml).
 func isCompressible(contentType string) bool {
 	compressible := []string{
 		"text/html",
@@ -263,6 +291,8 @@ func isCompressible(contentType string) bool {
 	return false
 }
 
+// getMimeType maps a file path's extension to the corresponding MIME type string.
+// If the extension is not recognized, it returns "application/octet-stream"; common text-based types include a UTF-8 charset where applicable.
 func getMimeType(filePath string) string {
 	ext := path.Ext(filePath)
 	switch ext {
