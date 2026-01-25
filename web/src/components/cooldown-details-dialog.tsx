@@ -132,7 +132,7 @@ export function CooldownDetailsDialog({
     });
   };
 
-  const untilDateStr = formatUntilTime(cooldown.untilTime);
+  const untilDateStr = formatUntilTime(cooldown.until);
   const [datePart, timePart] = untilDateStr.split(' ');
 
   return (

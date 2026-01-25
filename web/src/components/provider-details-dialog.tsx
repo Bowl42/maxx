@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { TFunction } from 'i18next';
 import {
@@ -20,7 +20,12 @@ import {
   CheckCircle2,
   XCircle,
   Trash2,
+  Hand,
 } from 'lucide-react';
+import dayjs from 'dayjs';
+import customParseFormat from 'dayjs/plugin/customParseFormat';
+
+dayjs.extend(customParseFormat);
 import type { Cooldown, ProviderStats, ClientType } from '@/lib/transport/types';
 import type { ProviderConfigItem } from '@/pages/client-routes/types';
 import { useCooldownsContext } from '@/contexts/cooldowns-context';
@@ -96,6 +101,13 @@ const getReasonInfo = (t: TFunction) => ({
     color: 'text-muted-foreground',
     bgColor: 'bg-muted/50 border-border',
   },
+  manual: {
+    label: t('provider.reasons.manual'),
+    description: t('provider.reasons.manualDesc', 'Provider 已被管理员手动冷冻'),
+    icon: Hand,
+    color: 'text-indigo-500 dark:text-indigo-400',
+    bgColor: 'bg-indigo-500/10 dark:bg-indigo-500/15 border-indigo-500/30 dark:border-indigo-500/25',
+  },
 });
 
 // 格式化 Token 数量
@@ -130,6 +142,73 @@ function calcCacheRate(stats: ProviderStats): number {
   return (cacheTotal / total) * 100;
 }
 
+// 解析用户输入的时间字符串
+function parseTimeInput(input: string): dayjs.Dayjs | null {
+  const trimmed = input.trim().toLowerCase();
+  if (!trimmed) return null;
+
+  const now = dayjs();
+
+  // 1. 相对时间格式: "5m", "30min", "2h", "1hour", "3d", "1day"
+  const relativeMatch = trimmed.match(/^(\d+)\s*(m|min|mins|minute|minutes|h|hr|hrs|hour|hours|d|day|days)$/);
+  if (relativeMatch) {
+    const value = parseInt(relativeMatch[1], 10);
+    const unit = relativeMatch[2];
+    if (unit.startsWith('m')) {
+      return now.add(value, 'minute');
+    } else if (unit.startsWith('h')) {
+      return now.add(value, 'hour');
+    } else if (unit.startsWith('d')) {
+      return now.add(value, 'day');
+    }
+  }
+
+  // 2. 纯时间格式: "14:30", "2:30pm", "14:30:00"
+  const timeOnlyMatch = trimmed.match(/^(\d{1,2}):(\d{2})(?::(\d{2}))?(?:\s*(am|pm))?$/);
+  if (timeOnlyMatch) {
+    let hours = parseInt(timeOnlyMatch[1], 10);
+    const minutes = parseInt(timeOnlyMatch[2], 10);
+    const seconds = timeOnlyMatch[3] ? parseInt(timeOnlyMatch[3], 10) : 0;
+    const ampm = timeOnlyMatch[4];
+
+    if (ampm === 'pm' && hours < 12) hours += 12;
+    if (ampm === 'am' && hours === 12) hours = 0;
+
+    let result = now.hour(hours).minute(minutes).second(seconds).millisecond(0);
+    // 如果时间已过，设为明天
+    if (result.isBefore(now) || result.isSame(now)) {
+      result = result.add(1, 'day');
+    }
+    return result;
+  }
+
+  // 3. 常见日期时间格式
+  const formats = [
+    'YYYY-MM-DD HH:mm:ss',
+    'YYYY-MM-DD HH:mm',
+    'YYYY/MM/DD HH:mm:ss',
+    'YYYY/MM/DD HH:mm',
+    'MM-DD HH:mm',
+    'MM/DD HH:mm',
+    'DD HH:mm',
+  ];
+
+  for (const fmt of formats) {
+    const parsed = dayjs(trimmed, fmt, true);
+    if (parsed.isValid() && parsed.isAfter(now)) {
+      return parsed;
+    }
+  }
+
+  // 4. 尝试 dayjs 自动解析（ISO 格式等）
+  const autoParsed = dayjs(trimmed);
+  if (autoParsed.isValid() && autoParsed.isAfter(now)) {
+    return autoParsed;
+  }
+
+  return null;
+}
+
 export function ProviderDetailsDialog({
   item,
   clientType,
@@ -146,7 +225,12 @@ export function ProviderDetailsDialog({
 }: ProviderDetailsDialogProps) {
   const { t, i18n } = useTranslation();
   const REASON_INFO = getReasonInfo(t);
-  const { formatRemaining } = useCooldownsContext();
+  const { formatRemaining, setCooldown, isSettingCooldown } = useCooldownsContext();
+  const [showCustomTime, setShowCustomTime] = useState(false);
+  const [customTimeInput, setCustomTimeInput] = useState('');
+
+  // 实时解析输入的时间
+  const parsedTime = useMemo(() => parseTimeInput(customTimeInput), [customTimeInput]);
 
   // 计算初始倒计时值
   const getInitialCountdown = useCallback(() => {
@@ -349,6 +433,101 @@ export function ProviderDetailsDialog({
                   </Button>
                 )}
 
+                {/* Manual Freeze Button (if not in cooldown) */}
+                {!isInCooldown && !showCustomTime && (
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-2 text-xs font-medium text-indigo-600 dark:text-indigo-400">
+                      <Snowflake size={12} />
+                      {t('provider.manualFreeze')}
+                    </div>
+                    <div className="flex flex-wrap gap-1.5">
+                      {[
+                        { label: '5m', minutes: 5 },
+                        { label: '15m', minutes: 15 },
+                        { label: '30m', minutes: 30 },
+                        { label: '1h', minutes: 60 },
+                        { label: '2h', minutes: 120 },
+                        { label: '6h', minutes: 360 },
+                      ].map(({ label, minutes }) => (
+                        <Button
+                          key={label}
+                          disabled={isSettingCooldown || isToggling}
+                          onClick={() => {
+                            const until = new Date(Date.now() + minutes * 60 * 1000);
+                            console.log('Setting cooldown:', provider.id, until.toISOString(), clientType);
+                            setCooldown(provider.id, until.toISOString(), clientType);
+                          }}
+                          className="px-3 py-1.5 text-xs rounded-lg border border-indigo-500/30 dark:border-indigo-500/25 bg-indigo-500/5 dark:bg-indigo-500/10 hover:bg-indigo-500/15 dark:hover:bg-indigo-500/20 text-indigo-600 dark:text-indigo-400 disabled:opacity-50"
+                        >
+                          {label}
+                        </Button>
+                      ))}
+                      <Button
+                        disabled={isSettingCooldown || isToggling}
+                        onClick={() => setShowCustomTime(true)}
+                        className="px-3 py-1.5 text-xs rounded-lg border border-dashed border-indigo-500/30 dark:border-indigo-500/25 bg-transparent hover:bg-indigo-500/5 dark:hover:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 disabled:opacity-50"
+                      >
+                        {t('provider.customTime')}
+                      </Button>
+                    </div>
+                  </div>
+                )}
+
+                {/* Custom Time Input Dialog */}
+                {showCustomTime && (
+                  <div className="rounded-xl border border-indigo-500/30 dark:border-indigo-500/25 bg-indigo-500/5 dark:bg-indigo-500/10 p-3 space-y-2">
+                    <div className="text-xs font-medium text-indigo-600 dark:text-indigo-400">
+                      {t('provider.freezeUntil')}
+                    </div>
+                    <input
+                      type="text"
+                      value={customTimeInput}
+                      onChange={(e) => setCustomTimeInput(e.target.value)}
+                      placeholder="e.g. 30m, 2h, 14:30, 12:00:30, 2025-01-25 18:00"
+                      className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm font-mono"
+                      autoFocus
+                    />
+                    {/* 实时解析预览 */}
+                    <div className="text-xs text-muted-foreground">
+                      {customTimeInput ? (
+                        parsedTime ? (
+                          <span className="text-emerald-600 dark:text-emerald-400">
+                            → {parsedTime.format('YYYY-MM-DD HH:mm:ss')}
+                          </span>
+                        ) : (
+                          <span className="text-rose-500">{t('provider.invalidTimeFormat')}</span>
+                        )
+                      ) : (
+                        <span>{t('provider.timeFormatHint')}</span>
+                      )}
+                    </div>
+                    <div className="flex gap-2">
+                      <Button
+                        onClick={() => {
+                          setShowCustomTime(false);
+                          setCustomTimeInput('');
+                        }}
+                        className="flex-1 rounded-lg border border-border bg-muted/50 px-3 py-1.5 text-xs"
+                      >
+                        {t('common.cancel')}
+                      </Button>
+                      <Button
+                        onClick={() => {
+                          if (parsedTime) {
+                            setCooldown(provider.id, parsedTime.toISOString(), clientType);
+                            setShowCustomTime(false);
+                            setCustomTimeInput('');
+                          }
+                        }}
+                        disabled={!parsedTime}
+                        className="flex-1 rounded-lg bg-indigo-500 text-white px-3 py-1.5 text-xs hover:bg-indigo-600 disabled:opacity-50"
+                      >
+                        {t('provider.freezeConfirm')}
+                      </Button>
+                    </div>
+                  </div>
+                )}
+
                 {/* Delete Button */}
                 {onDelete && (
                   <Button
@@ -422,7 +601,7 @@ export function ProviderDetailsDialog({
                         {liveCountdown}
                       </div>
                       {(() => {
-                        const untilDateStr = formatUntilTime(cooldown.untilTime);
+                        const untilDateStr = formatUntilTime(cooldown.until);
                         return (
                           <div className="relative mt-2 text-[10px] text-teal-600/70 dark:text-teal-400/70 font-mono flex items-center gap-2">
                             <Clock size={10} />

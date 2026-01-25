@@ -40,11 +40,9 @@ export function CooldownTimer({ cooldown, className }: CooldownTimerProps) {
 }
 
 function calculateRemaining(cooldown: Cooldown): number {
-  const untilTime =
-    cooldown.untilTime || ((cooldown as unknown as Record<string, unknown>).until as string);
-  if (!untilTime) return 0;
+  if (!cooldown.until) return 0;
 
-  const until = new Date(untilTime).getTime();
+  const until = new Date(cooldown.until).getTime();
   const now = Date.now();
   return Math.max(0, Math.floor((until - now) / 1000));
 }

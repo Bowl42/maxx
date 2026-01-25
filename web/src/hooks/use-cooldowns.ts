@@ -49,7 +49,7 @@ export function useCooldowns() {
     const timeouts: number[] = [];
 
     cooldowns.forEach((cooldown) => {
-      const until = new Date(cooldown.untilTime).getTime();
+      const until = new Date(cooldown.until).getTime();
       const now = Date.now();
       const delay = until - now;
 
@@ -86,12 +86,10 @@ export function useCooldowns() {
       }
 
       // Check if cooldown is still active (not expired)
-      const untilTime =
-        cd.untilTime || ((cd as unknown as Record<string, unknown>).until as string);
-      if (!untilTime) {
+      if (!cd.until) {
         return false;
       }
-      const until = new Date(untilTime).getTime();
+      const until = new Date(cd.until).getTime();
       const now = Date.now();
       return until > now;
     });
@@ -105,12 +103,9 @@ export function useCooldowns() {
 
   // Helper to get remaining time as seconds
   const getRemainingSeconds = useCallback((cooldown: Cooldown) => {
-    // Handle both 'untilTime' and 'until' field names for backward compatibility
-    const untilTime =
-      cooldown.untilTime || ((cooldown as unknown as Record<string, unknown>).until as string);
-    if (!untilTime) return 0;
+    if (!cooldown.until) return 0;
 
-    const until = new Date(untilTime);
+    const until = new Date(cooldown.until);
     const now = new Date();
     const diff = until.getTime() - now.getTime();
     return Math.max(0, Math.floor(diff / 1000));

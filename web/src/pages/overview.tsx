@@ -253,7 +253,7 @@ export function OverviewPage() {
 
   // 活跃冷却中的 Provider
   const activeCooldowns = useMemo(() => {
-    return cooldowns.filter((cd) => new Date(cd.untilTime) > new Date());
+    return cooldowns.filter((cd) => new Date(cd.until) > new Date());
   }, [cooldowns]);
 
   // 活跃 Sessions

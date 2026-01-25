@@ -152,6 +152,7 @@ export interface Transport {
   // ===== Cooldown API =====
   getCooldowns(): Promise<Cooldown[]>;
   clearCooldown(providerId: number): Promise<void>;
+  setCooldown(providerId: number, untilTime: string, clientType?: string): Promise<void>;
 
   // ===== Auth API =====
   getAuthStatus(): Promise<AuthStatus>;
