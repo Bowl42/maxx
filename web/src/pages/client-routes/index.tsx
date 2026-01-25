@@ -134,7 +134,7 @@ export function ClientRoutesPage() {
           return (
             <TabsContent key={project.id} value={String(project.id)} className="flex-1 min-h-0 overflow-hidden m-0 flex flex-col">
               {/* Custom Routes Toggle Bar */}
-              <div className="h-12 px-6 border-b border-border bg-card flex items-center justify-between">
+              <div className="h-12 px-6 border-b border-border bg-card flex items-center justify-between shrink-0">
                 <div className="flex items-center gap-3">
                   <p className="text-sm font-medium">Custom Routes</p>
                   {isCustomRoutesEnabled && (
