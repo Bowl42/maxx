@@ -28,6 +28,7 @@ export function ClientRoutesPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedProjectId, setSelectedProjectId] = useState<string>('0'); // '0' = Global
   const { data: projects } = useProjects();
+  const sortedProjects = projects?.slice().sort((a, b) => a.id - b.id);
   const updateProject = useUpdateProject();
 
   const handleToggleCustomRoutes = (projectId: number, enabled: boolean) => {
@@ -82,31 +83,43 @@ export function ClientRoutesPage() {
 
       {/* Tabs for Global / Projects */}
       <Tabs value={selectedProjectId} onValueChange={setSelectedProjectId} className="flex-1 flex flex-col">
-        <div className="px-6 py-4 border-b border-border bg-card">
-          <TabsList>
-            {/* Global Tab */}
-            <TabsTrigger value="0" className="flex items-center gap-2">
-              <Globe className="h-4 w-4" />
-              <span>Global</span>
-            </TabsTrigger>
+        {/* Only show tab bar when there are projects */}
+        {sortedProjects && sortedProjects.length > 0 && (
+          <div className="px-6 py-3 border-b border-border bg-card">
+            <div className="mx-auto max-w-[1400px] flex items-center gap-6">
+              {/* Global Group */}
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Global</span>
+                <TabsList className="h-8">
+                  <TabsTrigger value="0" className="h-7 px-3 text-xs flex items-center gap-1.5">
+                    <Globe className="h-3.5 w-3.5" />
+                    <span>Default</span>
+                  </TabsTrigger>
+                </TabsList>
+              </div>
 
-            {/* Separator between Global and Projects */}
-            {projects && projects.length > 0 && (
-              <div className="h-6 w-px bg-border mx-2" />
-            )}
-
-            {/* Project Tabs - show all projects */}
-            {projects?.map((project) => (
-              <TabsTrigger key={project.id} value={String(project.id)} className="flex items-center gap-2">
-                <FolderKanban className="h-4 w-4" />
-                <span>{project.name}</span>
-              </TabsTrigger>
-            ))}
-          </TabsList>
-        </div>
+              {/* Projects Group */}
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Projects</span>
+                <TabsList className="h-8">
+                  {sortedProjects.map((project) => (
+                    <TabsTrigger
+                      key={project.id}
+                      value={String(project.id)}
+                      className="h-7 px-3 text-xs flex items-center gap-1.5"
+                    >
+                      <FolderKanban className="h-3.5 w-3.5" />
+                      <span>{project.name}</span>
+                    </TabsTrigger>
+                  ))}
+                </TabsList>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Global Tab Content */}
-        <TabsContent value="0" className="flex-1 min-w-0 overflow-hidden m-0">
+        <TabsContent value="0" className="flex-1 min-h-0 overflow-hidden m-0">
           <ClientTypeRoutesContent
             clientType={activeClientType}
             projectID={0}
@@ -115,11 +128,11 @@ export function ClientRoutesPage() {
         </TabsContent>
 
         {/* Project Tab Contents */}
-        {projects?.map((project) => {
+        {sortedProjects?.map((project) => {
           const isCustomRoutesEnabled = (project.enabledCustomRoutes ?? []).includes(activeClientType);
 
           return (
-            <TabsContent key={project.id} value={String(project.id)} className="flex-1 min-w-0 overflow-hidden m-0 flex flex-col">
+            <TabsContent key={project.id} value={String(project.id)} className="flex-1 min-h-0 overflow-hidden m-0 flex flex-col">
               {/* Custom Routes Toggle Bar */}
               <div className="h-12 px-6 border-b border-border bg-card flex items-center justify-between">
                 <div className="flex items-center gap-3">
@@ -144,7 +157,7 @@ export function ClientRoutesPage() {
 
               {/* Content Area */}
               {isCustomRoutesEnabled ? (
-                <div className="flex-1 min-w-0 overflow-hidden">
+                <div className="flex-1 min-h-0 overflow-hidden">
                   <ClientTypeRoutesContent
                     clientType={activeClientType}
                     projectID={project.id}
