@@ -144,11 +144,32 @@ Then use `claude_maxx` instead of `claude`.
 
 </details>
 
+<details>
+<summary>🔐 Token Authentication</summary>
+
+**When Token Authentication is Enabled:**
+- Set `ANTHROPIC_AUTH_TOKEN` to a token created in the 'API Tokens' page (format: `maxx_xxx`)
+- Claude Code will automatically add the `x-api-key` header to requests
+- maxx will validate the token before processing requests
+
+**When Token Authentication is Disabled:**
+- You can set `ANTHROPIC_AUTH_TOKEN` to any value (e.g., `"dummy"`) or leave it empty
+- maxx will not validate the token
+- Suitable for internal networks or testing scenarios
+- ⚠️ **Warning:** Disabling token authentication reduces security
+
+</details>
+
 ### Codex CLI
+
+**config.toml**
 
 Add to `~/.codex/config.toml`:
 
 ```toml
+# Optional: Set as default provider
+model_provider = "maxx"
+
 [model_providers.maxx]
 name = "maxx"
 base_url = "http://localhost:9880"
@@ -158,7 +179,43 @@ stream_max_retries = 10
 stream_idle_timeout_ms = 300000
 ```
 
-Then use `--provider maxx` when running Codex CLI.
+**auth.json**
+
+Create or edit `~/.codex/auth.json`:
+
+```json
+{
+  "maxx": {
+    "api_key": "maxx_your_token_here"
+  }
+}
+```
+
+**Usage:**
+
+```bash
+# Use --provider flag to specify
+codex --provider maxx
+
+# Or use directly if set as default provider
+codex
+```
+
+<details>
+<summary>🔐 Token Authentication</summary>
+
+**When Token Authentication is Enabled:**
+- Configure `api_key` in `auth.json` with a token created in the 'API Tokens' page (format: `maxx_xxx`)
+- Codex CLI will automatically add the `Authorization: Bearer <token>` header to requests
+- maxx will validate the token before processing requests
+
+**When Token Authentication is Disabled:**
+- You can set `api_key` in `auth.json` to any value (e.g., `"dummy"`)
+- maxx will not validate the token
+- Suitable for internal networks or testing scenarios
+- ⚠️ **Warning:** Disabling token authentication reduces security
+
+</details>
 
 ## API Endpoints
 

@@ -10,6 +10,7 @@ import {
   Zap,
   BarChart3,
   DollarSign,
+  BookOpen,
 } from 'lucide-react';
 import type { SidebarConfig } from '@/types/sidebar';
 import { RequestsNavItem } from './requests-nav-item';
@@ -31,6 +32,13 @@ export const sidebarConfig: SidebarConfig = {
           icon: LayoutDashboard,
           labelKey: 'nav.dashboard',
           activeMatch: 'exact',
+        },
+        {
+          type: 'standard',
+          key: 'documentation',
+          to: '/documentation',
+          icon: BookOpen,
+          labelKey: 'nav.documentation',
         },
         {
           type: 'standard',

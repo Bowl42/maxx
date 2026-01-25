@@ -144,11 +144,32 @@ claude_maxx() {
 
 </details>
 
+<details>
+<summary>🔐 Token 认证说明</summary>
+
+**开启 Token 认证时：**
+- 将 `ANTHROPIC_AUTH_TOKEN` 设置为在「API 令牌」页面创建的 Token（格式：`maxx_xxx`）
+- Claude Code 会自动在请求头中添加 `x-api-key`
+- maxx 会在处理请求前验证 Token
+
+**关闭 Token 认证时：**
+- 可以将 `ANTHROPIC_AUTH_TOKEN` 设置为任意值（如 `"dummy"`）或留空
+- maxx 不会验证 Token
+- 适用于内网环境或测试场景
+- ⚠️ **警告：** 关闭 Token 认证会降低安全性
+
+</details>
+
 ### Codex CLI
+
+**config.toml**
 
 在 `~/.codex/config.toml` 中添加：
 
 ```toml
+# 可选：设置为默认 provider
+model_provider = "maxx"
+
 [model_providers.maxx]
 name = "maxx"
 base_url = "http://localhost:9880"
@@ -158,7 +179,43 @@ stream_max_retries = 10
 stream_idle_timeout_ms = 300000
 ```
 
-然后在运行 Codex CLI 时使用 `--provider maxx` 参数。
+**auth.json**
+
+创建或编辑 `~/.codex/auth.json`：
+
+```json
+{
+  "maxx": {
+    "api_key": "maxx_your_token_here"
+  }
+}
+```
+
+**使用方法：**
+
+```bash
+# 使用 --provider 参数指定
+codex --provider maxx
+
+# 或者设置为默认 provider 后直接使用
+codex
+```
+
+<details>
+<summary>🔐 Token 认证说明</summary>
+
+**开启 Token 认证时：**
+- 在 `auth.json` 中配置 `api_key` 为在「API 令牌」页面创建的 Token（格式：`maxx_xxx`）
+- Codex CLI 会自动在请求头中添加 `Authorization: Bearer <token>`
+- maxx 会在处理请求前验证 Token
+
+**关闭 Token 认证时：**
+- 可以在 `auth.json` 中将 `api_key` 设置为任意值（如 `"dummy"`）
+- maxx 不会验证 Token
+- 适用于内网环境或测试场景
+- ⚠️ **警告：** 关闭 Token 认证会降低安全性
+
+</details>
 
 ## API 端点
 
