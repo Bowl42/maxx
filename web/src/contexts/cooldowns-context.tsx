@@ -17,6 +17,8 @@ interface CooldownsContextValue {
   formatRemaining: (cooldown: Cooldown) => string;
   clearCooldown: (providerId: number) => void;
   isClearingCooldown: boolean;
+  setCooldown: (providerId: number, untilTime: string, clientType?: string) => void;
+  isSettingCooldown: boolean;
 }
 
 const CooldownsContext = createContext<CooldownsContextValue | null>(null);
@@ -59,6 +61,25 @@ export function CooldownsProvider({ children }: CooldownsProviderProps) {
     },
   });
 
+  // Mutation for setting cooldown
+  const setCooldownMutation = useMutation({
+    mutationFn: async ({ providerId, untilTime, clientType }: {
+      providerId: number;
+      untilTime: string;
+      clientType?: string;
+    }) => {
+      console.log('Mutation executing:', { providerId, untilTime, clientType });
+      return getTransport().setCooldown(providerId, untilTime, clientType);
+    },
+    onSuccess: () => {
+      console.log('Cooldown set successfully');
+      queryClient.invalidateQueries({ queryKey: ['cooldowns'] });
+    },
+    onError: (error) => {
+      console.error('Failed to set cooldown:', error);
+    },
+  });
+
   // Setup timeouts for each cooldown to force re-render when they expire
   useEffect(() => {
     if (cooldowns.length === 0) {
@@ -68,7 +89,7 @@ export function CooldownsProvider({ children }: CooldownsProviderProps) {
     const timeouts: number[] = [];
 
     cooldowns.forEach((cooldown) => {
-      const until = new Date(cooldown.untilTime).getTime();
+      const until = new Date(cooldown.until).getTime();
       const now = Date.now();
       const delay = until - now;
 
@@ -97,12 +118,10 @@ export function CooldownsProvider({ children }: CooldownsProviderProps) {
         return false;
       }
 
-      const untilTime =
-        cd.untilTime || ((cd as unknown as Record<string, unknown>).until as string);
-      if (!untilTime) {
+      if (!cd.until) {
         return false;
       }
-      const until = new Date(untilTime).getTime();
+      const until = new Date(cd.until).getTime();
       const now = Date.now();
       return until > now;
     });
@@ -114,11 +133,9 @@ export function CooldownsProvider({ children }: CooldownsProviderProps) {
   }, [getCooldownForProvider]);
 
   const getRemainingSeconds = useCallback((cooldown: Cooldown) => {
-    const untilTime =
-      cooldown.untilTime || ((cooldown as unknown as Record<string, unknown>).until as string);
-    if (!untilTime) return 0;
+    if (!cooldown.until) return 0;
 
-    const until = new Date(untilTime);
+    const until = new Date(cooldown.until);
     const now = new Date();
     const diff = until.getTime() - now.getTime();
     return Math.max(0, Math.floor(diff / 1000));
@@ -146,6 +163,10 @@ export function CooldownsProvider({ children }: CooldownsProviderProps) {
     clearCooldownMutation.mutate(providerId);
   }, [clearCooldownMutation]);
 
+  const setCooldown = useCallback((providerId: number, untilTime: string, clientType?: string) => {
+    setCooldownMutation.mutate({ providerId, untilTime, clientType });
+  }, [setCooldownMutation]);
+
   return (
     <CooldownsContext.Provider
       value={{
@@ -157,6 +178,8 @@ export function CooldownsProvider({ children }: CooldownsProviderProps) {
         formatRemaining,
         clearCooldown,
         isClearingCooldown: clearCooldownMutation.isPending,
+        setCooldown,
+        isSettingCooldown: setCooldownMutation.isPending,
       }}
     >
       {children}

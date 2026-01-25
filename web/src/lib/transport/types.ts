@@ -490,7 +490,7 @@ export interface Cooldown {
   updatedAt: string;
   providerID: number;
   clientType: string; // 'all' for global cooldown, or specific client type
-  untilTime: string; // ISO 8601 timestamp (Go time.Time)
+  until: string; // ISO 8601 timestamp (Go time.Time)
   reason: CooldownReason;
 }
 

@@ -479,6 +479,10 @@ export class HttpTransport implements Transport {
     await this.client.delete(`/cooldowns/${providerId}`);
   }
 
+  async setCooldown(providerId: number, untilTime: string, clientType?: string): Promise<void> {
+    await this.client.put(`/cooldowns/${providerId}`, { untilTime, clientType });
+  }
+
   // ===== Auth API =====
 
   async getAuthStatus(): Promise<AuthStatus> {

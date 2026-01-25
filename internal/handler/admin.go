@@ -2,6 +2,7 @@ package handler
 
 import (
 	"encoding/json"
+	"log"
 	"net/http"
 	"strconv"
 	"strings"
@@ -936,6 +937,7 @@ func (h *AdminHandler) handleLogs(w http.ResponseWriter, r *http.Request) {
 
 // Cooldowns handler
 // GET /admin/cooldowns - list all active cooldowns
+// PUT /admin/cooldowns/{id} - set cooldown for a provider until a specific time
 // DELETE /admin/cooldowns/{id} - clear cooldown for a provider
 func (h *AdminHandler) handleCooldowns(w http.ResponseWriter, r *http.Request, providerID uint64) {
 	cm := cooldown.Default()
@@ -962,6 +964,32 @@ func (h *AdminHandler) handleCooldowns(w http.ResponseWriter, r *http.Request, p
 		}
 
 		writeJSON(w, http.StatusOK, result)
+
+	case http.MethodPut:
+		if providerID == 0 {
+			writeJSON(w, http.StatusBadRequest, map[string]string{"error": "provider id required"})
+			return
+		}
+		var body struct {
+			UntilTime  string `json:"untilTime"`  // RFC3339 format
+			ClientType string `json:"clientType"` // Optional, defaults to empty (global)
+		}
+		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+			log.Printf("[Cooldown] PUT /cooldowns/%d: failed to decode body: %v", providerID, err)
+			writeJSON(w, http.StatusBadRequest, map[string]string{"error": err.Error()})
+			return
+		}
+		log.Printf("[Cooldown] PUT /cooldowns/%d: received untilTime=%s, clientType=%s", providerID, body.UntilTime, body.ClientType)
+		until, err := time.Parse(time.RFC3339, body.UntilTime)
+		if err != nil {
+			log.Printf("[Cooldown] PUT /cooldowns/%d: failed to parse untilTime: %v", providerID, err)
+			writeJSON(w, http.StatusBadRequest, map[string]string{"error": "invalid untilTime format"})
+			return
+		}
+		log.Printf("[Cooldown] PUT /cooldowns/%d: setting cooldown until %v", providerID, until)
+		cm.SetCooldownUntil(providerID, body.ClientType, until)
+		log.Printf("[Cooldown] PUT /cooldowns/%d: cooldown set successfully", providerID)
+		writeJSON(w, http.StatusOK, map[string]string{"message": "cooldown set"})
 
 	case http.MethodDelete:
 		if providerID == 0 {

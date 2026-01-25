@@ -199,6 +199,16 @@ func (m *Manager) SetCooldownDuration(providerID uint64, clientType string, dura
 	m.setCooldownLocked(providerID, clientType, until, ReasonUnknown)
 }
 
+// SetCooldownUntil sets a cooldown for a provider until a specific time
+// This is used for manual freezing by admin
+func (m *Manager) SetCooldownUntil(providerID uint64, clientType string, until time.Time) {
+	log.Printf("[Cooldown] SetCooldownUntil: providerID=%d, clientType=%q, until=%v", providerID, clientType, until)
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	m.setCooldownLocked(providerID, clientType, until, ReasonManual)
+	log.Printf("[Cooldown] SetCooldownUntil: done, current cooldowns count=%d", len(m.cooldowns))
+}
+
 // ClearCooldown removes the cooldown for a provider
 // If clientType is empty, clears ALL cooldowns for the provider (both global and specific)
 // If clientType is specified, only clears that specific cooldown

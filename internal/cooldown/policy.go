@@ -68,6 +68,7 @@ const (
 	ReasonRateLimit       CooldownReason = "rate_limit_exceeded"   // Rate limit (fallback when no explicit time)
 	ReasonConcurrentLimit CooldownReason = "concurrent_limit"      // Concurrent request limit (fallback when no explicit time)
 	ReasonUnknown         CooldownReason = "unknown"               // Unknown error
+	ReasonManual          CooldownReason = "manual"                // Manually frozen by admin
 )
 
 // DefaultPolicies returns the default policy configuration
