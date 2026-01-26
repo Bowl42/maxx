@@ -144,9 +144,28 @@ func (a *Adapter) extractModel(req *http.Request, clientType domain.ClientType, 
 }
 
 func (a *Adapter) extractSessionID(req *http.Request, clientType domain.ClientType, body []byte) string {
-	// 1. Try metadata.session_id or metadata.user_id (Claude)
+	// 1. For Codex client, try Session_id header first
+	if clientType == domain.ClientTypeCodex {
+		if sid := req.Header.Get("Session_id"); sid != "" {
+			return sid
+		}
+	}
+
 	var data map[string]interface{}
 	if err := json.Unmarshal(body, &data); err == nil {
+		// 2. For Codex client, try previous_response_id or prompt_cache_key
+		if clientType == domain.ClientTypeCodex {
+			// First try previous_response_id (used for conversation tracking in Codex)
+			if prevID, ok := data["previous_response_id"].(string); ok && prevID != "" {
+				return prevID
+			}
+			// Then try prompt_cache_key (used for session identification)
+			if cacheKey, ok := data["prompt_cache_key"].(string); ok && cacheKey != "" {
+				return cacheKey
+			}
+		}
+
+		// 3. Try metadata.session_id or metadata.user_id (Claude)
 		if metadata, ok := data["metadata"].(map[string]interface{}); ok {
 			// First try explicit session_id
 			if sid, ok := metadata["session_id"].(string); ok && sid != "" {
@@ -164,12 +183,12 @@ func (a *Adapter) extractSessionID(req *http.Request, clientType domain.ClientTy
 		}
 	}
 
-	// 2. Try Header X-Session-Id
+	// 4. Try Header X-Session-Id
 	if sid := req.Header.Get("X-Session-Id"); sid != "" {
 		return sid
 	}
 
-	// 3. Generate deterministic session ID from request characteristics
+	// 5. Generate deterministic session ID from request characteristics
 	return a.generateSessionID(req, body)
 }
 
