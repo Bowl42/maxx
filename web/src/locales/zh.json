@@ -204,6 +204,7 @@
     "supportedClients": "支持的客户端",
     "enabled": "已启用",
     "noClientsConfigured": "未配置客户端",
+    "refreshToken": "刷新令牌",
     "supportModels": {
       "title": "支持的模型",
       "desc": "配置此提供商支持的模型。如果为空，则支持所有模型。支持通配符，如 claude-* 或 gemini-*。",
