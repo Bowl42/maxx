@@ -73,6 +73,12 @@ func (h *CodexHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// POST /codex/oauth/exchange - Manual callback URL exchange (for production where localhost:1455 is not accessible)
+	if len(parts) >= 3 && parts[1] == "oauth" && parts[2] == "exchange" && r.Method == http.MethodPost {
+		h.handleOAuthExchange(w, r)
+		return
+	}
+
 	// POST /codex/refresh-quotas - Force refresh all quotas
 	if len(parts) >= 2 && parts[1] == "refresh-quotas" && r.Method == http.MethodPost {
 		h.handleForceRefreshQuotas(w, r)
@@ -254,6 +260,80 @@ func (h *CodexHandler) handleOAuthCallback(w http.ResponseWriter, r *http.Reques
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	w.WriteHeader(http.StatusOK)
 	w.Write([]byte(codexOAuthSuccessHTML))
+}
+
+// handleOAuthExchange handles POST /codex/oauth/exchange
+// This allows frontend to manually submit the callback URL when localhost:1455 is not accessible
+func (h *CodexHandler) handleOAuthExchange(w http.ResponseWriter, r *http.Request) {
+	var req struct {
+		Code  string `json:"code"`
+		State string `json:"state"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		writeJSON(w, http.StatusBadRequest, map[string]string{"error": err.Error()})
+		return
+	}
+
+	if req.Code == "" || req.State == "" {
+		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "Missing code or state parameter"})
+		return
+	}
+
+	// Validate state and get session
+	session, ok := h.oauthManager.GetSession(req.State)
+	if !ok {
+		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "Invalid or expired state"})
+		return
+	}
+
+	// Exchange code for tokens (using fixed redirect URI)
+	tokenResp, err := codex.ExchangeCodeForTokens(r.Context(), req.Code, codex.OAuthRedirectURI, session.CodeVerifier)
+	if err != nil {
+		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": fmt.Sprintf("Token exchange failed: %v", err)})
+		return
+	}
+
+	// Parse ID token to get user info
+	var email, name, picture, accountID, userID, planType, subscriptionStart, subscriptionEnd string
+	if tokenResp.IDToken != "" {
+		claims, err := codex.ParseIDToken(tokenResp.IDToken)
+		if err == nil {
+			email = claims.Email
+			name = claims.Name
+			picture = claims.Picture
+			accountID = claims.GetAccountID()
+			userID = claims.GetUserID()
+			planType = claims.GetPlanType()
+			subscriptionStart = claims.GetSubscriptionStart()
+			subscriptionEnd = claims.GetSubscriptionEnd()
+		}
+	}
+
+	// Calculate expiration time
+	expiresAt := time.Now().Add(time.Duration(tokenResp.ExpiresIn) * time.Second).Format(time.RFC3339)
+
+	// Build result
+	result := &codex.OAuthResult{
+		State:             req.State,
+		Success:           true,
+		AccessToken:       tokenResp.AccessToken,
+		RefreshToken:      tokenResp.RefreshToken,
+		ExpiresAt:         expiresAt,
+		Email:             email,
+		Name:              name,
+		Picture:           picture,
+		AccountID:         accountID,
+		UserID:            userID,
+		PlanType:          planType,
+		SubscriptionStart: subscriptionStart,
+		SubscriptionEnd:   subscriptionEnd,
+	}
+
+	// Complete session (cleanup)
+	h.oauthManager.CompleteSession(req.State, result)
+
+	// Return result directly (not via WebSocket since this is a direct API call)
+	writeJSON(w, http.StatusOK, result)
 }
 
 // sendOAuthErrorResult sends OAuth error result and returns error page

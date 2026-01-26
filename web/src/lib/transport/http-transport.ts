@@ -490,6 +490,17 @@ export class HttpTransport implements Transport {
     return data;
   }
 
+  async exchangeCodexOAuthCallback(
+    code: string,
+    state: string,
+  ): Promise<import('./types').CodexOAuthResult> {
+    const { data } = await axios.post<import('./types').CodexOAuthResult>(
+      '/api/codex/oauth/exchange',
+      { code, state },
+    );
+    return data;
+  }
+
   async refreshCodexProviderInfo(providerId: number): Promise<CodexTokenValidationResult> {
     const { data } = await axios.post<CodexTokenValidationResult>(
       `/api/codex/provider/${providerId}/refresh`,

@@ -36,6 +36,7 @@ import type {
   CodexTokenValidationResult,
   CodexUsageResponse,
   CodexQuotaData,
+  CodexOAuthResult,
   AuthStatus,
   AuthVerifyResult,
   APIToken,
@@ -156,6 +157,7 @@ export interface Transport {
   // ===== Codex API =====
   validateCodexToken(refreshToken: string): Promise<CodexTokenValidationResult>;
   startCodexOAuth(): Promise<{ authURL: string; state: string }>;
+  exchangeCodexOAuthCallback(code: string, state: string): Promise<CodexOAuthResult>;
   refreshCodexProviderInfo(providerId: number): Promise<CodexTokenValidationResult>;
   getCodexProviderUsage(providerId: number): Promise<CodexUsageResponse>;
   getCodexBatchQuotas(): Promise<Record<number, CodexQuotaData>>;

@@ -10,6 +10,9 @@ import {
   Mail,
   ShieldCheck,
   Zap,
+  Link,
+  Copy,
+  Check,
 } from 'lucide-react';
 import { getTransport } from '@/lib/transport';
 import type {
@@ -44,6 +47,12 @@ export function CodexTokenImport() {
   const [oauthResult, setOAuthResult] = useState<CodexOAuthResult | null>(null);
   const oauthWindowRef = useRef<Window | null>(null);
 
+  // Manual callback URL state
+  const [callbackUrl, setCallbackUrl] = useState('');
+  const [exchanging, setExchanging] = useState(false);
+  const [copied, setCopied] = useState(false);
+  const [popupClosed, setPopupClosed] = useState(false);
+
   // Subscribe to OAuth result messages via WebSocket
   useEffect(() => {
     const transport = getTransport();
@@ -70,15 +79,80 @@ export function CodexTokenImport() {
     return () => unsubscribe();
   }, [oauthState]);
 
+  // Parse callback URL and extract code/state
+  const parseCallbackUrl = (url: string): { code: string; state: string } | null => {
+    try {
+      const urlObj = new URL(url);
+      const code = urlObj.searchParams.get('code');
+      const state = urlObj.searchParams.get('state');
+      if (code && state) {
+        return { code, state };
+      }
+      return null;
+    } catch {
+      return null;
+    }
+  };
+
+  // Handle manual callback URL exchange
+  const handleExchangeCallback = async () => {
+    const parsed = parseCallbackUrl(callbackUrl.trim());
+    if (!parsed) {
+      setError('Invalid callback URL. Please paste the complete URL from the browser address bar.');
+      return;
+    }
+
+    if (parsed.state !== oauthState) {
+      setError('State mismatch. Please make sure you are using the callback URL from the current OAuth session.');
+      return;
+    }
+
+    setExchanging(true);
+    setError(null);
+
+    try {
+      const result = await getTransport().exchangeCodexOAuthCallback(parsed.code, parsed.state);
+      if (result.success && result.refreshToken) {
+        setOAuthStatus('success');
+        setOAuthResult(result);
+        // Close the OAuth window if it's still open
+        if (oauthWindowRef.current && !oauthWindowRef.current.closed) {
+          oauthWindowRef.current.close();
+        }
+      } else {
+        setOAuthStatus('error');
+        setError(result.error || 'OAuth authorization failed');
+      }
+    } catch (err) {
+      setOAuthStatus('error');
+      setError(err instanceof Error ? err.message : 'Failed to exchange callback');
+    } finally {
+      setExchanging(false);
+    }
+  };
+
+  // OAuth auth URL (for copy functionality)
+  const [authUrl, setAuthUrl] = useState<string | null>(null);
+  const handleCopyAuthUrl = async () => {
+    if (authUrl) {
+      await navigator.clipboard.writeText(authUrl);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    }
+  };
+
   // Handle OAuth flow
   const handleOAuth = async () => {
     setOAuthStatus('waiting');
     setError(null);
+    setCallbackUrl('');
+    setPopupClosed(false);
 
     try {
       // Request OAuth URL from backend
       const { authURL, state } = await getTransport().startCodexOAuth();
       setOAuthState(state);
+      setAuthUrl(authURL);
 
       // Open OAuth window
       const width = 600;
@@ -96,14 +170,9 @@ export function CodexTokenImport() {
       const checkWindowClosed = setInterval(() => {
         if (oauthWindowRef.current?.closed) {
           clearInterval(checkWindowClosed);
-          // If still waiting when window closes, assume user cancelled
-          setOAuthStatus((current) => {
-            if (current === 'waiting') {
-              setOAuthState(null);
-              return 'idle';
-            }
-            return current;
-          });
+          // Window closed, but keep the state so user can still paste callback URL manually
+          // Don't reset to idle - user can click Cancel if they want to restart
+          setPopupClosed(true);
         }
       }, 500);
     } catch (err) {
@@ -317,27 +386,108 @@ export function CodexTokenImport() {
                 )}
 
                 {oauthStatus === 'waiting' && (
-                  <div className="text-center py-6 space-y-4">
-                    <Loader2 size={32} className="animate-spin mx-auto" style={{ color: CODEX_COLOR }} />
-                    <div>
-                      <p className="text-sm font-medium text-foreground">Waiting for authorization...</p>
-                      <p className="text-xs text-muted-foreground mt-1">
-                        Complete the sign-in in the popup window
-                      </p>
+                  <div className="space-y-6">
+                    <div className="text-center py-4 space-y-3">
+                      {!popupClosed && (
+                        <Loader2 size={32} className="animate-spin mx-auto" style={{ color: CODEX_COLOR }} />
+                      )}
+                      <div>
+                        <p className="text-sm font-medium text-foreground">
+                          {popupClosed ? 'Popup window closed' : 'Waiting for authorization...'}
+                        </p>
+                        <p className="text-xs text-muted-foreground mt-1">
+                          {popupClosed
+                            ? 'You can paste the callback URL below to continue'
+                            : 'Complete the sign-in in the popup window'}
+                        </p>
+                      </div>
                     </div>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => {
-                        setOAuthStatus('idle');
-                        setOAuthState(null);
-                        if (oauthWindowRef.current && !oauthWindowRef.current.closed) {
-                          oauthWindowRef.current.close();
-                        }
-                      }}
-                    >
-                      Cancel
-                    </Button>
+
+                    {/* Manual callback URL section */}
+                    <div className="border-t border-border/50 pt-5 space-y-3">
+                      <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                        <Link size={14} />
+                        <span>
+                          {popupClosed
+                            ? 'Copy the auth URL to open in your browser, then paste the callback URL.'
+                            : 'Popup window not working? Copy the auth URL or paste the callback URL manually.'}
+                        </span>
+                      </div>
+
+                      {/* Copy Auth URL button */}
+                      {authUrl && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="w-full"
+                          onClick={handleCopyAuthUrl}
+                        >
+                          {copied ? (
+                            <>
+                              <Check size={14} className="mr-2 text-success" />
+                              Copied!
+                            </>
+                          ) : (
+                            <>
+                              <Copy size={14} className="mr-2" />
+                              Copy Auth URL
+                            </>
+                          )}
+                        </Button>
+                      )}
+
+                      {/* Callback URL input */}
+                      <div className="space-y-2">
+                        <label className="text-xs font-medium text-muted-foreground">
+                          Paste Callback URL
+                        </label>
+                        <Input
+                          value={callbackUrl}
+                          onChange={(e) => setCallbackUrl(e.target.value)}
+                          placeholder="http://localhost:1455/auth/callback?code=...&state=..."
+                          className="bg-card text-xs font-mono"
+                          disabled={exchanging}
+                        />
+                        <p className="text-[10px] text-muted-foreground">
+                          After signing in, copy the URL from your browser's address bar (it will show an error page, that's expected).
+                        </p>
+                      </div>
+
+                      <Button
+                        onClick={handleExchangeCallback}
+                        disabled={!callbackUrl.trim() || exchanging}
+                        className="w-full"
+                        variant="secondary"
+                      >
+                        {exchanging ? (
+                          <>
+                            <Loader2 size={14} className="animate-spin mr-2" />
+                            Exchanging...
+                          </>
+                        ) : (
+                          'Submit Callback URL'
+                        )}
+                      </Button>
+                    </div>
+
+                    <div className="flex justify-center">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => {
+                          setOAuthStatus('idle');
+                          setOAuthState(null);
+                          setAuthUrl(null);
+                          setCallbackUrl('');
+                          setPopupClosed(false);
+                          if (oauthWindowRef.current && !oauthWindowRef.current.closed) {
+                            oauthWindowRef.current.close();
+                          }
+                        }}
+                      >
+                        Cancel
+                      </Button>
+                    </div>
                   </div>
                 )}
 
