@@ -204,6 +204,7 @@
     "supportedClients": "Supported Clients",
     "enabled": "Enabled",
     "noClientsConfigured": "No clients configured",
+    "refreshToken": "Refresh Token",
     "supportModels": {
       "title": "Supported Models",
       "desc": "Configure which models this provider supports. If empty, all models are supported. Supports wildcards like claude-* or gemini-*.",

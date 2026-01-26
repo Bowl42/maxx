@@ -10,6 +10,8 @@ import {
   Plus,
   ArrowRight,
   Zap,
+  Copy,
+  Check,
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { ClientIcon } from '@/components/icons/client-icons';
@@ -270,6 +272,19 @@ export function AntigravityProviderView({
   const [quota, setQuota] = useState<AntigravityQuotaData | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [tokenCopied, setTokenCopied] = useState(false);
+
+  const handleCopyToken = async () => {
+    const token = provider.config?.antigravity?.refreshToken;
+    if (!token) return;
+    try {
+      await navigator.clipboard.writeText(token);
+      setTokenCopied(true);
+      setTimeout(() => setTokenCopied(false), 2000);
+    } catch {
+      // Failed to copy
+    }
+  };
 
   const fetchQuota = async (forceRefresh = false) => {
     setLoading(true);
@@ -352,6 +367,25 @@ export function AntigravityProviderView({
                   {provider.config?.antigravity?.endpoint || '-'}
                 </div>
               </div>
+              {provider.config?.antigravity?.refreshToken && (
+                <div>
+                  <div className="text-xs text-muted-foreground uppercase tracking-wider font-semibold mb-1.5">
+                    {t('providers.refreshToken')}
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className="font-mono text-sm text-foreground bg-card px-2 py-1 rounded border border-border/50 flex-1 truncate">
+                      {provider.config.antigravity.refreshToken.slice(0, 20)}...
+                    </div>
+                    <button
+                      onClick={handleCopyToken}
+                      className="p-1.5 rounded-lg hover:bg-accent text-muted-foreground hover:text-foreground transition-colors"
+                      title={t('common.copy')}
+                    >
+                      {tokenCopied ? <Check size={16} className="text-green-500" /> : <Copy size={16} />}
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
 
