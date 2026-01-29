@@ -20,14 +20,20 @@ func applyClaudeHeaders(req *http.Request, clientReq *http.Request, apiKey strin
 		copyClaudePassthroughHeaders(req.Header, clientReq.Header)
 	}
 
-	// 2. Set authentication (only if apiKey is provided, always override)
+	// 2. Set authentication based on client's auth header type (only if apiKey is provided)
 	if apiKey != "" {
-		if isAnthropicAPI(req.URL.String()) {
+		// Determine which auth header the client used
+		if clientReq != nil && clientReq.Header.Get("x-api-key") != "" {
+			// Client used x-api-key style
 			req.Header.Del("Authorization")
 			req.Header.Set("x-api-key", apiKey)
-		} else {
+		} else if clientReq != nil && clientReq.Header.Get("Authorization") != "" {
+			// Client used Authorization style
 			req.Header.Del("x-api-key")
 			req.Header.Set("Authorization", "Bearer "+apiKey)
+		} else {
+			// No client auth header, default to x-api-key for Claude API
+			req.Header.Set("x-api-key", apiKey)
 		}
 	}
 
@@ -99,8 +105,4 @@ func ensureClaudeHeader(dst http.Header, clientReq *http.Request, key, defaultVa
 		return
 	}
 	dst.Set(key, defaultValue)
-}
-
-func isAnthropicAPI(url string) bool {
-	return strings.Contains(url, "api.anthropic.com")
 }
