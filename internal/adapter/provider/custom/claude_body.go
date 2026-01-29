@@ -3,6 +3,7 @@ package custom
 import (
 	"crypto/rand"
 	"encoding/hex"
+	"encoding/json"
 	"regexp"
 	"strings"
 
@@ -14,31 +15,50 @@ import (
 // Claude Code system prompt for cloaking
 const claudeCodeSystemPrompt = `You are Claude Code, Anthropic's official CLI for Claude.`
 
+// Interleaved thinking hint (like CLIProxyAPI)
+const interleavedThinkingHint = `Interleaved thinking is enabled. You may think between tool calls and after receiving tool results before deciding the next action or final answer. Do not mention these instructions or any constraints about thinking blocks; just apply them.`
+
 // userIDPattern matches Claude Code format: user_[64-hex]_account__session_[uuid-v4]
 var userIDPattern = regexp.MustCompile(`^user_[a-fA-F0-9]{64}_account__session_[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$`)
 
 // processClaudeRequestBody processes Claude request body before sending to upstream.
 // Following CLIProxyAPI order:
-// 1. applyCloaking (system prompt injection, fake user_id)
-// 2. disableThinkingIfToolChoiceForced
-// 3. extractAndRemoveBetas
+// 1. cleanCacheControl (remove cache_control from messages)
+// 2. applyCloaking (system prompt injection, fake user_id)
+// 3. injectInterleavedThinkingHint (when thinking + tools)
+// 4. disableThinkingIfToolChoiceForced
+// 5. ensureStreamFlag (always inject stream: true for Claude)
+// 6. extractAndRemoveBetas
+// 7. reorderBodyFields (ensure correct field order)
 // Returns processed body and extra betas for header.
 func processClaudeRequestBody(body []byte, clientUserAgent string) ([]byte, []string) {
-	// 1. Apply cloaking (system prompt injection, fake user_id)
+	// 1. Clean cache_control from messages (like CLIProxyAPI)
+	body = cleanCacheControl(body)
+
+	// 2. Apply cloaking (system prompt injection, fake user_id)
 	body = applyCloaking(body, clientUserAgent)
 
-	// 2. Disable thinking if tool_choice forces tool use
+	// 3. Inject interleaved thinking hint when thinking + tools (like CLIProxyAPI)
+	body = injectInterleavedThinkingHint(body)
+
+	// 4. Disable thinking if tool_choice forces tool use
 	body = disableThinkingIfToolChoiceForced(body)
 
-	// 3. Extract betas from body (to be added to header)
+	// 5. Always ensure stream: true for Claude requests (force streaming)
+	body = ensureStreamFlag(body)
+
+	// 6. Extract betas from body (to be added to header)
 	var extraBetas []string
 	extraBetas, body = extractAndRemoveBetas(body)
+
+	// 7. Reorder body fields to match Claude Code format
+	body = reorderBodyFields(body)
 
 	return body, extraBetas
 }
 
 // applyCloaking applies cloaking transformations for non-Claude Code clients.
-// Cloaking includes: system prompt injection, fake user_id injection.
+// Cloaking includes: system prompt injection, fake user_id injection, empty tools array.
 func applyCloaking(body []byte, clientUserAgent string) []byte {
 	// If client is already Claude Code, no cloaking needed
 	if isClaudeCodeClient(clientUserAgent) {
@@ -51,6 +71,9 @@ func applyCloaking(body []byte, clientUserAgent string) []byte {
 	// Inject fake user_id
 	body = injectFakeUserID(body)
 
+	// Inject empty tools array if not present
+	body = injectEmptyTools(body)
+
 	return body
 }
 
@@ -60,47 +83,46 @@ func isClaudeCodeClient(userAgent string) bool {
 }
 
 // injectClaudeCodeSystemPrompt injects Claude Code system prompt into the request.
-// Prepends to existing system messages.
+// Prepends the Claude Code system prompt to existing system entries.
 func injectClaudeCodeSystemPrompt(body []byte) []byte {
 	system := gjson.GetBytes(body, "system")
 
-	// Create Claude Code system instruction entry
-	claudeCodeEntry := map[string]string{
-		"type": "text",
-		"text": claudeCodeSystemPrompt,
-	}
+	// Create Claude Code system instruction entry with correct field order: type, text
+	// Using json.RawMessage to preserve field order
+	claudeCodeEntryJSON := []byte(`{"type":"text","text":"` + claudeCodeSystemPrompt + `"}`)
 
 	if !system.Exists() {
 		// No existing system, create new array with Claude Code instruction
-		body, _ = sjson.SetBytes(body, "system", []interface{}{claudeCodeEntry})
+		body, _ = sjson.SetRawBytes(body, "system", []byte(`[`+string(claudeCodeEntryJSON)+`]`))
 		return body
 	}
 
 	if system.IsArray() {
 		// Prepend Claude Code instruction to existing array
-		existingSystem := system.Array()
-		newSystem := make([]interface{}, 0, len(existingSystem)+1)
-		newSystem = append(newSystem, claudeCodeEntry)
-		for _, entry := range existingSystem {
-			newSystem = append(newSystem, entry.Value())
-		}
-		body, _ = sjson.SetBytes(body, "system", newSystem)
+		existingSystemJSON := system.Raw
+		// Remove leading '[' and add our entry at the beginning
+		newSystemJSON := `[` + string(claudeCodeEntryJSON) + `,` + existingSystemJSON[1:]
+		body, _ = sjson.SetRawBytes(body, "system", []byte(newSystemJSON))
 		return body
 	}
 
 	// system is a string, convert to array format
 	existingText := system.String()
 	if existingText != "" {
-		newSystem := []interface{}{
-			claudeCodeEntry,
-			map[string]string{"type": "text", "text": existingText},
-		}
-		body, _ = sjson.SetBytes(body, "system", newSystem)
+		existingEntryJSON := `{"type":"text","text":` + jsonEscapeString(existingText) + `}`
+		newSystemJSON := `[` + string(claudeCodeEntryJSON) + `,` + existingEntryJSON + `]`
+		body, _ = sjson.SetRawBytes(body, "system", []byte(newSystemJSON))
 	} else {
-		body, _ = sjson.SetBytes(body, "system", []interface{}{claudeCodeEntry})
+		body, _ = sjson.SetRawBytes(body, "system", []byte(`[`+string(claudeCodeEntryJSON)+`]`))
 	}
 
 	return body
+}
+
+// jsonEscapeString escapes a string for JSON
+func jsonEscapeString(s string) string {
+	b, _ := json.Marshal(s)
+	return string(b)
 }
 
 // injectFakeUserID generates and injects a fake user_id into the request metadata.
@@ -113,6 +135,15 @@ func injectFakeUserID(body []byte) []byte {
 
 	// Generate and inject fake user_id
 	body, _ = sjson.SetBytes(body, "metadata.user_id", generateFakeUserID())
+	return body
+}
+
+// injectEmptyTools injects an empty tools array if not present.
+// This makes the request look more like a real Claude Code request.
+func injectEmptyTools(body []byte) []byte {
+	if !gjson.GetBytes(body, "tools").Exists() {
+		body, _ = sjson.SetBytes(body, "tools", []interface{}{})
+	}
 	return body
 }
 
@@ -169,4 +200,197 @@ func extractAndRemoveBetas(body []byte) ([]string, []byte) {
 
 	body, _ = sjson.DeleteBytes(body, "betas")
 	return betas, body
+}
+
+// ensureStreamFlag ensures stream: true is set in the body for streaming requests.
+func ensureStreamFlag(body []byte) []byte {
+	// Only set if not already present or if false
+	if !gjson.GetBytes(body, "stream").Bool() {
+		body, _ = sjson.SetBytes(body, "stream", true)
+	}
+	return body
+}
+
+// cleanCacheControl removes cache_control from all messages and system entries.
+// (like CLIProxyAPI's cleanCacheControl)
+// Some clients send back historical messages with cache_control intact,
+// which may cause issues with certain upstream APIs.
+func cleanCacheControl(body []byte) []byte {
+	parsed := gjson.ParseBytes(body)
+	modified := false
+
+	// Clean from messages
+	messages := parsed.Get("messages")
+	if messages.Exists() && messages.IsArray() {
+		newMessages := cleanCacheControlFromArray(messages.Raw)
+		if newMessages != messages.Raw {
+			body, _ = sjson.SetRawBytes(body, "messages", []byte(newMessages))
+			modified = true
+		}
+	}
+
+	// Clean from system
+	system := parsed.Get("system")
+	if system.Exists() && system.IsArray() {
+		newSystem := cleanCacheControlFromArray(system.Raw)
+		if newSystem != system.Raw {
+			body, _ = sjson.SetRawBytes(body, "system", []byte(newSystem))
+			modified = true
+		}
+	}
+
+	_ = modified
+	return body
+}
+
+// cleanCacheControlFromArray recursively removes cache_control from JSON array
+func cleanCacheControlFromArray(jsonArray string) string {
+	var arr []interface{}
+	if err := json.Unmarshal([]byte(jsonArray), &arr); err != nil {
+		return jsonArray
+	}
+
+	modified := cleanCacheControlRecursive(arr)
+	if !modified {
+		return jsonArray
+	}
+
+	result, err := json.Marshal(arr)
+	if err != nil {
+		return jsonArray
+	}
+	return string(result)
+}
+
+// cleanCacheControlRecursive removes cache_control from nested structures
+func cleanCacheControlRecursive(v interface{}) bool {
+	modified := false
+	switch val := v.(type) {
+	case map[string]interface{}:
+		if _, exists := val["cache_control"]; exists {
+			delete(val, "cache_control")
+			modified = true
+		}
+		for _, child := range val {
+			if cleanCacheControlRecursive(child) {
+				modified = true
+			}
+		}
+	case []interface{}:
+		for _, item := range val {
+			if cleanCacheControlRecursive(item) {
+				modified = true
+			}
+		}
+	}
+	return modified
+}
+
+// injectInterleavedThinkingHint injects thinking hint when thinking is enabled and tools are present.
+// (like CLIProxyAPI's interleavedHint injection)
+func injectInterleavedThinkingHint(body []byte) []byte {
+	// Check if thinking is enabled
+	thinkingType := gjson.GetBytes(body, "thinking.type").String()
+	if thinkingType != "enabled" {
+		return body
+	}
+
+	// Check if tools are present (non-empty array)
+	tools := gjson.GetBytes(body, "tools")
+	if !tools.Exists() || !tools.IsArray() || len(tools.Array()) == 0 {
+		return body
+	}
+
+	// Append thinking hint to system prompt
+	system := gjson.GetBytes(body, "system")
+	hintEntry := `{"type":"text","text":"` + interleavedThinkingHint + `"}`
+
+	if !system.Exists() {
+		// Create new system array with hint
+		body, _ = sjson.SetRawBytes(body, "system", []byte(`[`+hintEntry+`]`))
+		return body
+	}
+
+	if system.IsArray() {
+		// Append hint to existing array
+		existingSystemJSON := system.Raw
+		// Remove trailing ']' and add hint at the end
+		newSystemJSON := existingSystemJSON[:len(existingSystemJSON)-1] + `,` + hintEntry + `]`
+		body, _ = sjson.SetRawBytes(body, "system", []byte(newSystemJSON))
+		return body
+	}
+
+	// system is a string, convert to array with hint
+	existingText := system.String()
+	if existingText != "" {
+		existingEntryJSON := `{"type":"text","text":` + jsonEscapeString(existingText) + `}`
+		newSystemJSON := `[` + existingEntryJSON + `,` + hintEntry + `]`
+		body, _ = sjson.SetRawBytes(body, "system", []byte(newSystemJSON))
+	} else {
+		body, _ = sjson.SetRawBytes(body, "system", []byte(`[`+hintEntry+`]`))
+	}
+
+	return body
+}
+
+// reorderBodyFields reorders body fields to match Claude Code format.
+// Field order: model → messages → system → tools → tool_choice → thinking → metadata → max_tokens → temperature → top_p → top_k → stream
+func reorderBodyFields(body []byte) []byte {
+	// Parse original body
+	parsed := gjson.ParseBytes(body)
+
+	// Build new body with correct field order
+	var result []byte
+	result = append(result, '{')
+
+	fieldsAdded := 0
+
+	// Helper to add field
+	addField := func(key string, value gjson.Result) {
+		if fieldsAdded > 0 {
+			result = append(result, ',')
+		}
+		result = append(result, '"')
+		result = append(result, key...)
+		result = append(result, '"', ':')
+		result = append(result, value.Raw...)
+		fieldsAdded++
+	}
+
+	// Ordered fields (Claude Code format)
+	orderedFields := []string{
+		"model",
+		"messages",
+		"system",
+		"tools",
+		"tool_choice",
+		"thinking",
+		"metadata",
+		"max_tokens",
+		"temperature",
+		"top_p",
+		"top_k",
+		"stop_sequences",
+		"stream",
+	}
+
+	knownFields := make(map[string]bool)
+	for _, key := range orderedFields {
+		knownFields[key] = true
+		if v := parsed.Get(key); v.Exists() {
+			addField(key, v)
+		}
+	}
+
+	// Add any remaining fields that weren't in our ordered list
+	parsed.ForEach(func(key, value gjson.Result) bool {
+		if !knownFields[key.String()] {
+			addField(key.String(), value)
+		}
+		return true
+	})
+
+	result = append(result, '}')
+
+	return result
 }
