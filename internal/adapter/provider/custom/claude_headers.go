@@ -6,101 +6,129 @@ import (
 )
 
 const (
-	// Default values used only when client doesn't provide them
-	defaultAnthropicVersion   = "2023-06-01"
-	defaultAnthropicBetaFlags = "claude-code-20250219,interleaved-thinking-2025-05-14"
-	defaultClaudeUserAgent    = "claude-cli/2.1.17 (external, cli)"
+	defaultAnthropicVersion = "2023-06-01"
+	defaultClaudeUserAgent  = "claude-cli/2.1.23 (external, cli)"
 )
 
 // applyClaudeHeaders sets Claude API request headers
-// It follows the CLIProxyAPI pattern: passthrough client headers, use defaults only when missing
-func applyClaudeHeaders(req *http.Request, clientReq *http.Request, apiKey string, stream bool) {
-	// 1. Copy passthrough headers from client request (excluding hop-by-hop and auth)
+// Following CLIProxyAPI pattern: build headers from scratch, use EnsureHeader for selective client passthrough
+// Always sets streaming headers (Accept: text/event-stream)
+func applyClaudeHeaders(req *http.Request, clientReq *http.Request, apiKey string, extraBetas []string) {
+	// Get client headers for EnsureHeader
+	var clientHeaders http.Header
 	if clientReq != nil {
-		copyClaudePassthroughHeaders(req.Header, clientReq.Header)
+		clientHeaders = clientReq.Header
 	}
 
-	// 2. Set authentication (only if apiKey is provided, always override)
+	// 1. Set authentication (only if apiKey is provided)
 	if apiKey != "" {
-		if isAnthropicAPI(req.URL.String()) {
+		// Determine which auth header the client used
+		if clientReq != nil && clientReq.Header.Get("x-api-key") != "" {
 			req.Header.Del("Authorization")
 			req.Header.Set("x-api-key", apiKey)
-		} else {
+		} else if clientReq != nil && clientReq.Header.Get("Authorization") != "" {
 			req.Header.Del("x-api-key")
 			req.Header.Set("Authorization", "Bearer "+apiKey)
+		} else {
+			// Default to x-api-key for Claude API
+			req.Header.Set("x-api-key", apiKey)
 		}
 	}
 
-	// 3. Set required headers (always override)
+	// 2. Set Content-Type (always)
 	req.Header.Set("Content-Type", "application/json")
 
-	// 4. Set Claude-specific headers only if client didn't provide them
-	ensureClaudeHeader(req.Header, clientReq, "Anthropic-Version", defaultAnthropicVersion)
-	ensureClaudeHeader(req.Header, clientReq, "Anthropic-Beta", defaultAnthropicBetaFlags)
-	ensureClaudeHeader(req.Header, clientReq, "Anthropic-Dangerous-Direct-Browser-Access", "true")
-	ensureClaudeHeader(req.Header, clientReq, "User-Agent", defaultClaudeUserAgent)
+	// 3. Determine if client is Claude Code (for header handling)
+	clientUA := ""
+	if clientHeaders != nil {
+		clientUA = clientHeaders.Get("User-Agent")
+	}
+	isClaudeClient := isClaudeCodeClient(clientUA)
 
-	// 5. Set Stainless headers only if client didn't provide them
-	ensureClaudeHeader(req.Header, clientReq, "X-App", "cli")
-	ensureClaudeHeader(req.Header, clientReq, "X-Stainless-Retry-Count", "0")
-	ensureClaudeHeader(req.Header, clientReq, "X-Stainless-Runtime-Version", "v24.3.0")
-	ensureClaudeHeader(req.Header, clientReq, "X-Stainless-Package-Version", "0.70.0")
-	ensureClaudeHeader(req.Header, clientReq, "X-Stainless-Runtime", "node")
-	ensureClaudeHeader(req.Header, clientReq, "X-Stainless-Lang", "js")
-	ensureClaudeHeader(req.Header, clientReq, "X-Stainless-Arch", "arm64")
-	ensureClaudeHeader(req.Header, clientReq, "X-Stainless-Os", "MacOS")
-	ensureClaudeHeader(req.Header, clientReq, "X-Stainless-Timeout", "600")
-
-	// 6. Set Accept-Encoding if client didn't provide
-	ensureClaudeHeader(req.Header, clientReq, "Accept-Encoding", "gzip, deflate, br, zstd")
-
-	// 7. Set Accept based on stream mode (only if client didn't provide)
-	if clientReq == nil || clientReq.Header.Get("Accept") == "" {
-		if stream {
-			req.Header.Set("Accept", "text/event-stream")
-		} else {
-			req.Header.Set("Accept", "application/json")
+	// 4. Build Anthropic-Beta header
+	// For Claude Code clients: use their betas if provided
+	// For non-Claude clients: force default betas (cloaking)
+	baseBetas := "interleaved-thinking-2025-05-14,context-management-2025-06-27,prompt-caching-scope-2026-01-05,structured-outputs-2025-12-15"
+	if isClaudeClient && clientHeaders != nil {
+		if val := strings.TrimSpace(clientHeaders.Get("Anthropic-Beta")); val != "" {
+			baseBetas = val
 		}
 	}
+
+	// Merge extra betas from request body
+	if len(extraBetas) > 0 {
+		existingSet := make(map[string]bool)
+		for _, b := range strings.Split(baseBetas, ",") {
+			existingSet[strings.TrimSpace(b)] = true
+		}
+		for _, beta := range extraBetas {
+			beta = strings.TrimSpace(beta)
+			if beta != "" && !existingSet[beta] {
+				baseBetas += "," + beta
+				existingSet[beta] = true
+			}
+		}
+	}
+	req.Header.Set("Anthropic-Beta", baseBetas)
+
+	// 5. Set headers: passthrough for Claude Code clients, force defaults for others (cloaking)
+	if isClaudeClient {
+		// Claude Code client: use EnsureHeader to allow client passthrough
+		ensureHeader(req.Header, clientHeaders, "Anthropic-Version", defaultAnthropicVersion)
+		ensureHeader(req.Header, clientHeaders, "Anthropic-Dangerous-Direct-Browser-Access", "true")
+		ensureHeader(req.Header, clientHeaders, "X-App", "cli")
+		ensureHeader(req.Header, clientHeaders, "X-Stainless-Retry-Count", "0")
+		ensureHeader(req.Header, clientHeaders, "X-Stainless-Runtime-Version", "v20.20.0")
+		ensureHeader(req.Header, clientHeaders, "X-Stainless-Package-Version", "0.70.0")
+		ensureHeader(req.Header, clientHeaders, "X-Stainless-Runtime", "node")
+		ensureHeader(req.Header, clientHeaders, "X-Stainless-Lang", "js")
+		ensureHeader(req.Header, clientHeaders, "X-Stainless-Arch", "arm64")
+		ensureHeader(req.Header, clientHeaders, "X-Stainless-Os", "Linux")
+		ensureHeader(req.Header, clientHeaders, "X-Stainless-Timeout", "600")
+		ensureHeader(req.Header, clientHeaders, "User-Agent", defaultClaudeUserAgent)
+	} else {
+		// Non-Claude client: force all headers to default values (cloaking)
+		req.Header.Set("Anthropic-Version", defaultAnthropicVersion)
+		req.Header.Set("Anthropic-Dangerous-Direct-Browser-Access", "true")
+		req.Header.Set("X-App", "cli")
+		req.Header.Set("X-Stainless-Retry-Count", "0")
+		req.Header.Set("X-Stainless-Runtime-Version", "v20.20.0")
+		req.Header.Set("X-Stainless-Package-Version", "0.70.0")
+		req.Header.Set("X-Stainless-Runtime", "node")
+		req.Header.Set("X-Stainless-Lang", "js")
+		req.Header.Set("X-Stainless-Arch", "arm64")
+		req.Header.Set("X-Stainless-Os", "Linux")
+		req.Header.Set("X-Stainless-Timeout", "600")
+		req.Header.Set("User-Agent", defaultClaudeUserAgent)
+	}
+
+	// 6. Set connection and encoding headers (always override)
+	req.Header.Set("Connection", "keep-alive")
+	req.Header.Set("Accept-Encoding", "gzip, deflate, br, zstd")
+
+	// 7. Set Accept - always use text/event-stream for Claude (force streaming)
+	req.Header.Set("Accept", "text/event-stream")
 }
 
-// copyClaudePassthroughHeaders copies headers from client request, excluding hop-by-hop and auth
-func copyClaudePassthroughHeaders(dst, src http.Header) {
-	if src == nil {
+// ensureHeader sets a header value with priority: source > target existing > default
+// This matches CLIProxyAPI's misc.EnsureHeader behavior
+func ensureHeader(target http.Header, source http.Header, key, defaultValue string) {
+	if target == nil {
 		return
 	}
-
-	// Headers to skip (hop-by-hop, auth, and headers we'll set explicitly)
-	skipHeaders := map[string]bool{
-		"connection":        true,
-		"keep-alive":        true,
-		"transfer-encoding": true,
-		"upgrade":           true,
-		"authorization":     true,
-		"x-api-key":         true,
-		"host":              true,
-		"content-length":    true,
-	}
-
-	for k, vv := range src {
-		if skipHeaders[strings.ToLower(k)] {
-			continue
-		}
-		for _, v := range vv {
-			dst.Add(k, v)
+	// Priority 1: Use source value if available
+	if source != nil {
+		if val := strings.TrimSpace(source.Get(key)); val != "" {
+			target.Set(key, val)
+			return
 		}
 	}
-}
-
-// ensureClaudeHeader sets a header only if the client request doesn't already have it
-func ensureClaudeHeader(dst http.Header, clientReq *http.Request, key, defaultValue string) {
-	if clientReq != nil && clientReq.Header.Get(key) != "" {
-		// Client provided this header, it's already copied, don't override
+	// Priority 2: Keep existing target value
+	if strings.TrimSpace(target.Get(key)) != "" {
 		return
 	}
-	dst.Set(key, defaultValue)
-}
-
-func isAnthropicAPI(url string) bool {
-	return strings.Contains(url, "api.anthropic.com")
+	// Priority 3: Use default value
+	if val := strings.TrimSpace(defaultValue); val != "" {
+		target.Set(key, val)
+	}
 }

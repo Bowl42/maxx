@@ -62,6 +62,11 @@ func (a *CustomAdapter) Execute(ctx context.Context, w http.ResponseWriter, req 
 
 	upstreamURL := buildUpstreamURL(baseURL, requestURI)
 
+	// For Claude, add query parameters (following CLIProxyAPI)
+	if clientType == domain.ClientTypeClaude {
+		upstreamURL = addClaudeQueryParams(upstreamURL)
+	}
+
 	// Create upstream request
 	upstreamReq, err := http.NewRequestWithContext(ctx, "POST", upstreamURL, bytes.NewReader(requestBody))
 	if err != nil {
@@ -71,8 +76,21 @@ func (a *CustomAdapter) Execute(ctx context.Context, w http.ResponseWriter, req 
 	// Set headers based on client type
 	switch clientType {
 	case domain.ClientTypeClaude:
-		// Claude: Use CLI-style headers with passthrough support
-		applyClaudeHeaders(upstreamReq, req, a.provider.Config.Custom.APIKey, stream)
+		// Claude: Following CLIProxyAPI pattern
+		// 1. Process body first (get extraBetas, force stream: true)
+		clientUA := ""
+		if req != nil {
+			clientUA = req.Header.Get("User-Agent")
+		}
+		var extraBetas []string
+		requestBody, extraBetas = processClaudeRequestBody(requestBody, clientUA)
+
+		// 2. Set headers (always streaming for Claude)
+		applyClaudeHeaders(upstreamReq, req, a.provider.Config.Custom.APIKey, extraBetas)
+
+		// 3. Update request body and ContentLength (IMPORTANT: body was modified)
+		upstreamReq.Body = io.NopCloser(bytes.NewReader(requestBody))
+		upstreamReq.ContentLength = int64(len(requestBody))
 	case domain.ClientTypeCodex:
 		// Codex: Use Codex CLI-style headers with passthrough support
 		applyCodexHeaders(upstreamReq, req, a.provider.Config.Custom.APIKey)
@@ -457,6 +475,22 @@ func updateModelInBody(body []byte, model string, clientType domain.ClientType) 
 
 func buildUpstreamURL(baseURL string, requestPath string) string {
 	return strings.TrimSuffix(baseURL, "/") + requestPath
+}
+
+// addClaudeQueryParams adds query parameters to URL for Claude API (following CLIProxyAPI)
+// Adds: beta=true
+// Skips adding if parameter already exists
+func addClaudeQueryParams(urlStr string) string {
+	// Add beta=true if not already present
+	if !strings.Contains(urlStr, "beta=true") {
+		if strings.Contains(urlStr, "?") {
+			urlStr = urlStr + "&beta=true"
+		} else {
+			urlStr = urlStr + "?beta=true"
+		}
+	}
+
+	return urlStr
 }
 
 // Gemini URL patterns for model replacement
