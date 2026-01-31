@@ -2,6 +2,7 @@ package custom
 
 import (
 	"bytes"
+	"compress/gzip"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -83,19 +84,24 @@ func (a *CustomAdapter) Execute(ctx context.Context, w http.ResponseWriter, req 
 	}
 
 	// Set headers based on client type
+	isOAuthToken := false
 	switch clientType {
 	case domain.ClientTypeClaude:
 		// Claude: Following CLIProxyAPI pattern
-		// 1. Process body first (get extraBetas, force stream: true)
+		// 1. Process body first (get extraBetas, inject cloaking/cache_control)
 		clientUA := ""
 		if req != nil {
 			clientUA = req.Header.Get("User-Agent")
 		}
 		var extraBetas []string
-		requestBody, extraBetas = processClaudeRequestBody(requestBody, clientUA)
+		requestBody, extraBetas = processClaudeRequestBody(requestBody, clientUA, a.provider.Config.Custom.Cloak)
+		isOAuthToken = isClaudeOAuthToken(a.provider.Config.Custom.APIKey)
+		if isOAuthToken {
+			requestBody = applyClaudeToolPrefix(requestBody, claudeToolPrefix)
+		}
 
-		// 2. Set headers (always streaming for Claude)
-		applyClaudeHeaders(upstreamReq, req, a.provider.Config.Custom.APIKey, extraBetas)
+		// 2. Set headers (streaming only if requested)
+		applyClaudeHeaders(upstreamReq, req, a.provider.Config.Custom.APIKey, extraBetas, stream)
 
 		// 3. Update request body and ContentLength (IMPORTANT: body was modified)
 		upstreamReq.Body = io.NopCloser(bytes.NewReader(requestBody))
@@ -186,9 +192,9 @@ func (a *CustomAdapter) Execute(ctx context.Context, w http.ResponseWriter, req 
 	// Note: Response format conversion is handled by Executor's ConvertingResponseWriter
 	// Adapters simply pass through the upstream response
 	if stream {
-		return a.handleStreamResponse(ctx, w, resp, clientType)
+		return a.handleStreamResponse(ctx, w, resp, clientType, isOAuthToken)
 	}
-	return a.handleNonStreamResponse(ctx, w, resp, clientType)
+	return a.handleNonStreamResponse(ctx, w, resp, clientType, isOAuthToken)
 }
 
 func (a *CustomAdapter) supportsClientType(ct domain.ClientType) bool {
@@ -208,7 +214,7 @@ func (a *CustomAdapter) getBaseURL(clientType domain.ClientType) string {
 	return config.BaseURL
 }
 
-func (a *CustomAdapter) handleNonStreamResponse(ctx context.Context, w http.ResponseWriter, resp *http.Response, clientType domain.ClientType) error {
+func (a *CustomAdapter) handleNonStreamResponse(ctx context.Context, w http.ResponseWriter, resp *http.Response, clientType domain.ClientType, isOAuthToken bool) error {
 	// Decompress response body if needed
 	reader, err := decompressResponse(resp)
 	if err != nil {
@@ -219,6 +225,18 @@ func (a *CustomAdapter) handleNonStreamResponse(ctx context.Context, w http.Resp
 	body, err := io.ReadAll(reader)
 	if err != nil {
 		return domain.NewProxyErrorWithMessage(domain.ErrUpstreamError, true, "failed to read upstream response")
+	}
+	// Claude API sometimes returns gzip without Content-Encoding header
+	if len(body) >= 2 && body[0] == 0x1f && body[1] == 0x8b {
+		if gzReader, gzErr := gzip.NewReader(bytes.NewReader(body)); gzErr == nil {
+			if decompressed, readErr := io.ReadAll(gzReader); readErr == nil {
+				body = decompressed
+			}
+			_ = gzReader.Close()
+		}
+	}
+	if isOAuthToken {
+		body = stripClaudeToolPrefixFromResponse(body, claudeToolPrefix)
 	}
 
 	eventChan := ctxutil.GetEventChan(ctx)
@@ -259,7 +277,7 @@ func (a *CustomAdapter) handleNonStreamResponse(ctx context.Context, w http.Resp
 	return nil
 }
 
-func (a *CustomAdapter) handleStreamResponse(ctx context.Context, w http.ResponseWriter, resp *http.Response, clientType domain.ClientType) error {
+func (a *CustomAdapter) handleStreamResponse(ctx context.Context, w http.ResponseWriter, resp *http.Response, clientType domain.ClientType, isOAuthToken bool) error {
 	// Decompress response body if needed
 	reader, err := decompressResponse(resp)
 	if err != nil {
@@ -404,11 +422,21 @@ func (a *CustomAdapter) handleStreamResponse(ctx context.Context, w http.Respons
 					break
 				}
 
+				processedLine := line
+				if isOAuthToken {
+					trimmedLine := strings.TrimSuffix(processedLine, "\n")
+					stripped := stripClaudeToolPrefixFromStreamLine([]byte(trimmedLine), claudeToolPrefix)
+					processedLine = string(stripped)
+					if strings.HasSuffix(line, "\n") && !strings.HasSuffix(processedLine, "\n") {
+						processedLine += "\n"
+					}
+				}
+
 				// Collect all SSE content (preserve complete format including newlines)
-				sseBuffer.WriteString(line)
+				sseBuffer.WriteString(processedLine)
 
 				// Check for SSE error events in data lines
-				lineStr := line
+				lineStr := processedLine
 				if strings.HasPrefix(strings.TrimSpace(lineStr), "data:") {
 					if parseErr := parseSSEError(lineStr); parseErr != nil {
 						sseError = parseErr
@@ -418,8 +446,8 @@ func (a *CustomAdapter) handleStreamResponse(ctx context.Context, w http.Respons
 
 				// Note: Response format conversion is handled by Executor's ConvertingResponseWriter
 				// Adapter simply passes through the upstream SSE data
-				if len(line) > 0 {
-					_, writeErr := w.Write([]byte(line))
+				if len(processedLine) > 0 {
+					_, writeErr := w.Write([]byte(processedLine))
 					if writeErr != nil {
 						// Client disconnected
 						sendFinalEvents()

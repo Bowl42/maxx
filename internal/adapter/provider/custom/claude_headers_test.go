@@ -1,0 +1,88 @@
+package custom
+
+import (
+	"net/http"
+	"strings"
+	"testing"
+)
+
+func TestApplyClaudeHeadersAccept(t *testing.T) {
+	req, _ := http.NewRequest("POST", "https://api.anthropic.com/v1/messages", nil)
+	clientReq, _ := http.NewRequest("POST", "https://example.com", nil)
+
+	applyClaudeHeaders(req, clientReq, "sk-test", nil, false)
+	if req.Header.Get("Accept") != "application/json" {
+		t.Errorf("expected Accept application/json, got %s", req.Header.Get("Accept"))
+	}
+
+	req2, _ := http.NewRequest("POST", "https://api.anthropic.com/v1/messages", nil)
+	applyClaudeHeaders(req2, clientReq, "sk-test", nil, true)
+	if req2.Header.Get("Accept") != "text/event-stream" {
+		t.Errorf("expected Accept text/event-stream, got %s", req2.Header.Get("Accept"))
+	}
+}
+
+func TestApplyClaudeHeadersAuthSelection(t *testing.T) {
+	anthropicReq, _ := http.NewRequest("POST", "https://api.anthropic.com/v1/messages", nil)
+	applyClaudeHeaders(anthropicReq, nil, "sk-test", nil, true)
+	if anthropicReq.Header.Get("x-api-key") != "sk-test" {
+		t.Errorf("expected x-api-key set for anthropic base")
+	}
+	if strings.Contains(anthropicReq.Header.Get("Authorization"), "Bearer") {
+		t.Errorf("expected Authorization not set for anthropic base")
+	}
+
+	customReq, _ := http.NewRequest("POST", "https://proxy.example.com/v1/messages", nil)
+	applyClaudeHeaders(customReq, nil, "sk-test", nil, true)
+	if customReq.Header.Get("Authorization") != "Bearer sk-test" {
+		t.Errorf("expected Authorization Bearer for non-anthropic base")
+	}
+	if customReq.Header.Get("x-api-key") != "" {
+		t.Errorf("expected x-api-key not set for non-anthropic base")
+	}
+
+	oauthReq, _ := http.NewRequest("POST", "https://api.anthropic.com/v1/messages", nil)
+	applyClaudeHeaders(oauthReq, nil, "sk-ant-oat-123", nil, true)
+	if oauthReq.Header.Get("Authorization") != "Bearer sk-ant-oat-123" {
+		t.Errorf("expected Authorization Bearer for OAuth token on anthropic base")
+	}
+	if oauthReq.Header.Get("x-api-key") != "" {
+		t.Errorf("expected x-api-key not set for OAuth token on anthropic base")
+	}
+}
+
+func TestApplyClaudeHeadersBetas(t *testing.T) {
+	req, _ := http.NewRequest("POST", "https://api.anthropic.com/v1/messages", nil)
+	clientReq, _ := http.NewRequest("POST", "https://example.com", nil)
+	clientReq.Header.Set("Anthropic-Beta", "custom-beta")
+
+	applyClaudeHeaders(req, clientReq, "sk-test", []string{"extra-beta"}, true)
+	beta := req.Header.Get("Anthropic-Beta")
+	if !strings.Contains(beta, "custom-beta") {
+		t.Errorf("expected custom-beta to be preserved, got %s", beta)
+	}
+	if !strings.Contains(beta, "oauth-2025-04-20") {
+		t.Errorf("expected oauth beta to be appended, got %s", beta)
+	}
+	if !strings.Contains(beta, "prompt-caching-2024-07-31") {
+		t.Errorf("expected prompt-caching beta to be present, got %s", beta)
+	}
+	if !strings.Contains(beta, "extra-beta") {
+		t.Errorf("expected extra beta to be merged, got %s", beta)
+	}
+}
+
+func TestApplyClaudeHeadersDefaults(t *testing.T) {
+	req, _ := http.NewRequest("POST", "https://api.anthropic.com/v1/messages", nil)
+	applyClaudeHeaders(req, nil, "sk-test", nil, true)
+
+	if req.Header.Get("Anthropic-Version") == "" {
+		t.Error("Anthropic-Version should be set")
+	}
+	if req.Header.Get("User-Agent") == "" {
+		t.Error("User-Agent should be set")
+	}
+	if req.Header.Get("X-Stainless-Runtime") == "" {
+		t.Error("X-Stainless-Runtime should be set")
+	}
+}

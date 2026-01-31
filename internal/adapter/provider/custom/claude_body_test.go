@@ -2,8 +2,12 @@ package custom
 
 import (
 	"encoding/json"
+	"fmt"
 	"strings"
 	"testing"
+
+	"github.com/awsl-project/maxx/internal/domain"
+	"github.com/tidwall/gjson"
 )
 
 func TestSystemPromptInjection(t *testing.T) {
@@ -38,26 +42,22 @@ func TestSystemPromptInjection(t *testing.T) {
 	if entry0["text"] != claudeCodeSystemPrompt {
 		t.Errorf("Expected entry 0 text='%s', got %v", claudeCodeSystemPrompt, entry0["text"])
 	}
-
-	t.Logf("Injected system prompt: %s", string(result))
 }
 
 func TestUserIDGeneration(t *testing.T) {
 	userID := generateFakeUserID()
 
-	// Check format matches sub2api's regex: ^user_[a-fA-F0-9]{64}_account__session_[\w-]+$
+	// Check format matches expected regex
 	if !isValidUserID(userID) {
 		t.Errorf("Generated user_id doesn't match expected format: %s", userID)
 	}
-
-	t.Logf("Generated user_id: %s", userID)
 }
 
 func TestCloakingForNonClaudeClient(t *testing.T) {
 	body := []byte(`{"model":"claude-3-5-sonnet","messages":[{"role":"user","content":"hello"}]}`)
 
 	// Non-Claude Code client (e.g., curl)
-	result := applyCloaking(body, "curl/7.68.0")
+	result := applyCloaking(body, "curl/7.68.0", "claude-3-5-sonnet", nil)
 
 	var parsed map[string]interface{}
 	if err := json.Unmarshal(result, &parsed); err != nil {
@@ -84,15 +84,13 @@ func TestCloakingForNonClaudeClient(t *testing.T) {
 	if !isValidUserID(userID) {
 		t.Errorf("Injected user_id doesn't match expected format: %s", userID)
 	}
-
-	t.Logf("Cloaked body: %s", string(result))
 }
 
 func TestNoCloakingForClaudeClient(t *testing.T) {
 	body := []byte(`{"model":"claude-3-5-sonnet","messages":[{"role":"user","content":"hello"}]}`)
 
 	// Claude Code client
-	result := applyCloaking(body, "claude-cli/2.1.23 (external, cli)")
+	result := applyCloaking(body, "claude-cli/2.1.23 (external, cli)", "claude-3-5-sonnet", nil)
 
 	var parsed map[string]interface{}
 	if err := json.Unmarshal(result, &parsed); err != nil {
@@ -110,199 +108,258 @@ func TestNoCloakingForClaudeClient(t *testing.T) {
 	}
 }
 
-func TestUserAgentCloakingForNonClaudeClient(t *testing.T) {
-	// Non-Claude client (e.g., curl)
-	clientUA := "curl/7.68.0"
-
-	// isClaudeCodeClient should return false
-	if isClaudeCodeClient(clientUA) {
-		t.Error("curl should not be detected as Claude Code client")
+func TestShouldCloakModes(t *testing.T) {
+	if !shouldCloak("", "curl/7.68.0") {
+		t.Error("default mode should cloak non-claude clients")
 	}
-
-	// For non-Claude clients, User-Agent should be forced to default
-	// (tested via the header function behavior)
-	t.Logf("Non-Claude client '%s' will have User-Agent forced to '%s'", clientUA, defaultClaudeUserAgent)
-}
-
-func TestUserAgentPassthroughForClaudeClient(t *testing.T) {
-	// Claude Code client
-	clientUA := "claude-cli/2.1.23 (external, cli)"
-
-	// isClaudeCodeClient should return true
-	if !isClaudeCodeClient(clientUA) {
-		t.Error("claude-cli should be detected as Claude Code client")
+	if shouldCloak("", "claude-cli/2.1.17 (external, cli)") {
+		t.Error("default mode should not cloak claude-cli clients")
 	}
-
-	// For Claude clients, User-Agent should be passed through
-	t.Logf("Claude client '%s' will have User-Agent passed through", clientUA)
-}
-
-func TestFullBodyProcessing(t *testing.T) {
-	body := []byte(`{"model":"claude-3-5-sonnet","max_tokens":1024,"messages":[{"role":"user","content":"hello"}]}`)
-
-	// Process body with non-Claude client
-	result, _ := processClaudeRequestBody(body, "curl/7.68.0")
-
-	// Parse result
-	resultStr := string(result)
-	t.Logf("Processed body: %s", resultStr)
-
-	// Check field order by finding positions
-	modelPos := strings.Index(resultStr, `"model"`)
-	messagesPos := strings.Index(resultStr, `"messages"`)
-	systemPos := strings.Index(resultStr, `"system"`)
-	toolsPos := strings.Index(resultStr, `"tools"`)
-	metadataPos := strings.Index(resultStr, `"metadata"`)
-	maxTokensPos := strings.Index(resultStr, `"max_tokens"`)
-	streamPos := strings.Index(resultStr, `"stream"`)
-
-	// Verify order: model < messages < system < tools < metadata < max_tokens < stream
-	if modelPos > messagesPos {
-		t.Error("model should come before messages")
+	if !shouldCloak("always", "claude-cli/2.1.17 (external, cli)") {
+		t.Error("always mode should cloak all clients")
 	}
-	if messagesPos > systemPos {
-		t.Error("messages should come before system")
-	}
-	if systemPos > toolsPos {
-		t.Error("system should come before tools")
-	}
-	if toolsPos > metadataPos {
-		t.Error("tools should come before metadata")
-	}
-	if metadataPos > maxTokensPos {
-		t.Error("metadata should come before max_tokens")
-	}
-	if maxTokensPos > streamPos {
-		t.Error("max_tokens should come before stream")
-	}
-
-	// Verify stream is true
-	if !strings.Contains(resultStr, `"stream":true`) {
-		t.Error("stream should be true")
+	if shouldCloak("never", "curl/7.68.0") {
+		t.Error("never mode should cloak none")
 	}
 }
 
-func TestCleanCacheControl(t *testing.T) {
-	// Body with cache_control in messages and system
+func TestSkipSystemInjectionForHaiku(t *testing.T) {
+	body := []byte(`{"model":"claude-3-5-haiku-20241022","messages":[{"role":"user","content":"hello"}]}`)
+
+	result := applyCloaking(body, "curl/7.68.0", "claude-3-5-haiku-20241022", nil)
+
+	if gjson.GetBytes(result, "system").Exists() {
+		t.Error("system prompt should be skipped for claude-3-5-haiku models")
+	}
+	if !gjson.GetBytes(result, "metadata.user_id").Exists() {
+		t.Error("user_id should still be injected for haiku models")
+	}
+}
+
+func TestFullBodyProcessingAddsCacheControlAndExtractsBetas(t *testing.T) {
 	body := []byte(`{
 		"model":"claude-3-5-sonnet",
-		"messages":[
-			{"role":"user","content":[{"type":"text","text":"hello","cache_control":{"type":"ephemeral"}}]}
-		],
-		"system":[{"type":"text","text":"You are helpful","cache_control":{"type":"ephemeral"}}]
-	}`)
-
-	result := cleanCacheControl(body)
-
-	// Verify cache_control is removed
-	if strings.Contains(string(result), "cache_control") {
-		t.Error("cache_control should be removed from body")
-	}
-
-	// Verify other content is preserved
-	if !strings.Contains(string(result), `"text":"hello"`) {
-		t.Error("message text should be preserved")
-	}
-	if !strings.Contains(string(result), `"text":"You are helpful"`) {
-		t.Error("system text should be preserved")
-	}
-
-	t.Logf("Cleaned body: %s", string(result))
-}
-
-func TestInterleavedThinkingHint(t *testing.T) {
-	// Body with thinking enabled and tools present
-	body := []byte(`{
-		"model":"claude-3-5-sonnet",
-		"messages":[{"role":"user","content":"hello"}],
+		"betas":["custom-beta-1"],
 		"system":[{"type":"text","text":"You are helpful"}],
 		"tools":[{"name":"test_tool","description":"A test tool"}],
-		"thinking":{"type":"enabled","budget_tokens":10000}
+		"messages":[
+			{"role":"user","content":"hello"},
+			{"role":"assistant","content":"ok"},
+			{"role":"user","content":"again"}
+		]
 	}`)
 
-	result := injectInterleavedThinkingHint(body)
+	result, betas := processClaudeRequestBody(body, "curl/7.68.0", nil)
 
-	// Verify hint is appended to system
-	if !strings.Contains(string(result), interleavedThinkingHint) {
-		t.Error("interleaved thinking hint should be injected")
+	if len(betas) != 1 || betas[0] != "custom-beta-1" {
+		t.Fatalf("expected betas to be extracted, got %v", betas)
+	}
+	if gjson.GetBytes(result, "betas").Exists() {
+		t.Error("betas should be removed from body")
 	}
 
-	// Verify original system content is preserved
-	if !strings.Contains(string(result), "You are helpful") {
-		t.Error("original system text should be preserved")
+	if !gjson.GetBytes(result, "tools.0.cache_control").Exists() {
+		t.Error("cache_control should be injected into tools")
 	}
-
-	t.Logf("Body with hint: %s", string(result))
-}
-
-func TestNoThinkingHintWithoutThinking(t *testing.T) {
-	// Body without thinking configuration
-	body := []byte(`{
-		"model":"claude-3-5-sonnet",
-		"messages":[{"role":"user","content":"hello"}],
-		"tools":[{"name":"test_tool"}]
-	}`)
-
-	result := injectInterleavedThinkingHint(body)
-
-	// Verify hint is NOT injected
-	if strings.Contains(string(result), interleavedThinkingHint) {
-		t.Error("thinking hint should NOT be injected without thinking enabled")
+	system := gjson.GetBytes(result, "system")
+	if !system.IsArray() || len(system.Array()) == 0 {
+		t.Fatal("system should be an array with at least one entry")
 	}
-}
-
-func TestNoThinkingHintWithoutTools(t *testing.T) {
-	// Body with thinking but no tools
-	body := []byte(`{
-		"model":"claude-3-5-sonnet",
-		"messages":[{"role":"user","content":"hello"}],
-		"thinking":{"type":"enabled","budget_tokens":10000}
-	}`)
-
-	result := injectInterleavedThinkingHint(body)
-
-	// Verify hint is NOT injected
-	if strings.Contains(string(result), interleavedThinkingHint) {
-		t.Error("thinking hint should NOT be injected without tools")
+	lastIdx := len(system.Array()) - 1
+	if !gjson.GetBytes(result, fmt.Sprintf("system.%d.cache_control", lastIdx)).Exists() {
+		t.Error("cache_control should be injected into the last system entry")
+	}
+	if !gjson.GetBytes(result, "messages.0.content.0.cache_control").Exists() {
+		t.Error("cache_control should be injected into second-to-last user message")
 	}
 }
 
-func TestFieldOrderWithThinking(t *testing.T) {
-	// Body with thinking and tool_choice
+func TestSensitiveWordObfuscation(t *testing.T) {
+	body := []byte(`{"model":"claude-3-5-sonnet","messages":[{"role":"user","content":"this is secret"}]}`)
+	cfg := &domain.ProviderConfigCustomCloak{
+		Mode:           "always",
+		SensitiveWords: []string{"secret"},
+	}
+
+	result := applyCloaking(body, "curl/7.68.0", "claude-3-5-sonnet", cfg)
+
+	const zwsp = "\u200B"
+	if strings.Contains(string(result), "secret") {
+		t.Error("sensitive word should be obfuscated")
+	}
+	if !strings.Contains(string(result), "s"+zwsp+"ecret") {
+		t.Error("obfuscated word should include zero-width space")
+	}
+}
+
+func TestStrictCloakingReplacesSystem(t *testing.T) {
 	body := []byte(`{
-		"stream":true,
-		"thinking":{"type":"enabled"},
-		"tool_choice":{"type":"auto"},
 		"model":"claude-3-5-sonnet",
-		"messages":[{"role":"user","content":"hello"}],
-		"max_tokens":1024
+		"system":[
+			{"type":"text","text":"Original system"},
+			{"type":"text","text":"More system"}
+		],
+		"messages":[{"role":"user","content":"hello"}]
+	}`)
+	cfg := &domain.ProviderConfigCustomCloak{
+		Mode:       "always",
+		StrictMode: true,
+	}
+
+	result := applyCloaking(body, "curl/7.68.0", "claude-3-5-sonnet", cfg)
+
+	system := gjson.GetBytes(result, "system")
+	if !system.IsArray() || len(system.Array()) != 1 {
+		t.Fatalf("strict mode should replace system with single entry, got %s", system.Raw)
+	}
+	if system.Array()[0].Get("text").String() != claudeCodeSystemPrompt {
+		t.Errorf("strict mode system text mismatch: %s", system.Array()[0].Get("text").String())
+	}
+}
+
+func TestSensitiveWordObfuscationInSystem(t *testing.T) {
+	body := []byte(`{
+		"model":"claude-3-5-sonnet",
+		"system":[{"type":"text","text":"keep secret here"}],
+		"messages":[{"role":"user","content":"hello"}]
+	}`)
+	cfg := &domain.ProviderConfigCustomCloak{
+		Mode:           "always",
+		SensitiveWords: []string{"secret"},
+	}
+
+	result := applyCloaking(body, "curl/7.68.0", "claude-3-5-sonnet", cfg)
+
+	const zwsp = "\u200B"
+	if strings.Contains(string(result), "secret") {
+		t.Error("sensitive word in system should be obfuscated")
+	}
+	if !strings.Contains(string(result), "s"+zwsp+"ecret") {
+		t.Error("obfuscated system word should include zero-width space")
+	}
+}
+
+func TestEnsureCacheControlWithSystemString(t *testing.T) {
+	body := []byte(`{
+		"model":"claude-3-5-sonnet",
+		"system":"You are helpful",
+		"tools":[{"name":"test_tool","description":"A test tool"}],
+		"messages":[
+			{"role":"user","content":"hello"},
+			{"role":"assistant","content":"ok"},
+			{"role":"user","content":"again"}
+		]
+	}`)
+	cfg := &domain.ProviderConfigCustomCloak{Mode: "never"}
+
+	result, _ := processClaudeRequestBody(body, "curl/7.68.0", cfg)
+
+	if !gjson.GetBytes(result, "system.0.cache_control").Exists() {
+		t.Error("cache_control should be injected into system string")
+	}
+	if gjson.GetBytes(result, "system").Type != gjson.JSON {
+		t.Error("system should be converted to array when injecting cache_control")
+	}
+}
+
+func TestEnsureCacheControlDoesNotOverrideExistingTools(t *testing.T) {
+	body := []byte(`{
+		"model":"claude-3-5-sonnet",
+		"tools":[
+			{"name":"tool1","cache_control":{"type":"ephemeral"}},
+			{"name":"tool2"}
+		],
+		"messages":[
+			{"role":"user","content":"hello"},
+			{"role":"assistant","content":"ok"},
+			{"role":"user","content":"again"}
+		]
+	}`)
+	cfg := &domain.ProviderConfigCustomCloak{Mode: "never"}
+
+	result, _ := processClaudeRequestBody(body, "curl/7.68.0", cfg)
+
+	if gjson.GetBytes(result, "tools.1.cache_control").Exists() {
+		t.Error("cache_control should not be added when tools already have cache_control")
+	}
+}
+
+func TestDisableThinkingIfToolChoiceForced(t *testing.T) {
+	body := []byte(`{
+		"model":"claude-3-5-sonnet",
+		"thinking":{"type":"enabled","budget_tokens":1000},
+		"tool_choice":{"type":"any"}
 	}`)
 
-	result := reorderBodyFields(body)
-	resultStr := string(result)
-
-	// Check field order
-	modelPos := strings.Index(resultStr, `"model"`)
-	messagesPos := strings.Index(resultStr, `"messages"`)
-	toolChoicePos := strings.Index(resultStr, `"tool_choice"`)
-	thinkingPos := strings.Index(resultStr, `"thinking"`)
-	maxTokensPos := strings.Index(resultStr, `"max_tokens"`)
-	streamPos := strings.Index(resultStr, `"stream"`)
-
-	if modelPos > messagesPos {
-		t.Error("model should come before messages")
-	}
-	if toolChoicePos > thinkingPos {
-		t.Error("tool_choice should come before thinking")
-	}
-	if thinkingPos > maxTokensPos {
-		t.Error("thinking should come before max_tokens")
-	}
-	if maxTokensPos > streamPos {
-		t.Error("max_tokens should come before stream")
+	result := disableThinkingIfToolChoiceForced(body)
+	if gjson.GetBytes(result, "thinking").Exists() {
+		t.Error("thinking should be removed when tool_choice.type=any")
 	}
 
-	t.Logf("Reordered body: %s", resultStr)
+	bodyAuto := []byte(`{
+		"model":"claude-3-5-sonnet",
+		"thinking":{"type":"enabled","budget_tokens":1000},
+		"tool_choice":{"type":"auto"}
+	}`)
+	resultAuto := disableThinkingIfToolChoiceForced(bodyAuto)
+	if !gjson.GetBytes(resultAuto, "thinking").Exists() {
+		t.Error("thinking should remain when tool_choice.type=auto")
+	}
+}
+
+func TestProcessClaudeRequestBodyDoesNotForceStream(t *testing.T) {
+	body := []byte(`{
+		"model":"claude-3-5-sonnet",
+		"stream":false,
+		"messages":[{"role":"user","content":"hello"}]
+	}`)
+	cfg := &domain.ProviderConfigCustomCloak{Mode: "never"}
+
+	result, _ := processClaudeRequestBody(body, "curl/7.68.0", cfg)
+	if gjson.GetBytes(result, "stream").Type != gjson.False {
+		t.Error("stream flag should not be forced to true")
+	}
+}
+
+func TestClaudeToolPrefixApplyAndStrip(t *testing.T) {
+	body := []byte(`{
+		"model":"claude-3-5-sonnet",
+		"tools":[{"name":"t1"},{"type":"web_search","name":"web_search"}],
+		"tool_choice":{"type":"tool","name":"t1"},
+		"messages":[
+			{"role":"assistant","content":[{"type":"tool_use","name":"t1","input":{}}]}
+		],
+		"content":[{"type":"tool_use","name":"t1"}]
+	}`)
+
+	updated := applyClaudeToolPrefix(body, "proxy_")
+	if gjson.GetBytes(updated, "tools.0.name").String() != "proxy_t1" {
+		t.Error("tool name should be prefixed")
+	}
+	if gjson.GetBytes(updated, "tools.1.name").String() != "web_search" {
+		t.Error("built-in tool name should not be prefixed")
+	}
+	if gjson.GetBytes(updated, "tool_choice.name").String() != "proxy_t1" {
+		t.Error("tool_choice name should be prefixed")
+	}
+	if gjson.GetBytes(updated, "messages.0.content.0.name").String() != "proxy_t1" {
+		t.Error("tool_use name should be prefixed in messages")
+	}
+
+	// Simulate response stripping
+	responseBody := []byte(`{"content":[{"type":"tool_use","name":"proxy_t1"}]}`)
+	stripped := stripClaudeToolPrefixFromResponse(responseBody, "proxy_")
+	if gjson.GetBytes(stripped, "content.0.name").String() != "t1" {
+		t.Error("tool_use name should be stripped in response content")
+	}
+}
+
+func TestStripClaudeToolPrefixFromStreamLine(t *testing.T) {
+	line := "data: {\"type\":\"content_block_start\",\"content_block\":{\"type\":\"tool_use\",\"name\":\"proxy_t1\"}}\n"
+	out := stripClaudeToolPrefixFromStreamLine([]byte(line), "proxy_")
+	if !strings.Contains(string(out), "\"name\":\"t1\"") {
+		t.Error("stream line tool name should be stripped")
+	}
 }
 
 func TestNoDuplicateSystemPromptInjection(t *testing.T) {
@@ -320,6 +377,4 @@ func TestNoDuplicateSystemPromptInjection(t *testing.T) {
 	if count != 1 {
 		t.Errorf("Expected 1 occurrence of 'Claude Code', got %d", count)
 	}
-
-	t.Logf("Result (no duplicate): %s", string(result))
 }
