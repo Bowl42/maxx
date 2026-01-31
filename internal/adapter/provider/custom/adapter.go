@@ -55,9 +55,18 @@ func (a *CustomAdapter) Execute(ctx context.Context, w http.ResponseWriter, req 
 	baseURL := a.getBaseURL(clientType)
 	requestURI := ctxutil.GetRequestURI(ctx)
 
-	// For Gemini, update model in URL path if mapping is configured
-	if clientType == domain.ClientTypeGemini && mappedModel != "" {
-		requestURI = updateGeminiModelInPath(requestURI, mappedModel)
+	// Apply model mapping if configured
+	var err error
+	if mappedModel != "" {
+		// For Gemini, update model in URL path
+		if clientType == domain.ClientTypeGemini {
+			requestURI = updateGeminiModelInPath(requestURI, mappedModel)
+		}
+		// For other types, update model in request body
+		requestBody, err = updateModelInBody(requestBody, mappedModel, clientType)
+		if err != nil {
+			return domain.NewProxyErrorWithMessage(domain.ErrUpstreamError, true, "failed to update model in body")
+		}
 	}
 
 	upstreamURL := buildUpstreamURL(baseURL, requestURI)
