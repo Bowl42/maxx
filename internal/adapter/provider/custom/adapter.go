@@ -104,7 +104,10 @@ func (a *CustomAdapter) Execute(ctx context.Context, w http.ResponseWriter, req 
 
 		// Override auth headers with provider's credentials
 		if a.provider.Config.Custom.APIKey != "" {
-			setAuthHeader(upstreamReq, clientType, a.provider.Config.Custom.APIKey)
+			// Check if this is a format conversion scenario
+			originalClientType := ctxutil.GetOriginalClientType(ctx)
+			isConversion := originalClientType != "" && originalClientType != clientType
+			setAuthHeader(upstreamReq, clientType, a.provider.Config.Custom.APIKey, isConversion)
 		}
 	}
 
@@ -502,7 +505,27 @@ func updateGeminiModelInPath(path string, newModel string) string {
 	return geminiModelPathPattern.ReplaceAllString(path, "${1}"+newModel+"${3}")
 }
 
-func setAuthHeader(req *http.Request, clientType domain.ClientType, apiKey string) {
+func setAuthHeader(req *http.Request, clientType domain.ClientType, apiKey string, forceCreate bool) {
+	// For format conversion scenarios, we need to create the appropriate auth header
+	// even if the original request didn't have it (e.g., Claude x-api-key -> OpenAI Authorization)
+	if forceCreate {
+		switch clientType {
+		case domain.ClientTypeOpenAI, domain.ClientTypeCodex:
+			// OpenAI/Codex-style: Authorization: Bearer <key>
+			req.Header.Set("Authorization", "Bearer "+apiKey)
+		case domain.ClientTypeClaude:
+			// Claude-style: x-api-key
+			req.Header.Set("x-api-key", apiKey)
+		case domain.ClientTypeGemini:
+			// Gemini-style: x-goog-api-key
+			req.Header.Set("x-goog-api-key", apiKey)
+		default:
+			// Default to OpenAI style for unknown types
+			req.Header.Set("Authorization", "Bearer "+apiKey)
+		}
+		return
+	}
+
 	// Only update authentication headers that already exist in the request
 	// Do not create new headers - preserve the original request format
 
