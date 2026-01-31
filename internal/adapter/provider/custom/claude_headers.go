@@ -7,7 +7,7 @@ import (
 
 const (
 	defaultAnthropicVersion = "2023-06-01"
-	defaultClaudeUserAgent  = "claude-cli/1.0.83 (external, cli)"
+	defaultClaudeUserAgent  = "claude-cli/2.1.17 (external, cli)"
 )
 
 // applyClaudeHeaders sets Claude API request headers.

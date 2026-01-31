@@ -111,10 +111,10 @@ func TestShouldCloakModes(t *testing.T) {
 	if !shouldCloak("", "curl/7.68.0") {
 		t.Error("default mode should cloak non-claude clients")
 	}
-	if shouldCloak("", "claude-cli/1.0.83 (external, cli)") {
+	if shouldCloak("", "claude-cli/2.1.17 (external, cli)") {
 		t.Error("default mode should not cloak claude-cli clients")
 	}
-	if !shouldCloak("always", "claude-cli/1.0.83 (external, cli)") {
+	if !shouldCloak("always", "claude-cli/2.1.17 (external, cli)") {
 		t.Error("always mode should cloak all clients")
 	}
 	if shouldCloak("never", "curl/7.68.0") {
