@@ -19,6 +19,9 @@ type ProviderConfigCustom struct {
 	// API Key
 	APIKey string `json:"apiKey"`
 
+	// Claude Cloaking 配置（可选）
+	Cloak *ProviderConfigCustomCloak `json:"cloak,omitempty"`
+
 	// 某个 Client 有特殊的 BaseURL
 	ClientBaseURL map[ClientType]string `json:"clientBaseURL,omitempty"`
 
@@ -27,6 +30,17 @@ type ProviderConfigCustom struct {
 
 	// Model 映射: RequestModel → MappedModel
 	ModelMapping map[string]string `json:"modelMapping,omitempty"`
+}
+
+type ProviderConfigCustomCloak struct {
+	// "auto" (default), "always", "never"
+	Mode string `json:"mode,omitempty"`
+
+	// strictMode=true 时仅保留 Claude Code 提示词
+	StrictMode bool `json:"strictMode,omitempty"`
+
+	// 敏感词列表（会做零宽分隔混淆）
+	SensitiveWords []string `json:"sensitiveWords,omitempty"`
 }
 
 type ProviderConfigAntigravity struct {
@@ -353,18 +367,18 @@ type ProxyUpstreamAttempt struct {
 
 // AttemptCostData contains minimal data needed for cost recalculation
 type AttemptCostData struct {
-	ID               uint64
-	ProxyRequestID   uint64
-	ResponseModel    string
-	MappedModel      string
-	RequestModel     string
-	InputTokenCount  uint64
-	OutputTokenCount uint64
-	CacheReadCount   uint64
-	CacheWriteCount  uint64
+	ID                uint64
+	ProxyRequestID    uint64
+	ResponseModel     string
+	MappedModel       string
+	RequestModel      string
+	InputTokenCount   uint64
+	OutputTokenCount  uint64
+	CacheReadCount    uint64
+	CacheWriteCount   uint64
 	Cache5mWriteCount uint64
 	Cache1hWriteCount uint64
-	Cost             uint64
+	Cost              uint64
 }
 
 // 重试配置
@@ -564,10 +578,10 @@ type ProviderStats struct {
 	ProviderID uint64 `json:"providerID"`
 
 	// 请求统计
-	TotalRequests     uint64  `json:"totalRequests"`
+	TotalRequests      uint64  `json:"totalRequests"`
 	SuccessfulRequests uint64  `json:"successfulRequests"`
-	FailedRequests    uint64  `json:"failedRequests"`
-	SuccessRate       float64 `json:"successRate"` // 0-100
+	FailedRequests     uint64  `json:"failedRequests"`
+	SuccessRate        float64 `json:"successRate"` // 0-100
 
 	// 活动请求（正在处理中）
 	ActiveRequests uint64 `json:"activeRequests"`

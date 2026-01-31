@@ -12,6 +12,11 @@ export type ClientType = 'claude' | 'codex' | 'gemini' | 'openai';
 export interface ProviderConfigCustom {
   baseURL: string;
   apiKey: string;
+  cloak?: {
+    mode?: string; // "auto" | "always" | "never"
+    strictMode?: boolean;
+    sensitiveWords?: string[];
+  };
   clientBaseURL?: Partial<Record<ClientType, string>>;
   clientMultiplier?: Partial<Record<ClientType, number>>; // 10000=1倍
   modelMapping?: Record<string, string>;
