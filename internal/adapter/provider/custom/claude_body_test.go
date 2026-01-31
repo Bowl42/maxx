@@ -2,6 +2,7 @@ package custom
 
 import (
 	"encoding/json"
+	"fmt"
 	"strings"
 	"testing"
 
@@ -160,10 +161,13 @@ func TestFullBodyProcessingAddsCacheControlAndExtractsBetas(t *testing.T) {
 	if !gjson.GetBytes(result, "tools.0.cache_control").Exists() {
 		t.Error("cache_control should be injected into tools")
 	}
-	if gjson.GetBytes(result, "system.0.cache_control").Exists() || gjson.GetBytes(result, "system.1.cache_control").Exists() {
-		// ok
-	} else {
-		t.Error("cache_control should be injected into system")
+	system := gjson.GetBytes(result, "system")
+	if !system.IsArray() || len(system.Array()) == 0 {
+		t.Fatal("system should be an array with at least one entry")
+	}
+	lastIdx := len(system.Array()) - 1
+	if !gjson.GetBytes(result, fmt.Sprintf("system.%d.cache_control", lastIdx)).Exists() {
+		t.Error("cache_control should be injected into the last system entry")
 	}
 	if !gjson.GetBytes(result, "messages.0.content.0.cache_control").Exists() {
 		t.Error("cache_control should be injected into second-to-last user message")

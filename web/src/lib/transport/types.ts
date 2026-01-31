@@ -13,7 +13,7 @@ export interface ProviderConfigCustom {
   baseURL: string;
   apiKey: string;
   cloak?: {
-    mode?: string; // "auto" | "always" | "never"
+    mode?: 'auto' | 'always' | 'never';
     strictMode?: boolean;
     sensitiveWords?: string[];
   };
