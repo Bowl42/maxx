@@ -114,8 +114,7 @@ func (c *claudeToCodexRequest) Transform(body []byte, model string, stream bool)
 		effort := strings.ToLower(strings.TrimSpace(req.OutputConfig.Effort))
 		codexReq.Reasoning = &CodexReasoning{Effort: effort}
 	}
-	_, instructions := CodexInstructionsForModel(model, "", userAgent)
-	if GetCodexInstructionsEnabled() {
+	if instructions := CodexInstructionsForModel(model, userAgent); instructions != "" {
 		codexReq.Instructions = instructions
 	}
 	if codexReq.Reasoning == nil {

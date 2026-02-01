@@ -1,14 +1,29 @@
 package converter
 
 import (
-	"embed"
+	_ "embed"
 	"encoding/json"
 	"strings"
 	"sync/atomic"
 )
 
-//go:embed codex_instructions
-var codexInstructionsDir embed.FS
+//go:embed codex_instructions/default.md
+var defaultPrompt string
+
+//go:embed codex_instructions/codex.md
+var codexPrompt string
+
+//go:embed codex_instructions/codex_max.md
+var codexMaxPrompt string
+
+//go:embed codex_instructions/gpt51.md
+var gpt51Prompt string
+
+//go:embed codex_instructions/gpt52.md
+var gpt52Prompt string
+
+//go:embed codex_instructions/gpt52_codex.md
+var gpt52CodexPrompt string
 
 //go:embed opencode_codex_instructions.txt
 var opencodeCodexInstructions string
@@ -81,69 +96,34 @@ func StripCodexUserAgent(raw []byte) []byte {
 	return mustMarshal(data)
 }
 
-func codexInstructionsForOpenCode(systemInstructions string) (bool, string) {
-	if opencodeCodexInstructions == "" {
-		return false, ""
-	}
-	if strings.HasPrefix(systemInstructions, opencodeCodexInstructions) {
-		return true, ""
-	}
-	return false, opencodeCodexInstructions
-}
-
 func useOpenCodeInstructions(userAgent string) bool {
 	return strings.Contains(strings.ToLower(userAgent), userAgentOpenAISDK)
 }
 
-func codexInstructionsForCodex(modelName, systemInstructions string) (bool, string) {
-	entries, _ := codexInstructionsDir.ReadDir("codex_instructions")
-
-	lastPrompt := ""
-	lastCodexPrompt := ""
-	lastCodexMaxPrompt := ""
-	last51Prompt := ""
-	last52Prompt := ""
-	last52CodexPrompt := ""
-	for _, entry := range entries {
-		content, _ := codexInstructionsDir.ReadFile("codex_instructions/" + entry.Name())
-		if strings.HasPrefix(systemInstructions, string(content)) {
-			return true, ""
-		}
-		if strings.HasPrefix(entry.Name(), "gpt_5_codex_prompt.md") {
-			lastCodexPrompt = string(content)
-		} else if strings.HasPrefix(entry.Name(), "gpt-5.1-codex-max_prompt.md") {
-			lastCodexMaxPrompt = string(content)
-		} else if strings.HasPrefix(entry.Name(), "prompt.md") {
-			lastPrompt = string(content)
-		} else if strings.HasPrefix(entry.Name(), "gpt_5_1_prompt.md") {
-			last51Prompt = string(content)
-		} else if strings.HasPrefix(entry.Name(), "gpt_5_2_prompt.md") {
-			last52Prompt = string(content)
-		} else if strings.HasPrefix(entry.Name(), "gpt-5.2-codex_prompt.md") {
-			last52CodexPrompt = string(content)
-		}
+func codexInstructionsForCodex(modelName string) string {
+	switch {
+	case strings.Contains(modelName, "codex-max"):
+		return codexMaxPrompt
+	case strings.Contains(modelName, "5.2-codex"):
+		return gpt52CodexPrompt
+	case strings.Contains(modelName, "codex"):
+		return codexPrompt
+	case strings.Contains(modelName, "5.1"):
+		return gpt51Prompt
+	case strings.Contains(modelName, "5.2"):
+		return gpt52Prompt
+	default:
+		return defaultPrompt
 	}
-	if strings.Contains(modelName, "codex-max") {
-		return false, lastCodexMaxPrompt
-	} else if strings.Contains(modelName, "5.2-codex") {
-		return false, last52CodexPrompt
-	} else if strings.Contains(modelName, "codex") {
-		return false, lastCodexPrompt
-	} else if strings.Contains(modelName, "5.1") {
-		return false, last51Prompt
-	} else if strings.Contains(modelName, "5.2") {
-		return false, last52Prompt
-	}
-	return false, lastPrompt
 }
 
 // CodexInstructionsForModel returns official instructions based on model and user agent.
-func CodexInstructionsForModel(modelName, systemInstructions, userAgent string) (bool, string) {
+func CodexInstructionsForModel(modelName, userAgent string) string {
 	if !GetCodexInstructionsEnabled() {
-		return true, ""
+		return ""
 	}
 	if useOpenCodeInstructions(userAgent) {
-		return codexInstructionsForOpenCode(systemInstructions)
+		return opencodeCodexInstructions
 	}
-	return codexInstructionsForCodex(modelName, systemInstructions)
+	return codexInstructionsForCodex(modelName)
 }

@@ -136,8 +136,7 @@ func (c *openaiToCodexRequest) Transform(body []byte, model string, stream bool)
 		})
 	}
 
-	_, instructions := CodexInstructionsForModel(model, "", userAgent)
-	if GetCodexInstructionsEnabled() {
+	if instructions := CodexInstructionsForModel(model, userAgent); instructions != "" {
 		codexReq.Instructions = instructions
 	}
 	if codexReq.Reasoning == nil {

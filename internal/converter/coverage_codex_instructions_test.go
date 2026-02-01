@@ -44,42 +44,28 @@ func TestCodexInstructionsBranches(t *testing.T) {
 	SetCodexInstructionsEnabled(true)
 	defer SetCodexInstructionsEnabled(false)
 
-	_, prompt := codexInstructionsForCodex("codex", "")
-	if prompt == "" {
+	if v := codexInstructionsForCodex("codex"); v == "" {
 		t.Fatalf("expected codex prompt")
 	}
-	if ok, empty := codexInstructionsForCodex("codex", prompt); !ok || empty != "" {
-		t.Fatalf("expected prefix match")
-	}
-	if _, v := codexInstructionsForCodex("codex-max", ""); v == "" {
+	if v := codexInstructionsForCodex("codex-max"); v == "" {
 		t.Fatalf("expected codex-max prompt")
 	}
-	if _, v := codexInstructionsForCodex("5.2-codex", ""); v == "" {
+	if v := codexInstructionsForCodex("5.2-codex"); v == "" {
 		t.Fatalf("expected 5.2-codex prompt")
 	}
-	if _, v := codexInstructionsForCodex("gpt-5.1", ""); v == "" {
+	if v := codexInstructionsForCodex("gpt-5.1"); v == "" {
 		t.Fatalf("expected 5.1 prompt")
 	}
-	if _, v := codexInstructionsForCodex("gpt-5.2", ""); v == "" {
+	if v := codexInstructionsForCodex("gpt-5.2"); v == "" {
 		t.Fatalf("expected 5.2 prompt")
 	}
-	if _, v := codexInstructionsForCodex("other", ""); v == "" {
+	if v := codexInstructionsForCodex("other"); v == "" {
 		t.Fatalf("expected default prompt")
 	}
 
-	if _, v := codexInstructionsForOpenCode(""); v == "" {
-		t.Fatalf("expected opencode prompt")
+	if opencodeCodexInstructions == "" {
+		t.Fatalf("expected opencode instructions to be embedded")
 	}
-	if ok, v := codexInstructionsForOpenCode(opencodeCodexInstructions); !ok || v != "" {
-		t.Fatalf("expected opencode prefix match")
-	}
-
-	orig := opencodeCodexInstructions
-	opencodeCodexInstructions = ""
-	if ok, v := codexInstructionsForOpenCode("sys"); ok || v != "" {
-		t.Fatalf("expected empty opencode instructions")
-	}
-	opencodeCodexInstructions = orig
 }
 
 func TestCodexUserAgentHelpers(t *testing.T) {

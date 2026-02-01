@@ -230,8 +230,7 @@ skipInputItems:
 	codexReq.Include = []string{"reasoning.encrypted_content"}
 	codexReq.Store = false
 	codexReq.Stream = stream
-	_, instructions := CodexInstructionsForModel(model, "", userAgent)
-	if GetCodexInstructionsEnabled() {
+	if instructions := CodexInstructionsForModel(model, userAgent); instructions != "" {
 		codexReq.Instructions = instructions
 	}
 

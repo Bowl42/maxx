@@ -215,11 +215,11 @@ func TestCodexUserAgentInjectExtract(t *testing.T) {
 func TestCodexInstructionsForModelEnabled(t *testing.T) {
 	SetCodexInstructionsEnabled(true)
 	defer SetCodexInstructionsEnabled(false)
-	_, instructions := CodexInstructionsForModel("gpt-5.1", "", "")
+	instructions := CodexInstructionsForModel("gpt-5.1", "")
 	if instructions == "" {
 		t.Fatalf("expected instructions when enabled")
 	}
-	_, opencodeInstructions := CodexInstructionsForModel("gpt-5.1", "", "opencode/1.0")
+	opencodeInstructions := CodexInstructionsForModel("gpt-5.1", "opencode/1.0")
 	if opencodeInstructions == "" {
 		t.Fatalf("expected opencode instructions")
 	}
