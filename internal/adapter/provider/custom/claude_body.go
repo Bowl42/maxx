@@ -102,14 +102,18 @@ func isClaudeOAuthToken(apiKey string) bool {
 
 func ensureMinThinkingBudget(body []byte) []byte {
 	const minBudget = 1024
-	result := gjson.GetBytes(body, "thinking.enabled.budget_tokens")
+	// Claude API format: {"thinking": {"type": "enabled", "budget_tokens": N}}
+	if gjson.GetBytes(body, "thinking.type").String() != "enabled" {
+		return body
+	}
+	result := gjson.GetBytes(body, "thinking.budget_tokens")
 	if result.Type != gjson.Number {
 		return body
 	}
 	if result.Int() >= minBudget {
 		return body
 	}
-	updated, err := sjson.SetBytes(body, "thinking.enabled.budget_tokens", minBudget)
+	updated, err := sjson.SetBytes(body, "thinking.budget_tokens", minBudget)
 	if err != nil {
 		return body
 	}

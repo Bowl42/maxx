@@ -380,21 +380,28 @@ func TestNoDuplicateSystemPromptInjection(t *testing.T) {
 }
 
 func TestEnsureMinThinkingBudget(t *testing.T) {
-	body := []byte(`{"thinking":{"enabled":{"budget_tokens":512}}}`)
+	body := []byte(`{"thinking":{"type":"enabled","budget_tokens":512}}`)
 	updated := ensureMinThinkingBudget(body)
-	if got := gjson.GetBytes(updated, "thinking.enabled.budget_tokens").Int(); got != 1024 {
+	if got := gjson.GetBytes(updated, "thinking.budget_tokens").Int(); got != 1024 {
 		t.Fatalf("budget_tokens = %d, want 1024", got)
 	}
 
-	body = []byte(`{"thinking":{"enabled":{"budget_tokens":2048}}}`)
+	body = []byte(`{"thinking":{"type":"enabled","budget_tokens":2048}}`)
 	updated = ensureMinThinkingBudget(body)
-	if got := gjson.GetBytes(updated, "thinking.enabled.budget_tokens").Int(); got != 2048 {
+	if got := gjson.GetBytes(updated, "thinking.budget_tokens").Int(); got != 2048 {
 		t.Fatalf("budget_tokens = %d, want 2048", got)
 	}
 
-	body = []byte(`{"thinking":{"enabled":{"budget_tokens":"oops"}}}`)
+	body = []byte(`{"thinking":{"type":"enabled","budget_tokens":"oops"}}`)
 	updated = ensureMinThinkingBudget(body)
-	if gjson.GetBytes(updated, "thinking.enabled.budget_tokens").String() != "oops" {
+	if gjson.GetBytes(updated, "thinking.budget_tokens").String() != "oops" {
 		t.Fatalf("non-numeric budget_tokens should be unchanged")
+	}
+
+	// thinking disabled — should not touch budget_tokens
+	body = []byte(`{"thinking":{"type":"disabled","budget_tokens":100}}`)
+	updated = ensureMinThinkingBudget(body)
+	if got := gjson.GetBytes(updated, "thinking.budget_tokens").Int(); got != 100 {
+		t.Fatalf("disabled thinking budget_tokens = %d, want 100 (unchanged)", got)
 	}
 }
