@@ -2,6 +2,7 @@ package converter
 
 import (
 	"encoding/json"
+	"strings"
 	"time"
 
 	"github.com/awsl-project/maxx/internal/domain"
@@ -32,6 +33,13 @@ func (c *geminiToOpenAIRequest) Transform(body []byte, model string, stream bool
 		if len(req.GenerationConfig.StopSequences) > 0 {
 			openaiReq.Stop = req.GenerationConfig.StopSequences
 		}
+		if req.GenerationConfig.ThinkingConfig != nil {
+			if req.GenerationConfig.ThinkingConfig.ThinkingLevel != "" {
+				openaiReq.ReasoningEffort = strings.ToLower(req.GenerationConfig.ThinkingConfig.ThinkingLevel)
+			} else {
+				openaiReq.ReasoningEffort = mapBudgetToEffort(req.GenerationConfig.ThinkingConfig.ThinkingBudget)
+			}
+		}
 	}
 
 	// Convert systemInstruction
@@ -61,16 +69,34 @@ func (c *geminiToOpenAIRequest) Transform(body []byte, model string, stream bool
 		}
 
 		var textContent string
+		var reasoningContent string
+		var contentParts []OpenAIContentPart
+		onlyText := true
 		var toolCalls []OpenAIToolCall
 
 		for _, part := range content.Parts {
+			if part.Thought && part.Text != "" {
+				reasoningContent += part.Text
+			}
 			if part.Text != "" {
 				textContent += part.Text
+				contentParts = append(contentParts, OpenAIContentPart{Type: "text", Text: part.Text})
+			}
+			if part.InlineData != nil && part.InlineData.Data != "" {
+				onlyText = false
+				contentParts = append(contentParts, OpenAIContentPart{
+					Type:     "image_url",
+					ImageURL: &OpenAIImageURL{URL: "data:" + part.InlineData.MimeType + ";base64," + part.InlineData.Data},
+				})
 			}
 			if part.FunctionCall != nil {
 				argsJSON, _ := json.Marshal(part.FunctionCall.Args)
+				id := part.FunctionCall.ID
+				if id == "" {
+					id = "call_" + part.FunctionCall.Name
+				}
 				toolCalls = append(toolCalls, OpenAIToolCall{
-					ID:   "call_" + part.FunctionCall.Name,
+					ID:   id,
 					Type: "function",
 					Function: OpenAIFunctionCall{
 						Name:      part.FunctionCall.Name,
@@ -80,17 +106,30 @@ func (c *geminiToOpenAIRequest) Transform(body []byte, model string, stream bool
 			}
 			if part.FunctionResponse != nil {
 				respJSON, _ := json.Marshal(part.FunctionResponse.Response)
+				toolName, callID := splitFunctionName(part.FunctionResponse.Name)
+				if callID == "" {
+					callID = part.FunctionResponse.ID
+				}
+				if callID == "" {
+					callID = part.FunctionResponse.Name
+				}
 				openaiReq.Messages = append(openaiReq.Messages, OpenAIMessage{
 					Role:       "tool",
 					Content:    string(respJSON),
-					ToolCallID: part.FunctionResponse.Name,
+					ToolCallID: callID,
+					Name:       toolName,
 				})
 				continue
 			}
 		}
 
-		if textContent != "" {
+		if onlyText && textContent != "" {
 			openaiMsg.Content = textContent
+		} else if len(contentParts) > 0 {
+			openaiMsg.Content = contentParts
+		}
+		if reasoningContent != "" {
+			openaiMsg.ReasoningContent = reasoningContent
 		}
 		if len(toolCalls) > 0 {
 			openaiMsg.ToolCalls = toolCalls
@@ -104,9 +143,13 @@ func (c *geminiToOpenAIRequest) Transform(body []byte, model string, stream bool
 	// Convert tools
 	for _, tool := range req.Tools {
 		for _, decl := range tool.FunctionDeclarations {
+			params := decl.Parameters
+			if params == nil {
+				params = decl.ParametersJsonSchema
+			}
 			openaiReq.Tools = append(openaiReq.Tools, OpenAITool{
 				Type:     "function",
-				Function: OpenAIFunction(decl),
+				Function: OpenAIFunction{Name: decl.Name, Description: decl.Description, Parameters: params},
 			})
 		}
 	}
@@ -136,19 +179,39 @@ func (c *geminiToOpenAIResponse) Transform(body []byte) ([]byte, error) {
 
 	msg := OpenAIMessage{Role: "assistant"}
 	var textContent string
+	var reasoningContent string
 	var toolCalls []OpenAIToolCall
 	finishReason := "stop"
 
 	if len(resp.Candidates) > 0 {
 		candidate := resp.Candidates[0]
 		for _, part := range candidate.Content.Parts {
+			if part.Thought && part.Text != "" {
+				reasoningContent += part.Text
+				continue
+			}
 			if part.Text != "" {
 				textContent += part.Text
 			}
+			if part.InlineData != nil && part.InlineData.Data != "" {
+				if msg.Content == nil {
+					msg.Content = []OpenAIContentPart{}
+				}
+				parts, _ := msg.Content.([]OpenAIContentPart)
+				parts = append(parts, OpenAIContentPart{
+					Type:     "image_url",
+					ImageURL: &OpenAIImageURL{URL: "data:" + part.InlineData.MimeType + ";base64," + part.InlineData.Data},
+				})
+				msg.Content = parts
+			}
 			if part.FunctionCall != nil {
 				argsJSON, _ := json.Marshal(part.FunctionCall.Args)
+				id := part.FunctionCall.ID
+				if id == "" {
+					id = "call_" + part.FunctionCall.Name
+				}
 				toolCalls = append(toolCalls, OpenAIToolCall{
-					ID:   "call_" + part.FunctionCall.Name,
+					ID:   id,
 					Type: "function",
 					Function: OpenAIFunctionCall{
 						Name:      part.FunctionCall.Name,
@@ -171,7 +234,15 @@ func (c *geminiToOpenAIResponse) Transform(body []byte) ([]byte, error) {
 	}
 
 	if textContent != "" {
-		msg.Content = textContent
+		if msg.Content == nil {
+			msg.Content = textContent
+		} else if parts, ok := msg.Content.([]OpenAIContentPart); ok {
+			parts = append(parts, OpenAIContentPart{Type: "text", Text: textContent})
+			msg.Content = parts
+		}
+	}
+	if reasoningContent != "" {
+		msg.ReasoningContent = reasoningContent
 	}
 	if len(toolCalls) > 0 {
 		msg.ToolCalls = toolCalls
@@ -215,6 +286,19 @@ func (c *geminiToOpenAIResponse) TransformChunk(chunk []byte, state *TransformSt
 		if len(geminiChunk.Candidates) > 0 {
 			candidate := geminiChunk.Candidates[0]
 			for _, part := range candidate.Content.Parts {
+				if part.Thought && part.Text != "" {
+					openaiChunk := OpenAIStreamChunk{
+						ID:      state.MessageID,
+						Object:  "chat.completion.chunk",
+						Created: time.Now().Unix(),
+						Choices: []OpenAIChoice{{
+							Index: 0,
+							Delta: &OpenAIMessage{ReasoningContent: part.Text},
+						}},
+					}
+					output = append(output, FormatSSE("", openaiChunk)...)
+					continue
+				}
 				if part.Text != "" {
 					openaiChunk := OpenAIStreamChunk{
 						ID:      state.MessageID,
@@ -225,6 +309,47 @@ func (c *geminiToOpenAIResponse) TransformChunk(chunk []byte, state *TransformSt
 							Delta: &OpenAIMessage{Content: part.Text},
 						}},
 					}
+					output = append(output, FormatSSE("", openaiChunk)...)
+				}
+				if part.InlineData != nil && part.InlineData.Data != "" {
+					openaiChunk := OpenAIStreamChunk{
+						ID:      state.MessageID,
+						Object:  "chat.completion.chunk",
+						Created: time.Now().Unix(),
+						Choices: []OpenAIChoice{{
+							Index: 0,
+							Delta: &OpenAIMessage{
+								Content: []OpenAIContentPart{{
+									Type:     "image_url",
+									ImageURL: &OpenAIImageURL{URL: "data:" + part.InlineData.MimeType + ";base64," + part.InlineData.Data},
+								}},
+							},
+						}},
+					}
+					output = append(output, FormatSSE("", openaiChunk)...)
+				}
+				if part.FunctionCall != nil {
+					id := part.FunctionCall.ID
+					if id == "" {
+						id = "call_" + part.FunctionCall.Name
+					}
+					openaiChunk := OpenAIStreamChunk{
+						ID:      state.MessageID,
+						Object:  "chat.completion.chunk",
+						Created: time.Now().Unix(),
+						Choices: []OpenAIChoice{{
+							Index: 0,
+							Delta: &OpenAIMessage{
+								ToolCalls: []OpenAIToolCall{{
+									Index:    state.CurrentIndex,
+									ID:       id,
+									Type:     "function",
+									Function: OpenAIFunctionCall{Name: part.FunctionCall.Name, Arguments: string(mustMarshal(part.FunctionCall.Args))},
+								}},
+							},
+						}},
+					}
+					state.CurrentIndex++
 					output = append(output, FormatSSE("", openaiChunk)...)
 				}
 			}
@@ -251,4 +376,11 @@ func (c *geminiToOpenAIResponse) TransformChunk(chunk []byte, state *TransformSt
 	}
 
 	return output, nil
+}
+
+func splitFunctionName(name string) (string, string) {
+	if idx := strings.LastIndex(name, "_call_"); idx > 0 {
+		return name[:idx], name[idx+1:]
+	}
+	return name, ""
 }

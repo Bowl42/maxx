@@ -43,20 +43,28 @@ type GeminiFunctionResponse struct {
 }
 
 type GeminiGenerationConfig struct {
-	Temperature      *float64              `json:"temperature,omitempty"`
-	TopP             *float64              `json:"topP,omitempty"`
-	TopK             *int                  `json:"topK,omitempty"`
-	MaxOutputTokens  int                   `json:"maxOutputTokens,omitempty"`
-	StopSequences    []string              `json:"stopSequences,omitempty"`
-	CandidateCount   int                   `json:"candidateCount,omitempty"`
-	ResponseMimeType string                `json:"responseMimeType,omitempty"`
-	ThinkingConfig   *GeminiThinkingConfig `json:"thinkingConfig,omitempty"`
-	EffortLevel      string                `json:"effortLevel,omitempty"` // Claude API v2.0.67+ effort mapping
+	Temperature        *float64              `json:"temperature,omitempty"`
+	TopP               *float64              `json:"topP,omitempty"`
+	TopK               *int                  `json:"topK,omitempty"`
+	MaxOutputTokens    int                   `json:"maxOutputTokens,omitempty"`
+	StopSequences      []string              `json:"stopSequences,omitempty"`
+	CandidateCount     int                   `json:"candidateCount,omitempty"`
+	ResponseMimeType   string                `json:"responseMimeType,omitempty"`
+	ResponseModalities []string              `json:"responseModalities,omitempty"`
+	ImageConfig        *GeminiImageConfig    `json:"imageConfig,omitempty"`
+	ThinkingConfig     *GeminiThinkingConfig `json:"thinkingConfig,omitempty"`
+	EffortLevel        string                `json:"effortLevel,omitempty"` // Claude API v2.0.67+ effort mapping
 }
 
 type GeminiThinkingConfig struct {
-	IncludeThoughts bool `json:"includeThoughts,omitempty"`
-	ThinkingBudget  int  `json:"thinkingBudget,omitempty"`
+	IncludeThoughts bool   `json:"includeThoughts,omitempty"`
+	ThinkingBudget  int    `json:"thinkingBudget,omitempty"`
+	ThinkingLevel   string `json:"thinkingLevel,omitempty"`
+}
+
+type GeminiImageConfig struct {
+	AspectRatio string `json:"aspectRatio,omitempty"`
+	ImageSize   string `json:"imageSize,omitempty"`
 }
 
 type GeminiSafetySetting struct {
@@ -65,15 +73,16 @@ type GeminiSafetySetting struct {
 }
 
 type GeminiTool struct {
-	FunctionDeclarations []GeminiFunctionDecl `json:"functionDeclarations,omitempty"`
-	GoogleSearch         *struct{}            `json:"googleSearch,omitempty"`
-	GoogleSearchRetrieval *struct{}           `json:"googleSearchRetrieval,omitempty"`
+	FunctionDeclarations  []GeminiFunctionDecl `json:"functionDeclarations,omitempty"`
+	GoogleSearch          *struct{}            `json:"googleSearch,omitempty"`
+	GoogleSearchRetrieval *struct{}            `json:"googleSearchRetrieval,omitempty"`
 }
 
 type GeminiFunctionDecl struct {
-	Name        string      `json:"name"`
-	Description string      `json:"description,omitempty"`
-	Parameters  interface{} `json:"parameters,omitempty"`
+	Name                 string      `json:"name"`
+	Description          string      `json:"description,omitempty"`
+	Parameters           interface{} `json:"parameters,omitempty"`
+	ParametersJsonSchema interface{} `json:"parametersJsonSchema,omitempty"`
 }
 
 type GeminiToolConfig struct {
@@ -86,16 +95,16 @@ type GeminiFunctionCallingConfig struct {
 }
 
 type GeminiResponse struct {
-	Candidates     []GeminiCandidate    `json:"candidates"`
-	UsageMetadata  *GeminiUsageMetadata `json:"usageMetadata,omitempty"`
+	Candidates     []GeminiCandidate     `json:"candidates"`
+	UsageMetadata  *GeminiUsageMetadata  `json:"usageMetadata,omitempty"`
 	PromptFeedback *GeminiPromptFeedback `json:"promptFeedback,omitempty"`
 }
 
 type GeminiCandidate struct {
-	Content       GeminiContent       `json:"content"`
-	FinishReason  string              `json:"finishReason,omitempty"`
+	Content       GeminiContent        `json:"content"`
+	FinishReason  string               `json:"finishReason,omitempty"`
 	SafetyRatings []GeminiSafetyRating `json:"safetyRatings,omitempty"`
-	Index         int                 `json:"index"`
+	Index         int                  `json:"index"`
 }
 
 type GeminiSafetyRating struct {

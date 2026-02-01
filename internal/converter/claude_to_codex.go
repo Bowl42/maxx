@@ -2,6 +2,7 @@ package converter
 
 import (
 	"encoding/json"
+	"strings"
 	"time"
 
 	"github.com/awsl-project/maxx/internal/domain"
@@ -15,6 +16,7 @@ type claudeToCodexRequest struct{}
 type claudeToCodexResponse struct{}
 
 func (c *claudeToCodexRequest) Transform(body []byte, model string, stream bool) ([]byte, error) {
+	userAgent := ExtractCodexUserAgent(body)
 	var req ClaudeRequest
 	if err := json.Unmarshal(body, &req); err != nil {
 		return nil, err
@@ -28,11 +30,14 @@ func (c *claudeToCodexRequest) Transform(body []byte, model string, stream bool)
 		TopP:            req.TopP,
 	}
 
-	// Convert system to instructions
+	// Convert messages to input
+	var input []CodexInputItem
 	if req.System != nil {
 		switch s := req.System.(type) {
 		case string:
-			codexReq.Instructions = s
+			if s != "" {
+				input = append(input, CodexInputItem{Type: "message", Role: "developer", Content: s})
+			}
 		case []interface{}:
 			var systemText string
 			for _, block := range s {
@@ -42,12 +47,11 @@ func (c *claudeToCodexRequest) Transform(body []byte, model string, stream bool)
 					}
 				}
 			}
-			codexReq.Instructions = systemText
+			if systemText != "" {
+				input = append(input, CodexInputItem{Type: "message", Role: "developer", Content: systemText})
+			}
 		}
 	}
-
-	// Convert messages to input
-	var input []CodexInputItem
 	for _, msg := range req.Messages {
 		item := CodexInputItem{Role: msg.Role}
 		switch content := msg.Content.(type) {
@@ -104,6 +108,23 @@ func (c *claudeToCodexRequest) Transform(body []byte, model string, stream bool)
 			Description: tool.Description,
 			Parameters:  tool.InputSchema,
 		})
+	}
+
+	if req.OutputConfig != nil {
+		effort := strings.ToLower(strings.TrimSpace(req.OutputConfig.Effort))
+		codexReq.Reasoning = &CodexReasoning{Effort: effort}
+	}
+	_, instructions := CodexInstructionsForModel(model, "", userAgent)
+	if GetCodexInstructionsEnabled() {
+		codexReq.Instructions = instructions
+	}
+	if codexReq.Reasoning == nil {
+		codexReq.Reasoning = &CodexReasoning{Effort: "medium", Summary: "auto"}
+	} else if codexReq.Reasoning.Summary == "" {
+		codexReq.Reasoning.Summary = "auto"
+	}
+	if codexReq.Reasoning.Effort == "" {
+		codexReq.Reasoning.Effort = "medium"
 	}
 
 	return json.Marshal(codexReq)

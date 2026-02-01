@@ -30,8 +30,8 @@ type ClaudeOutputConfig struct {
 }
 
 type ClaudeMessage struct {
-	Role    string               `json:"role"`
-	Content interface{}          `json:"content"` // string or []ContentBlock
+	Role    string      `json:"role"`
+	Content interface{} `json:"content"` // string or []ContentBlock
 }
 
 type ClaudeContentBlock struct {
@@ -62,8 +62,8 @@ type ClaudeImageSource struct {
 }
 
 type ClaudeTool struct {
-	Type        string      `json:"type,omitempty"`        // For server tools like "web_search_20250305"
-	Name        string      `json:"name,omitempty"`        // Tool name
+	Type        string      `json:"type,omitempty"` // For server tools like "web_search_20250305"
+	Name        string      `json:"name,omitempty"` // Tool name
 	Description string      `json:"description,omitempty"`
 	InputSchema interface{} `json:"input_schema,omitempty"` // Required for client tools, absent for server tools
 }
@@ -77,7 +77,7 @@ func (t *ClaudeTool) IsWebSearch() bool {
 		}
 	}
 	// Check by name (fallback)
-	if t.Name == "web_search" || t.Name == "google_search" {
+	if t.Name == "web_search" || t.Name == "google_search" || t.Name == "google_search_retrieval" {
 		return true
 	}
 	return false
@@ -103,17 +103,18 @@ type ClaudeUsage struct {
 
 // Claude streaming events
 type ClaudeStreamEvent struct {
-	Type         string               `json:"type"`
-	Message      *ClaudeResponse      `json:"message,omitempty"`
-	Index        int                  `json:"index,omitempty"`
-	ContentBlock *ClaudeContentBlock  `json:"content_block,omitempty"`
-	Delta        *ClaudeStreamDelta   `json:"delta,omitempty"`
-	Usage        *ClaudeUsage         `json:"usage,omitempty"`
+	Type         string              `json:"type"`
+	Message      *ClaudeResponse     `json:"message,omitempty"`
+	Index        int                 `json:"index,omitempty"`
+	ContentBlock *ClaudeContentBlock `json:"content_block,omitempty"`
+	Delta        *ClaudeStreamDelta  `json:"delta,omitempty"`
+	Usage        *ClaudeUsage        `json:"usage,omitempty"`
 }
 
 type ClaudeStreamDelta struct {
 	Type         string `json:"type,omitempty"`
 	Text         string `json:"text,omitempty"`
+	Thinking     string `json:"thinking,omitempty"`
 	PartialJSON  string `json:"partial_json,omitempty"`
 	StopReason   string `json:"stop_reason,omitempty"`
 	StopSequence string `json:"stop_sequence,omitempty"`

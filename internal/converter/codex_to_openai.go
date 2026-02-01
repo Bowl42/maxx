@@ -27,6 +27,9 @@ func (c *codexToOpenAIRequest) Transform(body []byte, model string, stream bool)
 		Temperature: req.Temperature,
 		TopP:        req.TopP,
 	}
+	if req.Reasoning != nil && req.Reasoning.Effort != "" {
+		openaiReq.ReasoningEffort = req.Reasoning.Effort
+	}
 
 	// Convert instructions to system message
 	if req.Instructions != "" {

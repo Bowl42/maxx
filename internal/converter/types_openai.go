@@ -3,36 +3,40 @@ package converter
 // OpenAI API types
 
 type OpenAIRequest struct {
-	Model            string           `json:"model"`
-	Messages         []OpenAIMessage  `json:"messages"`
-	MaxTokens        int              `json:"max_tokens,omitempty"`
-	MaxCompletionTokens int           `json:"max_completion_tokens,omitempty"`
-	Temperature      *float64         `json:"temperature,omitempty"`
-	TopP             *float64         `json:"top_p,omitempty"`
-	N                int              `json:"n,omitempty"`
-	Stream           bool             `json:"stream,omitempty"`
-	Stop             interface{}      `json:"stop,omitempty"` // string or []string
-	PresencePenalty  *float64         `json:"presence_penalty,omitempty"`
-	FrequencyPenalty *float64         `json:"frequency_penalty,omitempty"`
-	LogitBias        map[string]int   `json:"logit_bias,omitempty"`
-	User             string           `json:"user,omitempty"`
-	Tools            []OpenAITool     `json:"tools,omitempty"`
-	ToolChoice       interface{}      `json:"tool_choice,omitempty"`
-	ResponseFormat   *OpenAIResponseFormat `json:"response_format,omitempty"`
+	Model               string                `json:"model"`
+	Messages            []OpenAIMessage       `json:"messages"`
+	Modalities          []string              `json:"modalities,omitempty"`
+	MaxTokens           int                   `json:"max_tokens,omitempty"`
+	MaxCompletionTokens int                   `json:"max_completion_tokens,omitempty"`
+	ReasoningEffort     string                `json:"reasoning_effort,omitempty"`
+	Temperature         *float64              `json:"temperature,omitempty"`
+	TopP                *float64              `json:"top_p,omitempty"`
+	N                   int                   `json:"n,omitempty"`
+	Stream              bool                  `json:"stream,omitempty"`
+	Stop                interface{}           `json:"stop,omitempty"` // string or []string
+	PresencePenalty     *float64              `json:"presence_penalty,omitempty"`
+	FrequencyPenalty    *float64              `json:"frequency_penalty,omitempty"`
+	LogitBias           map[string]int        `json:"logit_bias,omitempty"`
+	User                string                `json:"user,omitempty"`
+	Tools               []OpenAITool          `json:"tools,omitempty"`
+	ToolChoice          interface{}           `json:"tool_choice,omitempty"`
+	ResponseFormat      *OpenAIResponseFormat `json:"response_format,omitempty"`
+	ImageConfig         *OpenAIImageConfig    `json:"image_config,omitempty"`
 }
 
 type OpenAIMessage struct {
-	Role       string          `json:"role"`
-	Content    interface{}     `json:"content"` // string or []ContentPart
-	Name       string          `json:"name,omitempty"`
-	ToolCalls  []OpenAIToolCall `json:"tool_calls,omitempty"`
-	ToolCallID string          `json:"tool_call_id,omitempty"`
+	Role             string           `json:"role"`
+	Content          interface{}      `json:"content"`                     // string or []ContentPart
+	ReasoningContent interface{}      `json:"reasoning_content,omitempty"` // string or []ContentPart
+	Name             string           `json:"name,omitempty"`
+	ToolCalls        []OpenAIToolCall `json:"tool_calls,omitempty"`
+	ToolCallID       string           `json:"tool_call_id,omitempty"`
 }
 
 type OpenAIContentPart struct {
-	Type     string            `json:"type"`
-	Text     string            `json:"text,omitempty"`
-	ImageURL *OpenAIImageURL   `json:"image_url,omitempty"`
+	Type     string          `json:"type"`
+	Text     string          `json:"text,omitempty"`
+	ImageURL *OpenAIImageURL `json:"image_url,omitempty"`
 }
 
 type OpenAIImageURL struct {
@@ -40,9 +44,14 @@ type OpenAIImageURL struct {
 	Detail string `json:"detail,omitempty"`
 }
 
+type OpenAIImageConfig struct {
+	AspectRatio string `json:"aspect_ratio,omitempty"`
+	ImageSize   string `json:"image_size,omitempty"`
+}
+
 type OpenAITool struct {
-	Type     string           `json:"type"`
-	Function OpenAIFunction   `json:"function"`
+	Type     string         `json:"type"`
+	Function OpenAIFunction `json:"function"`
 }
 
 type OpenAIFunction struct {
@@ -78,11 +87,11 @@ type OpenAIResponse struct {
 }
 
 type OpenAIChoice struct {
-	Index        int           `json:"index"`
+	Index        int            `json:"index"`
 	Message      *OpenAIMessage `json:"message,omitempty"`
 	Delta        *OpenAIMessage `json:"delta,omitempty"`
-	FinishReason string        `json:"finish_reason,omitempty"`
-	Logprobs     interface{}   `json:"logprobs,omitempty"`
+	FinishReason string         `json:"finish_reason,omitempty"`
+	Logprobs     interface{}    `json:"logprobs,omitempty"`
 }
 
 type OpenAIUsage struct {
