@@ -6,6 +6,7 @@ import (
 	"log"
 	"net/http"
 	"strconv"
+	"strings"
 	"sync"
 
 	"github.com/awsl-project/maxx/internal/adapter/client"
@@ -76,6 +77,10 @@ func (h *ProxyHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		writeError(w, http.StatusMethodNotAllowed, "method not allowed")
 		return
+	}
+
+	if strings.HasPrefix(r.URL.Path, "/v1/responses") {
+		r.URL.Path = strings.TrimPrefix(r.URL.Path, "/v1")
 	}
 
 	// Claude Desktop / Anthropic compatibility: count_tokens placeholder

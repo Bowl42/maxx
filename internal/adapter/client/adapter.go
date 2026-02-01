@@ -41,6 +41,8 @@ func (a *Adapter) Match(req *http.Request) (domain.ClientType, bool) {
 		return domain.ClientTypeClaude, true
 	case strings.HasPrefix(path, "/responses"):
 		return domain.ClientTypeCodex, true
+	case strings.HasPrefix(path, "/v1/responses"):
+		return domain.ClientTypeCodex, true
 	case strings.HasPrefix(path, "/v1/chat/completions"):
 		return domain.ClientTypeOpenAI, true
 	case strings.HasPrefix(path, "/v1beta/models/"):

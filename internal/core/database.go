@@ -73,6 +73,7 @@ type ServerComponents struct {
 	ClientAdapter       *client.Adapter
 	AdminService        *service.AdminService
 	ProxyHandler        *handler.ProxyHandler
+	ModelsHandler       *handler.ModelsHandler
 	AdminHandler        *handler.AdminHandler
 	AntigravityHandler  *handler.AntigravityHandler
 	KiroHandler         *handler.KiroHandler
@@ -347,12 +348,17 @@ func InitializeServerComponents(
 	log.Printf("[Core] Creating handlers")
 	tokenAuthMiddleware := handler.NewTokenAuthMiddleware(repos.CachedAPITokenRepo, repos.SettingRepo)
 	proxyHandler := handler.NewProxyHandler(clientAdapter, exec, repos.CachedSessionRepo, tokenAuthMiddleware)
+	modelsHandler := handler.NewModelsHandler(
+		repos.ResponseModelRepo,
+		repos.CachedProviderRepo,
+		repos.CachedModelMappingRepo,
+	)
 	adminHandler := handler.NewAdminHandler(adminService, backupService, logPath)
 	antigravityHandler := handler.NewAntigravityHandler(adminService, repos.AntigravityQuotaRepo, wailsBroadcaster)
 	kiroHandler := handler.NewKiroHandler(adminService)
 	codexHandler := handler.NewCodexHandler(adminService, repos.CodexQuotaRepo, wailsBroadcaster)
 	codexOAuthServer := NewCodexOAuthServer(codexHandler)
-	projectProxyHandler := handler.NewProjectProxyHandler(proxyHandler, repos.CachedProjectRepo)
+	projectProxyHandler := handler.NewProjectProxyHandler(proxyHandler, modelsHandler, repos.CachedProjectRepo)
 
 	log.Printf("[Core] Creating request tracker for graceful shutdown")
 	requestTracker := NewRequestTracker()
@@ -366,6 +372,7 @@ func InitializeServerComponents(
 		ClientAdapter:       clientAdapter,
 		AdminService:        adminService,
 		ProxyHandler:        proxyHandler,
+		ModelsHandler:       modelsHandler,
 		AdminHandler:        adminHandler,
 		AntigravityHandler:  antigravityHandler,
 		KiroHandler:         kiroHandler,

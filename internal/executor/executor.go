@@ -287,6 +287,8 @@ func (e *Executor) Execute(ctx context.Context, w http.ResponseWriter, req *http
 		originalClientType := clientType
 		targetClientType := clientType
 		needsConversion := false
+		convertedBody := []byte(nil)
+		var convErr error
 
 		supportedTypes := matchedRoute.ProviderAdapter.SupportedClientTypes()
 		if e.converter.NeedConvert(clientType, supportedTypes) {
@@ -303,7 +305,7 @@ func (e *Executor) Execute(ctx context.Context, w http.ResponseWriter, req *http
 						requestBody = converter.InjectCodexUserAgent(requestBody, headers.Get("User-Agent"))
 					}
 				}
-				convertedBody, convErr := e.converter.TransformRequest(
+				convertedBody, convErr = e.converter.TransformRequest(
 					clientType, targetClientType, requestBody, mappedModel, isStream)
 				if convErr != nil {
 					log.Printf("[Executor] Request conversion failed: %v, proceeding with original format", convErr)
@@ -316,7 +318,7 @@ func (e *Executor) Execute(ctx context.Context, w http.ResponseWriter, req *http
 
 					// Convert request URI to match the target client type
 					originalURI := ctxutil.GetRequestURI(ctx)
-					convertedURI := ConvertRequestURI(originalURI, clientType, targetClientType)
+					convertedURI := ConvertRequestURI(originalURI, clientType, targetClientType, mappedModel, isStream)
 					if convertedURI != originalURI {
 						ctx = ctxutil.WithRequestURI(ctx, convertedURI)
 						log.Printf("[Executor] URI converted: %s -> %s", originalURI, convertedURI)

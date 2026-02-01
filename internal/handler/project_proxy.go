@@ -11,18 +11,21 @@ import (
 // ProjectProxyHandler wraps ProxyHandler to handle project-prefixed proxy requests
 // like /{slug}/v1/messages, /{slug}/v1/chat/completions, etc.
 type ProjectProxyHandler struct {
-	proxyHandler *ProxyHandler
-	projectRepo  repository.ProjectRepository
+	proxyHandler  *ProxyHandler
+	modelsHandler *ModelsHandler
+	projectRepo   repository.ProjectRepository
 }
 
 // NewProjectProxyHandler creates a new project proxy handler
 func NewProjectProxyHandler(
 	proxyHandler *ProxyHandler,
+	modelsHandler *ModelsHandler,
 	projectRepo repository.ProjectRepository,
 ) *ProjectProxyHandler {
 	return &ProjectProxyHandler{
-		proxyHandler: proxyHandler,
-		projectRepo:  projectRepo,
+		proxyHandler:  proxyHandler,
+		modelsHandler: modelsHandler,
+		projectRepo:   projectRepo,
 	}
 }
 
@@ -52,7 +55,11 @@ func (h *ProjectProxyHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) 
 	// Rewrite the URL path to the standard API path
 	r.URL.Path = apiPath
 
-	// Forward to the standard proxy handler
+	// Forward to the appropriate handler
+	if apiPath == "/v1/models" {
+		h.modelsHandler.ServeHTTP(w, r)
+		return
+	}
 	h.proxyHandler.ServeHTTP(w, r)
 }
 
@@ -96,6 +103,13 @@ func isValidAPIPath(path string) bool {
 	}
 	// Codex API
 	if strings.HasPrefix(path, "/responses") {
+		return true
+	}
+	if strings.HasPrefix(path, "/v1/responses") {
+		return true
+	}
+	// Model list API
+	if strings.HasPrefix(path, "/v1/models") {
 		return true
 	}
 	// Gemini API
