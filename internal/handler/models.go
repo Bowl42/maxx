@@ -81,8 +81,8 @@ func (h *ModelsHandler) collectModelNames() ([]string, error) {
 			return nil, err
 		}
 		for _, mapping := range mappings {
-			addModelName(result, mapping.TargetModel)
-			addModelName(result, mapping.RequestModel)
+			addModelName(result, mapping.Target)
+			addModelName(result, mapping.Pattern)
 		}
 	}
 

@@ -325,7 +325,8 @@ func main() {
 	codexHandler.SetTaskService(codexTaskSvc)
 
 	// Use already-created cached project repository for project proxy handler
-	projectProxyHandler := handler.NewProjectProxyHandler(proxyHandler, cachedProjectRepo)
+	modelsHandler := handler.NewModelsHandler(responseModelRepo, cachedProviderRepo, cachedModelMappingRepo)
+	projectProxyHandler := handler.NewProjectProxyHandler(proxyHandler, modelsHandler, cachedProjectRepo)
 
 	// Setup routes
 	mux := http.NewServeMux()
