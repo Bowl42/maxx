@@ -77,9 +77,12 @@ func (c *openaiToGeminiRequest) Transform(body []byte, model string, stream bool
 		if effort == "auto" {
 			geminiReq.GenerationConfig.ThinkingConfig.ThinkingBudget = -1
 			geminiReq.GenerationConfig.ThinkingConfig.IncludeThoughts = true
+		} else if effort == "none" {
+			geminiReq.GenerationConfig.ThinkingConfig.IncludeThoughts = false
+			// ThinkingLevel left empty, omitempty will exclude it
 		} else {
 			geminiReq.GenerationConfig.ThinkingConfig.ThinkingLevel = effort
-			geminiReq.GenerationConfig.ThinkingConfig.IncludeThoughts = effort != "none"
+			geminiReq.GenerationConfig.ThinkingConfig.IncludeThoughts = true
 		}
 	}
 
@@ -178,7 +181,9 @@ func (c *openaiToGeminiRequest) Transform(body []byte, model string, stream bool
 
 		for _, tc := range msg.ToolCalls {
 			var args map[string]interface{}
-			json.Unmarshal([]byte(tc.Function.Arguments), &args)
+			if err := json.Unmarshal([]byte(tc.Function.Arguments), &args); err != nil {
+				return nil, err
+			}
 			geminiContent.Parts = append(geminiContent.Parts, GeminiPart{
 				FunctionCall: &GeminiFunctionCall{
 					Name: tc.Function.Name,

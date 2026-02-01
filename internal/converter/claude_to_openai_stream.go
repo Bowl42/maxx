@@ -42,6 +42,9 @@ func (c *claudeToOpenAIResponse) TransformChunk(chunk []byte, state *TransformSt
 				state.CurrentBlockType = claudeEvent.ContentBlock.Type
 				state.CurrentIndex = claudeEvent.Index
 				if claudeEvent.ContentBlock.Type == "tool_use" {
+					if state.ToolCalls == nil {
+						state.ToolCalls = make(map[int]*ToolCallState)
+					}
 					state.ToolCalls[claudeEvent.Index] = &ToolCallState{
 						ID:   claudeEvent.ContentBlock.ID,
 						Name: claudeEvent.ContentBlock.Name,
@@ -105,6 +108,9 @@ func (c *claudeToOpenAIResponse) TransformChunk(chunk []byte, state *TransformSt
 				state.StopReason = claudeEvent.Delta.StopReason
 			}
 			if claudeEvent.Usage != nil {
+				if state.Usage == nil {
+					state.Usage = &Usage{}
+				}
 				state.Usage.OutputTokens = claudeEvent.Usage.OutputTokens
 			}
 

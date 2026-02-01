@@ -63,19 +63,32 @@ func (c *geminiToClaudeRequest) Transform(body []byte, model string, stream bool
 				blocks = append(blocks, ClaudeContentBlock{Type: "text", Text: part.Text})
 			}
 			if part.FunctionCall != nil {
-				toolCallCounter++
+				// Use ID if available, fall back to generated
+				callID := part.FunctionCall.ID
+				if callID == "" {
+					toolCallCounter++
+					callID = fmt.Sprintf("call_%d", toolCallCounter)
+				}
 				blocks = append(blocks, ClaudeContentBlock{
 					Type:  "tool_use",
-					ID:    fmt.Sprintf("call_%d", toolCallCounter),
+					ID:    callID,
 					Name:  part.FunctionCall.Name,
 					Input: part.FunctionCall.Args,
 				})
 			}
 			if part.FunctionResponse != nil {
-				respJSON, _ := json.Marshal(part.FunctionResponse.Response)
+				respJSON, err := json.Marshal(part.FunctionResponse.Response)
+				if err != nil {
+					return nil, fmt.Errorf("marshal function response: %w", err)
+				}
+				// Use ID if available, fall back to Name
+				toolUseID := part.FunctionResponse.ID
+				if toolUseID == "" {
+					toolUseID = part.FunctionResponse.Name
+				}
 				blocks = append(blocks, ClaudeContentBlock{
 					Type:      "tool_result",
-					ToolUseID: part.FunctionResponse.Name,
+					ToolUseID: toolUseID,
 					Content:   string(respJSON),
 				})
 			}

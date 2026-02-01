@@ -447,8 +447,8 @@ func TestGeminiToCodexDefaultsAndToolCleaning(t *testing.T) {
 	if err := json.Unmarshal(out, &codexReq); err != nil {
 		t.Fatalf("unmarshal: %v", err)
 	}
-	if codexReq.Stream != true || codexReq.Store != false {
-		t.Fatalf("expected stream/store defaults")
+	if codexReq.Stream != false || codexReq.Store != false {
+		t.Fatalf("expected stream=false/store=false when stream param is false")
 	}
 	if codexReq.ToolChoice != "auto" {
 		t.Fatalf("expected tool_choice auto")

@@ -34,19 +34,27 @@ func (c *claudeToGeminiResponse) TransformChunk(chunk []byte, state *TransformSt
 
 		case "message_delta":
 			if claudeEvent.Usage != nil {
+				if state.Usage == nil {
+					state.Usage = &Usage{}
+				}
 				state.Usage.OutputTokens = claudeEvent.Usage.OutputTokens
 			}
 
 		case "message_stop":
+			inputTokens, outputTokens := 0, 0
+			if state.Usage != nil {
+				inputTokens = state.Usage.InputTokens
+				outputTokens = state.Usage.OutputTokens
+			}
 			geminiChunk := GeminiStreamChunk{
 				Candidates: []GeminiCandidate{{
 					FinishReason: "STOP",
 					Index:        0,
 				}},
 				UsageMetadata: &GeminiUsageMetadata{
-					PromptTokenCount:     state.Usage.InputTokens,
-					CandidatesTokenCount: state.Usage.OutputTokens,
-					TotalTokenCount:      state.Usage.InputTokens + state.Usage.OutputTokens,
+					PromptTokenCount:     inputTokens,
+					CandidatesTokenCount: outputTokens,
+					TotalTokenCount:      inputTokens + outputTokens,
 				},
 			}
 			output = append(output, FormatSSE("", geminiChunk)...)

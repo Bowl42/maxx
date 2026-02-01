@@ -229,7 +229,7 @@ skipInputItems:
 	codexReq.ParallelToolCalls = &parallel
 	codexReq.Include = []string{"reasoning.encrypted_content"}
 	codexReq.Store = false
-	codexReq.Stream = true
+	codexReq.Stream = stream
 	_, instructions := CodexInstructionsForModel(model, "", userAgent)
 	if GetCodexInstructionsEnabled() {
 		codexReq.Instructions = instructions

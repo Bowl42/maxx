@@ -238,15 +238,13 @@ func (c *claudeToGeminiRequest) Transform(body []byte, model string, stream bool
 				case "tool_use":
 					id, _ := m["id"].(string)
 					name, _ := m["name"].(string)
+					if name == "" {
+						continue
+					}
 					input, _ := m["input"].(map[string]interface{})
 
-					// Clean input schema
-					if input != nil {
-						cleanJSONSchema(input)
-					}
-
 					// Store id -> name mapping
-					if id != "" && name != "" {
+					if id != "" {
 						toolIDToName[id] = name
 					}
 
@@ -267,6 +265,9 @@ func (c *claudeToGeminiRequest) Transform(body []byte, model string, stream bool
 
 				case "tool_result":
 					toolUseID, _ := m["tool_use_id"].(string)
+					if toolUseID == "" {
+						continue
+					}
 
 					// Handle content: can be string or array
 					var resultContent string
@@ -299,6 +300,9 @@ func (c *claudeToGeminiRequest) Transform(body []byte, model string, stream bool
 					funcName := toolUseID
 					if name, ok := toolIDToName[toolUseID]; ok {
 						funcName = name
+					}
+					if funcName == "" {
+						continue
 					}
 
 					part := GeminiPart{

@@ -33,7 +33,7 @@ func (c *openaiToClaudeRequest) Transform(body []byte, model string, stream bool
 
 	// Convert messages
 	for _, msg := range req.Messages {
-		if msg.Role == "system" {
+		if msg.Role == "system" || msg.Role == "developer" {
 			// Extract system message
 			switch content := msg.Content.(type) {
 			case string:
@@ -100,7 +100,9 @@ func (c *openaiToClaudeRequest) Transform(body []byte, model string, stream bool
 		// Handle tool calls
 		for _, tc := range msg.ToolCalls {
 			var input interface{}
-			json.Unmarshal([]byte(tc.Function.Arguments), &input)
+			if err := json.Unmarshal([]byte(tc.Function.Arguments), &input); err != nil {
+				return nil, err
+			}
 			blocks = append(blocks, ClaudeContentBlock{
 				Type:  "tool_use",
 				ID:    tc.ID,

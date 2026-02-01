@@ -53,7 +53,9 @@ func (c *openaiToGeminiResponse) Transform(body []byte) ([]byte, error) {
 			}
 			for _, tc := range choice.Message.ToolCalls {
 				var args map[string]interface{}
-				json.Unmarshal([]byte(tc.Function.Arguments), &args)
+				if err := json.Unmarshal([]byte(tc.Function.Arguments), &args); err != nil {
+					return nil, err
+				}
 				candidate.Content.Parts = append(candidate.Content.Parts, GeminiPart{
 					FunctionCall: &GeminiFunctionCall{
 						Name: tc.Function.Name,

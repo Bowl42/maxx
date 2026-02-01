@@ -62,7 +62,11 @@ func (c *openaiToClaudeResponse) Transform(body []byte) ([]byte, error) {
 			// Convert tool calls
 			for _, tc := range choice.Message.ToolCalls {
 				var input interface{}
-				json.Unmarshal([]byte(tc.Function.Arguments), &input)
+				if args := strings.TrimSpace(tc.Function.Arguments); args != "" {
+					if err := json.Unmarshal([]byte(args), &input); err != nil {
+						return nil, err
+					}
+				}
 				claudeResp.Content = append(claudeResp.Content, ClaudeContentBlock{
 					Type:  "tool_use",
 					ID:    tc.ID,
