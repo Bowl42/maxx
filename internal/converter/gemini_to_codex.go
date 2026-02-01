@@ -2,8 +2,8 @@ package converter
 
 import (
 	"encoding/json"
+	"fmt"
 	"strings"
-	"time"
 
 	"github.com/awsl-project/maxx/internal/domain"
 )
@@ -16,6 +16,7 @@ type geminiToCodexRequest struct{}
 type geminiToCodexResponse struct{}
 
 func (c *geminiToCodexRequest) Transform(body []byte, model string, stream bool) ([]byte, error) {
+	userAgent := ExtractCodexUserAgent(body)
 	var req GeminiRequest
 	if err := json.Unmarshal(body, &req); err != nil {
 		return nil, err
@@ -31,21 +32,61 @@ func (c *geminiToCodexRequest) Transform(body []byte, model string, stream bool)
 		codexReq.MaxOutputTokens = req.GenerationConfig.MaxOutputTokens
 		codexReq.Temperature = req.GenerationConfig.Temperature
 		codexReq.TopP = req.GenerationConfig.TopP
-	}
-
-	// Convert system instruction to instructions
-	if req.SystemInstruction != nil {
-		var systemText string
-		for _, part := range req.SystemInstruction.Parts {
-			if part.Text != "" {
-				systemText += part.Text
+		if req.GenerationConfig.ThinkingConfig != nil {
+			effort := ""
+			if req.GenerationConfig.ThinkingConfig.ThinkingLevel != "" {
+				effort = strings.ToLower(req.GenerationConfig.ThinkingConfig.ThinkingLevel)
+			} else {
+				effort = mapBudgetToEffort(req.GenerationConfig.ThinkingConfig.ThinkingBudget)
+			}
+			if effort != "" {
+				codexReq.Reasoning = &CodexReasoning{
+					Effort: effort,
+				}
 			}
 		}
-		codexReq.Instructions = systemText
 	}
 
 	// Convert contents to input
+	shortMap := map[string]string{}
+	if len(req.Tools) > 0 {
+		var names []string
+		for _, tool := range req.Tools {
+			for _, decl := range tool.FunctionDeclarations {
+				if decl.Name != "" {
+					names = append(names, decl.Name)
+				}
+			}
+		}
+		if len(names) > 0 {
+			shortMap = buildShortNameMap(names)
+		}
+	}
 	var inputItems []map[string]interface{}
+	if req.SystemInstruction != nil {
+		var sysParts []map[string]interface{}
+		for _, part := range req.SystemInstruction.Parts {
+			if part.Text != "" {
+				sysParts = append(sysParts, map[string]interface{}{
+					"type": "input_text",
+					"text": part.Text,
+				})
+			}
+		}
+		if len(sysParts) > 0 {
+			inputItems = append(inputItems, map[string]interface{}{
+				"type":    "message",
+				"role":    "developer",
+				"content": sysParts,
+			})
+		}
+	}
+	var pendingCallIDs []string
+	callCounter := 0
+	newCallID := func() string {
+		callCounter++
+		return fmt.Sprintf("call_%d", callCounter)
+	}
 	for _, content := range req.Contents {
 		role := mapGeminiRoleToCodex(content.Role)
 		var contentParts []map[string]interface{}
@@ -65,14 +106,13 @@ func (c *geminiToCodexRequest) Transform(body []byte, model string, stream bool)
 				argsJSON, _ := json.Marshal(part.FunctionCall.Args)
 				// Extract call_id from name if present
 				name := part.FunctionCall.Name
-				callID := "call_" + time.Now().Format("20060102150405")
-				if idx := strings.LastIndex(name, "_"); idx > 0 {
-					possibleID := name[idx+1:]
-					if strings.HasPrefix(possibleID, "call_") {
-						callID = possibleID
-						name = name[:idx]
-					}
+				if short, ok := shortMap[name]; ok {
+					name = short
+				} else {
+					name = shortenNameIfNeeded(name)
 				}
+				callID := newCallID()
+				pendingCallIDs = append(pendingCallIDs, callID)
 				inputItems = append(inputItems, map[string]interface{}{
 					"type":      "function_call",
 					"name":      name,
@@ -82,20 +122,39 @@ func (c *geminiToCodexRequest) Transform(body []byte, model string, stream bool)
 				continue
 			}
 			if part.FunctionResponse != nil {
-				// Extract call_id from name
-				name := part.FunctionResponse.Name
-				callID := "call_" + time.Now().Format("20060102150405")
-				if idx := strings.LastIndex(name, "_"); idx > 0 {
-					possibleID := name[idx+1:]
-					if strings.HasPrefix(possibleID, "call_") {
-						callID = possibleID
+				callID := ""
+				if len(pendingCallIDs) > 0 {
+					callID = pendingCallIDs[0]
+					pendingCallIDs = pendingCallIDs[1:]
+				} else {
+					callID = newCallID()
+				}
+				output := ""
+				switch resp := part.FunctionResponse.Response.(type) {
+				case map[string]interface{}:
+					if val, ok := resp["result"]; ok {
+						switch v := val.(type) {
+						case string:
+							output = v
+						default:
+							if b, err := json.Marshal(v); err == nil {
+								output = string(b)
+							}
+						}
+					} else if b, err := json.Marshal(resp); err == nil {
+						output = string(b)
+					}
+				default:
+					if resp != nil {
+						if b, err := json.Marshal(resp); err == nil {
+							output = string(b)
+						}
 					}
 				}
-				respJSON, _ := json.Marshal(part.FunctionResponse.Response)
 				inputItems = append(inputItems, map[string]interface{}{
 					"type":    "function_call_output",
 					"call_id": callID,
-					"output":  string(respJSON),
+					"output":  output,
 				})
 				continue
 			}
@@ -128,13 +187,51 @@ skipInputItems:
 	// Convert tools
 	for _, tool := range req.Tools {
 		for _, funcDecl := range tool.FunctionDeclarations {
+			name := funcDecl.Name
+			if short, ok := shortMap[name]; ok {
+				name = short
+			} else {
+				name = shortenNameIfNeeded(name)
+			}
+			params := funcDecl.Parameters
+			if params == nil {
+				params = funcDecl.ParametersJsonSchema
+			}
+			params = sanitizeGeminiToolParameters(params)
 			codexReq.Tools = append(codexReq.Tools, CodexTool{
 				Type:        "function",
-				Name:        funcDecl.Name,
+				Name:        name,
 				Description: funcDecl.Description,
-				Parameters:  funcDecl.Parameters,
+				Parameters:  params,
 			})
 		}
+	}
+	if len(codexReq.Tools) > 0 {
+		codexReq.ToolChoice = "auto"
+	}
+
+	if codexReq.Reasoning == nil {
+		codexReq.Reasoning = &CodexReasoning{
+			Effort:  "medium",
+			Summary: "auto",
+		}
+	} else {
+		codexReq.Reasoning.Effort = strings.TrimSpace(codexReq.Reasoning.Effort)
+		if codexReq.Reasoning.Effort == "" {
+			codexReq.Reasoning.Effort = "medium"
+		}
+		if codexReq.Reasoning.Summary == "" {
+			codexReq.Reasoning.Summary = "auto"
+		}
+	}
+
+	parallel := true
+	codexReq.ParallelToolCalls = &parallel
+	codexReq.Include = []string{"reasoning.encrypted_content"}
+	codexReq.Store = false
+	codexReq.Stream = stream
+	if instructions := CodexInstructionsForModel(model, userAgent); instructions != "" {
+		codexReq.Instructions = instructions
 	}
 
 	return json.Marshal(codexReq)
@@ -149,6 +246,25 @@ func mapGeminiRoleToCodex(role string) string {
 	default:
 		return "user"
 	}
+}
+
+func sanitizeGeminiToolParameters(params interface{}) interface{} {
+	if params == nil {
+		return nil
+	}
+	m, ok := params.(map[string]interface{})
+	if !ok {
+		return params
+	}
+	cleaned := map[string]interface{}{}
+	for k, val := range m {
+		if k == "$schema" {
+			continue
+		}
+		cleaned[k] = val
+	}
+	cleaned["additionalProperties"] = false
+	return cleaned
 }
 
 func (c *geminiToCodexResponse) Transform(body []byte) ([]byte, error) {

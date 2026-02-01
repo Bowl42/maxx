@@ -41,6 +41,8 @@ func (a *Adapter) Match(req *http.Request) (domain.ClientType, bool) {
 		return domain.ClientTypeClaude, true
 	case strings.HasPrefix(path, "/responses"):
 		return domain.ClientTypeCodex, true
+	case strings.HasPrefix(path, "/v1/responses"):
+		return domain.ClientTypeCodex, true
 	case strings.HasPrefix(path, "/v1/chat/completions"):
 		return domain.ClientTypeOpenAI, true
 	case strings.HasPrefix(path, "/v1beta/models/"):
@@ -237,7 +239,11 @@ func (a *Adapter) DetectClientType(req *http.Request, body []byte) domain.Client
 	}
 
 	// Second layer: body detection (fallback)
-	return a.detectFromBodyBytes(body)
+	detected := a.detectFromBodyBytes(body)
+	if detected == domain.ClientTypeOpenAI && isClaudeUserAgent(req.UserAgent()) {
+		return domain.ClientTypeClaude
+	}
+	return detected
 }
 
 func (a *Adapter) detectFromBodyBytes(body []byte) domain.ClientType {
@@ -273,6 +279,10 @@ func (a *Adapter) detectFromBodyBytes(body []byte) domain.ClientType {
 	}
 
 	return ""
+}
+
+func isClaudeUserAgent(userAgent string) bool {
+	return strings.HasPrefix(strings.ToLower(strings.TrimSpace(userAgent)), "claude-cli")
 }
 
 // ExtractModel extracts the model from the request (URL path for Gemini, body for others)

@@ -7,9 +7,9 @@ import (
 	"strconv"
 	"time"
 
+	ctxutil "github.com/awsl-project/maxx/internal/context"
 	"github.com/awsl-project/maxx/internal/converter"
 	"github.com/awsl-project/maxx/internal/cooldown"
-	ctxutil "github.com/awsl-project/maxx/internal/context"
 	"github.com/awsl-project/maxx/internal/domain"
 	"github.com/awsl-project/maxx/internal/event"
 	"github.com/awsl-project/maxx/internal/pricing"
@@ -22,18 +22,18 @@ import (
 
 // Executor handles request execution with retry logic
 type Executor struct {
-	router             *router.Router
-	proxyRequestRepo   repository.ProxyRequestRepository
-	attemptRepo        repository.ProxyUpstreamAttemptRepository
-	retryConfigRepo    repository.RetryConfigRepository
-	sessionRepo        repository.SessionRepository
-	modelMappingRepo   repository.ModelMappingRepository
-	settingsRepo       repository.SystemSettingRepository
-	broadcaster        event.Broadcaster
-	projectWaiter      *waiter.ProjectWaiter
-	instanceID         string
-	statsAggregator    *stats.StatsAggregator
-	converter          *converter.Registry
+	router           *router.Router
+	proxyRequestRepo repository.ProxyRequestRepository
+	attemptRepo      repository.ProxyUpstreamAttemptRepository
+	retryConfigRepo  repository.RetryConfigRepository
+	sessionRepo      repository.SessionRepository
+	modelMappingRepo repository.ModelMappingRepository
+	settingsRepo     repository.SystemSettingRepository
+	broadcaster      event.Broadcaster
+	projectWaiter    *waiter.ProjectWaiter
+	instanceID       string
+	statsAggregator  *stats.StatsAggregator
+	converter        *converter.Registry
 }
 
 // NewExecutor creates a new executor
@@ -51,18 +51,18 @@ func NewExecutor(
 	statsAggregator *stats.StatsAggregator,
 ) *Executor {
 	return &Executor{
-		router:             r,
-		proxyRequestRepo:   prr,
-		attemptRepo:        ar,
-		retryConfigRepo:    rcr,
-		sessionRepo:        sessionRepo,
-		modelMappingRepo:   modelMappingRepo,
-		settingsRepo:       settingsRepo,
-		broadcaster:        bc,
-		projectWaiter:      projectWaiter,
-		instanceID:         instanceID,
-		statsAggregator:    statsAggregator,
-		converter:          converter.GetGlobalRegistry(),
+		router:           r,
+		proxyRequestRepo: prr,
+		attemptRepo:      ar,
+		retryConfigRepo:  rcr,
+		sessionRepo:      sessionRepo,
+		modelMappingRepo: modelMappingRepo,
+		settingsRepo:     settingsRepo,
+		broadcaster:      bc,
+		projectWaiter:    projectWaiter,
+		instanceID:       instanceID,
+		statsAggregator:  statsAggregator,
+		converter:        converter.GetGlobalRegistry(),
 	}
 }
 
@@ -287,6 +287,8 @@ func (e *Executor) Execute(ctx context.Context, w http.ResponseWriter, req *http
 		originalClientType := clientType
 		targetClientType := clientType
 		needsConversion := false
+		convertedBody := []byte(nil)
+		var convErr error
 
 		supportedTypes := matchedRoute.ProviderAdapter.SupportedClientTypes()
 		if e.converter.NeedConvert(clientType, supportedTypes) {
@@ -298,7 +300,12 @@ func (e *Executor) Execute(ctx context.Context, w http.ResponseWriter, req *http
 
 				// Convert request body
 				requestBody := ctxutil.GetRequestBody(ctx)
-				convertedBody, convErr := e.converter.TransformRequest(
+				if targetClientType == domain.ClientTypeCodex {
+					if headers := ctxutil.GetRequestHeaders(ctx); headers != nil {
+						requestBody = converter.InjectCodexUserAgent(requestBody, headers.Get("User-Agent"))
+					}
+				}
+				convertedBody, convErr = e.converter.TransformRequest(
 					clientType, targetClientType, requestBody, mappedModel, isStream)
 				if convErr != nil {
 					log.Printf("[Executor] Request conversion failed: %v, proceeding with original format", convErr)
@@ -311,7 +318,7 @@ func (e *Executor) Execute(ctx context.Context, w http.ResponseWriter, req *http
 
 					// Convert request URI to match the target client type
 					originalURI := ctxutil.GetRequestURI(ctx)
-					convertedURI := ConvertRequestURI(originalURI, clientType, targetClientType)
+					convertedURI := ConvertRequestURI(originalURI, clientType, targetClientType, mappedModel, isStream)
 					if convertedURI != originalURI {
 						ctx = ctxutil.WithRequestURI(ctx, convertedURI)
 						log.Printf("[Executor] URI converted: %s -> %s", originalURI, convertedURI)
@@ -989,4 +996,3 @@ func getProviderMultiplier(provider *domain.Provider, clientType domain.ClientTy
 	}
 	return 10000
 }
-

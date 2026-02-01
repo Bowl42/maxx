@@ -2,6 +2,7 @@ package converter
 
 import (
 	"encoding/json"
+	"strings"
 	"time"
 
 	"github.com/awsl-project/maxx/internal/domain"
@@ -15,6 +16,7 @@ type openaiToCodexRequest struct{}
 type openaiToCodexResponse struct{}
 
 func (c *openaiToCodexRequest) Transform(body []byte, model string, stream bool) ([]byte, error) {
+	userAgent := ExtractCodexUserAgent(body)
 	var req OpenAIRequest
 	if err := json.Unmarshal(body, &req); err != nil {
 		return nil, err
@@ -32,15 +34,35 @@ func (c *openaiToCodexRequest) Transform(body []byte, model string, stream bool)
 		codexReq.MaxOutputTokens = req.MaxCompletionTokens
 	}
 
+	if req.ReasoningEffort != "" {
+		effort := strings.TrimSpace(req.ReasoningEffort)
+		codexReq.Reasoning = &CodexReasoning{
+			Effort: effort,
+		}
+	}
+	trueVal := true
+	codexReq.ParallelToolCalls = &trueVal
+	codexReq.Include = []string{"reasoning.encrypted_content"}
+
 	// Convert messages to input
+	shortMap := map[string]string{}
+	if len(req.Tools) > 0 {
+		var names []string
+		for _, tool := range req.Tools {
+			if tool.Type == "function" && tool.Function.Name != "" {
+				names = append(names, tool.Function.Name)
+			}
+		}
+		if len(names) > 0 {
+			shortMap = buildShortNameMap(names)
+		}
+	}
+
 	var input []CodexInputItem
 	for _, msg := range req.Messages {
-		if msg.Role == "system" {
-			// Convert to instructions
-			if content, ok := msg.Content.(string); ok {
-				codexReq.Instructions = content
-			}
-			continue
+		role := msg.Role
+		if role == "system" {
+			role = "developer"
 		}
 
 		if msg.Role == "tool" {
@@ -56,7 +78,7 @@ func (c *openaiToCodexRequest) Transform(body []byte, model string, stream bool)
 
 		item := CodexInputItem{
 			Type: "message",
-			Role: msg.Role,
+			Role: role,
 		}
 
 		switch content := msg.Content.(type) {
@@ -80,11 +102,17 @@ func (c *openaiToCodexRequest) Transform(body []byte, model string, stream bool)
 
 		// Handle tool calls
 		for _, tc := range msg.ToolCalls {
+			name := tc.Function.Name
+			if short, ok := shortMap[name]; ok {
+				name = short
+			} else {
+				name = shortenNameIfNeeded(name)
+			}
 			input = append(input, CodexInputItem{
 				Type:      "function_call",
 				ID:        tc.ID,
 				CallID:    tc.ID,
-				Name:      tc.Function.Name,
+				Name:      name,
 				Role:      "assistant",
 				Arguments: tc.Function.Arguments,
 			})
@@ -94,12 +122,31 @@ func (c *openaiToCodexRequest) Transform(body []byte, model string, stream bool)
 
 	// Convert tools
 	for _, tool := range req.Tools {
+		name := tool.Function.Name
+		if short, ok := shortMap[name]; ok {
+			name = short
+		} else {
+			name = shortenNameIfNeeded(name)
+		}
 		codexReq.Tools = append(codexReq.Tools, CodexTool{
 			Type:        "function",
-			Name:        tool.Function.Name,
+			Name:        name,
 			Description: tool.Function.Description,
 			Parameters:  tool.Function.Parameters,
 		})
+	}
+
+	if instructions := CodexInstructionsForModel(model, userAgent); instructions != "" {
+		codexReq.Instructions = instructions
+	}
+	if codexReq.Reasoning == nil {
+		codexReq.Reasoning = &CodexReasoning{Effort: "medium"}
+	}
+	if codexReq.Reasoning.Effort == "" {
+		codexReq.Reasoning.Effort = "medium"
+	}
+	if codexReq.Reasoning.Summary == "" {
+		codexReq.Reasoning.Summary = "auto"
 	}
 
 	return json.Marshal(codexReq)

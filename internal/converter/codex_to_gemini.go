@@ -38,6 +38,20 @@ func (c *codexToGeminiRequest) Transform(body []byte, model string, stream bool)
 		}
 	}
 
+	if req.Reasoning != nil && req.Reasoning.Effort != "" {
+		if geminiReq.GenerationConfig.ThinkingConfig == nil {
+			geminiReq.GenerationConfig.ThinkingConfig = &GeminiThinkingConfig{}
+		}
+		effort := strings.ToLower(strings.TrimSpace(req.Reasoning.Effort))
+		if effort == "auto" {
+			geminiReq.GenerationConfig.ThinkingConfig.ThinkingBudget = -1
+			geminiReq.GenerationConfig.ThinkingConfig.IncludeThoughts = true
+		} else {
+			geminiReq.GenerationConfig.ThinkingConfig.ThinkingLevel = effort
+			geminiReq.GenerationConfig.ThinkingConfig.IncludeThoughts = effort != "none"
+		}
+	}
+
 	// Convert input to contents
 	switch input := req.Input.(type) {
 	case string:

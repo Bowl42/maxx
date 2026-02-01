@@ -3,12 +3,15 @@ package core
 import (
 	"log"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/awsl-project/maxx/internal/adapter/client"
 	_ "github.com/awsl-project/maxx/internal/adapter/provider/codex"
 	_ "github.com/awsl-project/maxx/internal/adapter/provider/custom"
+	"github.com/awsl-project/maxx/internal/converter"
 	"github.com/awsl-project/maxx/internal/cooldown"
+	"github.com/awsl-project/maxx/internal/domain"
 	"github.com/awsl-project/maxx/internal/event"
 	"github.com/awsl-project/maxx/internal/executor"
 	"github.com/awsl-project/maxx/internal/handler"
@@ -32,33 +35,33 @@ type DatabaseConfig struct {
 
 // DatabaseRepos 包含所有数据库仓库
 type DatabaseRepos struct {
-	DB                       *sqlite.DB
-	ProviderRepo             repository.ProviderRepository
-	RouteRepo                repository.RouteRepository
-	ProjectRepo              repository.ProjectRepository
-	SessionRepo              repository.SessionRepository
-	RetryConfigRepo          repository.RetryConfigRepository
+	DB                        *sqlite.DB
+	ProviderRepo              repository.ProviderRepository
+	RouteRepo                 repository.RouteRepository
+	ProjectRepo               repository.ProjectRepository
+	SessionRepo               repository.SessionRepository
+	RetryConfigRepo           repository.RetryConfigRepository
 	RoutingStrategyRepo       repository.RoutingStrategyRepository
-	ProxyRequestRepo         repository.ProxyRequestRepository
-	AttemptRepo              repository.ProxyUpstreamAttemptRepository
-	SettingRepo              repository.SystemSettingRepository
-	AntigravityQuotaRepo     repository.AntigravityQuotaRepository
-	CodexQuotaRepo           repository.CodexQuotaRepository
-	CooldownRepo             repository.CooldownRepository
-	FailureCountRepo         repository.FailureCountRepository
+	ProxyRequestRepo          repository.ProxyRequestRepository
+	AttemptRepo               repository.ProxyUpstreamAttemptRepository
+	SettingRepo               repository.SystemSettingRepository
+	AntigravityQuotaRepo      repository.AntigravityQuotaRepository
+	CodexQuotaRepo            repository.CodexQuotaRepository
+	CooldownRepo              repository.CooldownRepository
+	FailureCountRepo          repository.FailureCountRepository
 	CachedProviderRepo        *cached.ProviderRepository
-	CachedRouteRepo          *cached.RouteRepository
-	CachedRetryConfigRepo    *cached.RetryConfigRepository
+	CachedRouteRepo           *cached.RouteRepository
+	CachedRetryConfigRepo     *cached.RetryConfigRepository
 	CachedRoutingStrategyRepo *cached.RoutingStrategyRepository
-	CachedSessionRepo        *cached.SessionRepository
-	CachedProjectRepo        *cached.ProjectRepository
-	APITokenRepo             repository.APITokenRepository
-	CachedAPITokenRepo       *cached.APITokenRepository
-	ModelMappingRepo         repository.ModelMappingRepository
-	CachedModelMappingRepo   *cached.ModelMappingRepository
-	UsageStatsRepo           repository.UsageStatsRepository
-	ResponseModelRepo        repository.ResponseModelRepository
-	ModelPriceRepo           repository.ModelPriceRepository
+	CachedSessionRepo         *cached.SessionRepository
+	CachedProjectRepo         *cached.ProjectRepository
+	APITokenRepo              repository.APITokenRepository
+	CachedAPITokenRepo        *cached.APITokenRepository
+	ModelMappingRepo          repository.ModelMappingRepository
+	CachedModelMappingRepo    *cached.ModelMappingRepository
+	UsageStatsRepo            repository.UsageStatsRepository
+	ResponseModelRepo         repository.ResponseModelRepository
+	ModelPriceRepo            repository.ModelPriceRepository
 }
 
 // ServerComponents 包含服务器运行所需的所有组件
@@ -70,6 +73,7 @@ type ServerComponents struct {
 	ClientAdapter       *client.Adapter
 	AdminService        *service.AdminService
 	ProxyHandler        *handler.ProxyHandler
+	ModelsHandler       *handler.ModelsHandler
 	AdminHandler        *handler.AdminHandler
 	AntigravityHandler  *handler.AntigravityHandler
 	KiroHandler         *handler.KiroHandler
@@ -128,33 +132,33 @@ func InitializeDatabase(config *DatabaseConfig) (*DatabaseRepos, error) {
 	cachedModelMappingRepo := cached.NewModelMappingRepository(modelMappingRepo)
 
 	repos := &DatabaseRepos{
-		DB:                       db,
-		ProviderRepo:             providerRepo,
-		RouteRepo:                routeRepo,
-		ProjectRepo:              projectRepo,
-		SessionRepo:              sessionRepo,
-		RetryConfigRepo:          retryConfigRepo,
+		DB:                        db,
+		ProviderRepo:              providerRepo,
+		RouteRepo:                 routeRepo,
+		ProjectRepo:               projectRepo,
+		SessionRepo:               sessionRepo,
+		RetryConfigRepo:           retryConfigRepo,
 		RoutingStrategyRepo:       routingStrategyRepo,
-		ProxyRequestRepo:         proxyRequestRepo,
-		AttemptRepo:              attemptRepo,
-		SettingRepo:              settingRepo,
-		AntigravityQuotaRepo:     antigravityQuotaRepo,
-		CodexQuotaRepo:           codexQuotaRepo,
-		CooldownRepo:             cooldownRepo,
-		FailureCountRepo:         failureCountRepo,
+		ProxyRequestRepo:          proxyRequestRepo,
+		AttemptRepo:               attemptRepo,
+		SettingRepo:               settingRepo,
+		AntigravityQuotaRepo:      antigravityQuotaRepo,
+		CodexQuotaRepo:            codexQuotaRepo,
+		CooldownRepo:              cooldownRepo,
+		FailureCountRepo:          failureCountRepo,
 		CachedProviderRepo:        cachedProviderRepo,
-		CachedRouteRepo:          cachedRouteRepo,
-		CachedRetryConfigRepo:    cachedRetryConfigRepo,
+		CachedRouteRepo:           cachedRouteRepo,
+		CachedRetryConfigRepo:     cachedRetryConfigRepo,
 		CachedRoutingStrategyRepo: cachedRoutingStrategyRepo,
-		CachedSessionRepo:        cachedSessionRepo,
-		CachedProjectRepo:        cachedProjectRepo,
-		APITokenRepo:             apiTokenRepo,
-		CachedAPITokenRepo:       cachedAPITokenRepo,
-		ModelMappingRepo:         modelMappingRepo,
-		CachedModelMappingRepo:   cachedModelMappingRepo,
-		UsageStatsRepo:           usageStatsRepo,
-		ResponseModelRepo:        responseModelRepo,
-		ModelPriceRepo:           modelPriceRepo,
+		CachedSessionRepo:         cachedSessionRepo,
+		CachedProjectRepo:         cachedProjectRepo,
+		APITokenRepo:              apiTokenRepo,
+		CachedAPITokenRepo:        cachedAPITokenRepo,
+		ModelMappingRepo:          modelMappingRepo,
+		CachedModelMappingRepo:    cachedModelMappingRepo,
+		UsageStatsRepo:            usageStatsRepo,
+		ResponseModelRepo:         responseModelRepo,
+		ModelPriceRepo:            modelPriceRepo,
 	}
 
 	log.Printf("[Core] Database initialized successfully")
@@ -275,6 +279,16 @@ func InitializeServerComponents(
 	log.Printf("[Core] Creating stats aggregator")
 	statsAggregator := stats.NewStatsAggregator(repos.UsageStatsRepo)
 
+	log.Printf("[Core] Configuring converter settings")
+	converter.SetGlobalSettingsGetter(func() (*converter.GlobalSettings, error) {
+		val, err := repos.SettingRepo.Get(domain.SettingKeyCodexInstructionsEnabled)
+		if err != nil || val == "" {
+			return &converter.GlobalSettings{}, nil
+		}
+		enabled := strings.EqualFold(strings.TrimSpace(val), "true")
+		return &converter.GlobalSettings{CodexInstructionsEnabled: enabled}, nil
+	})
+
 	log.Printf("[Core] Creating executor")
 	exec := executor.NewExecutor(
 		r,
@@ -334,12 +348,17 @@ func InitializeServerComponents(
 	log.Printf("[Core] Creating handlers")
 	tokenAuthMiddleware := handler.NewTokenAuthMiddleware(repos.CachedAPITokenRepo, repos.SettingRepo)
 	proxyHandler := handler.NewProxyHandler(clientAdapter, exec, repos.CachedSessionRepo, tokenAuthMiddleware)
+	modelsHandler := handler.NewModelsHandler(
+		repos.ResponseModelRepo,
+		repos.CachedProviderRepo,
+		repos.CachedModelMappingRepo,
+	)
 	adminHandler := handler.NewAdminHandler(adminService, backupService, logPath)
 	antigravityHandler := handler.NewAntigravityHandler(adminService, repos.AntigravityQuotaRepo, wailsBroadcaster)
 	kiroHandler := handler.NewKiroHandler(adminService)
 	codexHandler := handler.NewCodexHandler(adminService, repos.CodexQuotaRepo, wailsBroadcaster)
 	codexOAuthServer := NewCodexOAuthServer(codexHandler)
-	projectProxyHandler := handler.NewProjectProxyHandler(proxyHandler, repos.CachedProjectRepo)
+	projectProxyHandler := handler.NewProjectProxyHandler(proxyHandler, modelsHandler, repos.CachedProjectRepo)
 
 	log.Printf("[Core] Creating request tracker for graceful shutdown")
 	requestTracker := NewRequestTracker()
@@ -353,6 +372,7 @@ func InitializeServerComponents(
 		ClientAdapter:       clientAdapter,
 		AdminService:        adminService,
 		ProxyHandler:        proxyHandler,
+		ModelsHandler:       modelsHandler,
 		AdminHandler:        adminHandler,
 		AntigravityHandler:  antigravityHandler,
 		KiroHandler:         kiroHandler,

@@ -3,18 +3,21 @@ package converter
 // Codex API types (OpenAI Responses API)
 
 type CodexRequest struct {
-	Model          string                 `json:"model"`
-	Input          interface{}            `json:"input"` // string or []InputItem
-	Instructions   string                 `json:"instructions,omitempty"`
-	MaxOutputTokens int                   `json:"max_output_tokens,omitempty"`
-	Temperature    *float64               `json:"temperature,omitempty"`
-	TopP           *float64               `json:"top_p,omitempty"`
-	Stream         bool                   `json:"stream,omitempty"`
-	Tools          []CodexTool            `json:"tools,omitempty"`
-	ToolChoice     interface{}            `json:"tool_choice,omitempty"`
-	Metadata       map[string]interface{} `json:"metadata,omitempty"`
-	Store          bool                   `json:"store,omitempty"`
-	PreviousResponseID string             `json:"previous_response_id,omitempty"`
+	Model              string                 `json:"model"`
+	Input              interface{}            `json:"input"` // string or []InputItem
+	Instructions       string                 `json:"instructions,omitempty"`
+	MaxOutputTokens    int                    `json:"max_output_tokens,omitempty"`
+	Temperature        *float64               `json:"temperature,omitempty"`
+	TopP               *float64               `json:"top_p,omitempty"`
+	Stream             bool                   `json:"stream,omitempty"`
+	Tools              []CodexTool            `json:"tools,omitempty"`
+	ToolChoice         interface{}            `json:"tool_choice,omitempty"`
+	Reasoning          *CodexReasoning        `json:"reasoning,omitempty"`
+	ParallelToolCalls  *bool                  `json:"parallel_tool_calls,omitempty"`
+	Include            []string               `json:"include,omitempty"`
+	Metadata           map[string]interface{} `json:"metadata,omitempty"`
+	Store              bool                   `json:"store,omitempty"`
+	PreviousResponseID string                 `json:"previous_response_id,omitempty"`
 }
 
 type CodexInputItem struct {
@@ -35,15 +38,20 @@ type CodexTool struct {
 	Parameters  interface{} `json:"parameters,omitempty"`
 }
 
+type CodexReasoning struct {
+	Effort  string `json:"effort,omitempty"`
+	Summary string `json:"summary,omitempty"`
+}
+
 type CodexResponse struct {
-	ID               string        `json:"id"`
-	Object           string        `json:"object"`
-	CreatedAt        int64         `json:"created_at"`
-	Model            string        `json:"model"`
-	Output           []CodexOutput `json:"output"`
-	Status           string        `json:"status"`
-	Usage            CodexUsage    `json:"usage"`
-	Error            *CodexError   `json:"error,omitempty"`
+	ID        string        `json:"id"`
+	Object    string        `json:"object"`
+	CreatedAt int64         `json:"created_at"`
+	Model     string        `json:"model"`
+	Output    []CodexOutput `json:"output"`
+	Status    string        `json:"status"`
+	Usage     CodexUsage    `json:"usage"`
+	Error     *CodexError   `json:"error,omitempty"`
 }
 
 type CodexOutput struct {
@@ -58,9 +66,9 @@ type CodexOutput struct {
 }
 
 type CodexUsage struct {
-	InputTokens         int `json:"input_tokens"`
-	OutputTokens        int `json:"output_tokens"`
-	TotalTokens         int `json:"total_tokens"`
+	InputTokens         int                `json:"input_tokens"`
+	OutputTokens        int                `json:"output_tokens"`
+	TotalTokens         int                `json:"total_tokens"`
 	InputTokensDetails  *CodexTokenDetails `json:"input_tokens_details,omitempty"`
 	OutputTokensDetails *CodexTokenDetails `json:"output_tokens_details,omitempty"`
 }
@@ -78,7 +86,7 @@ type CodexError struct {
 
 // Codex streaming events
 type CodexStreamEvent struct {
-	Type     string        `json:"type"`
+	Type     string         `json:"type"`
 	Response *CodexResponse `json:"response,omitempty"`
 	Item     *CodexOutput   `json:"item,omitempty"`
 	Delta    *CodexDelta    `json:"delta,omitempty"`

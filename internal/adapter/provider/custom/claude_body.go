@@ -41,12 +41,15 @@ func processClaudeRequestBody(body []byte, clientUserAgent string, cloakCfg *dom
 	// 2. Disable thinking if tool_choice forces tool use
 	body = disableThinkingIfToolChoiceForced(body)
 
-	// 3. Auto-inject cache_control if missing (CLIProxyAPI behavior)
+	// 3. Ensure minimum thinking budget if present
+	body = ensureMinThinkingBudget(body)
+
+	// 4. Auto-inject cache_control if missing (CLIProxyAPI behavior)
 	if countCacheControls(body) == 0 {
 		body = ensureCacheControl(body)
 	}
 
-	// 4. Extract betas from body (to be added to header)
+	// 5. Extract betas from body (to be added to header)
 	var extraBetas []string
 	extraBetas, body = extractAndRemoveBetas(body)
 
@@ -95,6 +98,26 @@ func isClaudeCodeClient(userAgent string) bool {
 
 func isClaudeOAuthToken(apiKey string) bool {
 	return strings.Contains(apiKey, "sk-ant-oat")
+}
+
+func ensureMinThinkingBudget(body []byte) []byte {
+	const minBudget = 1024
+	// Claude API format: {"thinking": {"type": "enabled", "budget_tokens": N}}
+	if gjson.GetBytes(body, "thinking.type").String() != "enabled" {
+		return body
+	}
+	result := gjson.GetBytes(body, "thinking.budget_tokens")
+	if result.Type != gjson.Number {
+		return body
+	}
+	if result.Int() >= minBudget {
+		return body
+	}
+	updated, err := sjson.SetBytes(body, "thinking.budget_tokens", minBudget)
+	if err != nil {
+		return body
+	}
+	return updated
 }
 
 func applyClaudeToolPrefix(body []byte, prefix string) []byte {

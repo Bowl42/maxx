@@ -21,6 +21,7 @@ web/package.json.md5
 .gocache/
 .gomodcache/
 .gotmp/
+.tmp/
 
 # Claude Code local settings
 .claude/settings.local.json

@@ -3,6 +3,7 @@ package executor
 import (
 	"bytes"
 	"net/http"
+	"net/url"
 	"strings"
 
 	"github.com/awsl-project/maxx/internal/converter"
@@ -13,34 +14,121 @@ import (
 var clientTypeURLPaths = map[domain.ClientType]string{
 	domain.ClientTypeClaude: "/v1/messages",
 	domain.ClientTypeOpenAI: "/v1/chat/completions",
+	domain.ClientTypeCodex:  "/responses",
 	// Gemini uses dynamic paths with model names, handled separately
 }
 
 // ConvertRequestURI converts the request URI from one client type to another
-func ConvertRequestURI(originalURI string, fromType, toType domain.ClientType) string {
+func ConvertRequestURI(originalURI string, fromType, toType domain.ClientType, mappedModel string, isStream bool) string {
 	if fromType == toType {
 		return originalURI
+	}
+
+	path, rawQuery := splitURI(originalURI)
+
+	if toType == domain.ClientTypeGemini {
+		newPath := buildGeminiRequestPath(path, mappedModel, isStream)
+		return withQuery(newPath, rawQuery)
 	}
 
 	// Get the target path for the destination type
 	targetPath, ok := clientTypeURLPaths[toType]
 	if !ok {
-		// For Gemini or unknown types, return original
+		// For unknown types, return original
 		return originalURI
 	}
 
 	// Check if the original URI matches a known pattern and replace it
+	suffix := ""
 	for _, knownPath := range clientTypeURLPaths {
-		if strings.HasPrefix(originalURI, knownPath) {
-			// Replace the path prefix, preserving query string if any
-			suffix := strings.TrimPrefix(originalURI, knownPath)
-			return targetPath + suffix
+		if strings.HasPrefix(path, knownPath) {
+			suffix = strings.TrimPrefix(path, knownPath)
+			break
 		}
 	}
 
-	// If no known pattern matched, return target path
-	// This handles cases where the original path doesn't match expected patterns
-	return targetPath
+	if isClaudeCountTokensPath(path) && toType != domain.ClientTypeClaude {
+		suffix = ""
+	}
+
+	return withQuery(targetPath+suffix, rawQuery)
+}
+
+func splitURI(originalURI string) (string, string) {
+	parsed, err := url.ParseRequestURI(originalURI)
+	if err == nil {
+		return parsed.Path, parsed.RawQuery
+	}
+	if strings.Contains(originalURI, "?") {
+		parts := strings.SplitN(originalURI, "?", 2)
+		return parts[0], parts[1]
+	}
+	return originalURI, ""
+}
+
+func withQuery(path, rawQuery string) string {
+	if rawQuery == "" {
+		return path
+	}
+	return path + "?" + rawQuery
+}
+
+const geminiDefaultVersion = "v1beta"
+
+func buildGeminiRequestPath(originalPath, mappedModel string, isStream bool) string {
+	version, pathModel, action, ok := parseGeminiPath(originalPath)
+	if !ok {
+		version = geminiDefaultVersion
+	}
+
+	model := mappedModel
+	if model == "" {
+		model = pathModel
+	}
+	if model == "" {
+		return originalPath
+	}
+
+	if action == "" {
+		if isClaudeCountTokensPath(originalPath) {
+			action = "countTokens"
+		} else if isStream {
+			action = "streamGenerateContent"
+		} else {
+			action = "generateContent"
+		}
+	}
+
+	return "/" + version + "/models/" + model + ":" + action
+}
+
+func parseGeminiPath(path string) (string, string, string, bool) {
+	if strings.HasPrefix(path, "/v1beta/models/") {
+		return parseGeminiPathWithVersion(path, "v1beta", "/v1beta/models/")
+	}
+	if strings.HasPrefix(path, "/v1internal/models/") {
+		return parseGeminiPathWithVersion(path, "v1internal", "/v1internal/models/")
+	}
+	return "", "", "", false
+}
+
+func parseGeminiPathWithVersion(path, version, prefix string) (string, string, string, bool) {
+	rest := strings.TrimPrefix(path, prefix)
+	if rest == "" {
+		return version, "", "", true
+	}
+	model := rest
+	action := ""
+	if strings.Contains(rest, ":") {
+		parts := strings.SplitN(rest, ":", 2)
+		model = parts[0]
+		action = parts[1]
+	}
+	return version, model, action, true
+}
+
+func isClaudeCountTokensPath(path string) bool {
+	return strings.HasPrefix(path, "/v1/messages/count_tokens")
 }
 
 // ConvertingResponseWriter wraps http.ResponseWriter to convert response format
@@ -53,7 +141,7 @@ type ConvertingResponseWriter struct {
 	isStream     bool
 	statusCode   int
 	headers      http.Header
-	buffer       bytes.Buffer      // Buffer for non-streaming responses
+	buffer       bytes.Buffer // Buffer for non-streaming responses
 	streamState  *converter.TransformState
 	headersSent  bool
 }
