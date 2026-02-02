@@ -76,7 +76,7 @@ export function AntigravityTokenImport() {
     );
 
     return () => unsubscribe();
-  }, [oauthState]);
+  }, [oauthState, t]);
 
   // Handle OAuth flow
   const handleOAuth = async () => {

@@ -80,7 +80,7 @@ export function CodexTokenImport() {
     });
 
     return () => unsubscribe();
-  }, [oauthState]);
+  }, [oauthState, t]);
 
   // Parse callback URL and extract code/state
   const parseCallbackUrl = (url: string): { code: string; state: string } | null => {

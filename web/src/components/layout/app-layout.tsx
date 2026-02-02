@@ -1,6 +1,6 @@
 import { Outlet } from 'react-router-dom';
 import { AppSidebar } from './app-sidebar';
-import { SidebarProvider, SidebarInset, SidebarTrigger } from '@/components/ui/sidebar';
+import { SidebarProvider, SidebarInset } from '@/components/ui/sidebar';
 import { ForceProjectDialog } from '@/components/force-project-dialog';
 import { usePendingSession } from '@/hooks/use-pending-session';
 import { useSettings } from '@/hooks/queries';
