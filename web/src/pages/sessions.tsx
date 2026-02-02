@@ -14,6 +14,7 @@ import {
 } from '@/components/ui';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { useSessions, useProjects, useUpdateSessionProject } from '@/hooks/queries';
+import { PageHeader } from '@/components/layout/page-header';
 import {
   LayoutDashboard,
   Loader2,
@@ -38,25 +39,15 @@ export function SessionsPage() {
   const projectMap = new Map(projects?.map((p) => [p.id, p.name]) ?? []);
 
   return (
-    <div className="flex flex-col h-full bg-background">
-      {/* Header */}
-      <div className="h-[73px] flex items-center justify-between px-6 border-b border-border bg-card shrink-0">
-        <div className="flex items-center gap-3">
-          <div className="p-2 bg-accent rounded-lg">
-            <LayoutDashboard size={20} />
-          </div>
-          <div>
-            <h2 className="text-lg font-semibold text-text-primary leading-tight">
-              {t('sessions.title')}
-            </h2>
-            <p className="text-xs text-text-secondary">
-              {t('sessions.activeCount', { count: sessions?.length ?? 0 })}
-            </p>
-          </div>
-        </div>
-      </div>
+    <div className="flex flex-col h-full">
+      <PageHeader
+        icon={LayoutDashboard}
+        iconClassName="text-purple-500"
+        title={t('sessions.title')}
+        description={t('sessions.activeCount', { count: sessions?.length ?? 0 })}
+      />
 
-      <div className="flex-1 overflow-auto p-6">
+      <div className="flex-1 overflow-auto p-4 md:p-6">
         <Card className="border-border bg-card">
           <CardContent className="p-0">
             {isLoading ? (

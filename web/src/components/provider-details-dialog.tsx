@@ -106,7 +106,8 @@ const getReasonInfo = (t: TFunction) => ({
     description: t('provider.reasons.manualDesc', 'Provider 已被管理员手动冷冻'),
     icon: Hand,
     color: 'text-indigo-500 dark:text-indigo-400',
-    bgColor: 'bg-indigo-500/10 dark:bg-indigo-500/15 border-indigo-500/30 dark:border-indigo-500/25',
+    bgColor:
+      'bg-indigo-500/10 dark:bg-indigo-500/15 border-indigo-500/30 dark:border-indigo-500/25',
   },
 });
 
@@ -150,7 +151,9 @@ function parseTimeInput(input: string): dayjs.Dayjs | null {
   const now = dayjs();
 
   // 1. 相对时间格式: "5m", "30min", "2h", "1hour", "3d", "1day"
-  const relativeMatch = trimmed.match(/^(\d+)\s*(m|min|mins|minute|minutes|h|hr|hrs|hour|hours|d|day|days)$/);
+  const relativeMatch = trimmed.match(
+    /^(\d+)\s*(m|min|mins|minute|minutes|h|hr|hrs|hour|hours|d|day|days)$/,
+  );
   if (relativeMatch) {
     const value = parseInt(relativeMatch[1], 10);
     const unit = relativeMatch[2];
@@ -454,7 +457,12 @@ export function ProviderDetailsDialog({
                           disabled={isSettingCooldown || isToggling}
                           onClick={() => {
                             const until = new Date(Date.now() + minutes * 60 * 1000);
-                            console.log('Setting cooldown:', provider.id, until.toISOString(), clientType);
+                            console.log(
+                              'Setting cooldown:',
+                              provider.id,
+                              until.toISOString(),
+                              clientType,
+                            );
                             setCooldown(provider.id, until.toISOString(), clientType);
                           }}
                           className="px-3 py-1.5 text-xs rounded-lg border border-indigo-500/30 dark:border-indigo-500/25 bg-indigo-500/5 dark:bg-indigo-500/10 hover:bg-indigo-500/15 dark:hover:bg-indigo-500/20 text-indigo-600 dark:text-indigo-400 disabled:opacity-50"
@@ -589,8 +597,8 @@ export function ProviderDetailsDialog({
                     </div>
 
                     {/* Timer Section */}
-                    <div className="relative overflow-hidden rounded-xl bg-gradient-to-br from-teal-500/10 via-cyan-500/5 to-transparent dark:from-teal-950/40 dark:via-cyan-950/20 dark:to-transparent border border-teal-400/30 dark:border-teal-500/20 p-4 flex flex-col items-center justify-center group shadow-inner">
-                      <div className="absolute inset-0 bg-gradient-to-br from-teal-400/5 to-cyan-400/5 dark:from-teal-400/5 dark:to-cyan-400/5 opacity-50 group-hover:opacity-100 transition-opacity" />
+                    <div className="relative overflow-hidden rounded-xl bg-linear-to-br from-teal-500/10 via-cyan-500/5 to-transparent dark:from-teal-950/40 dark:via-cyan-950/20 dark:to-transparent border border-teal-400/30 dark:border-teal-500/20 p-4 flex flex-col items-center justify-center group shadow-inner">
+                      <div className="absolute inset-0 bg-linear-to-br from-teal-400/5 to-cyan-400/5 dark:from-teal-400/5 dark:to-cyan-400/5 opacity-50 group-hover:opacity-100 transition-opacity" />
                       <div className="relative flex items-center gap-1.5 text-teal-600 dark:text-teal-400 mb-1">
                         <Thermometer size={12} />
                         <span className="text-[9px] font-bold uppercase tracking-widest">
@@ -730,7 +738,7 @@ export function ProviderDetailsDialog({
                     </div>
                   </div>
                 ) : (
-                  <div className="p-6 lg:p-8 flex flex-col items-center gap-2 text-slate-400 dark:text-slate-500 rounded-lg bg-gradient-to-br from-slate-50 to-slate-100/50 dark:from-slate-900/30 dark:to-slate-800/20 border border-slate-200 dark:border-slate-700/50">
+                  <div className="p-6 lg:p-8 flex flex-col items-center gap-2 text-slate-400 dark:text-slate-500 rounded-lg bg-linear-to-br from-slate-50 to-slate-100/50 dark:from-slate-900/30 dark:to-slate-800/20 border border-slate-200 dark:border-slate-700/50">
                     <Activity size={24} />
                     <span className="text-xs font-bold uppercase tracking-widest">
                       No Statistics Available

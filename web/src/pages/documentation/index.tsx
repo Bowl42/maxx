@@ -3,6 +3,7 @@ import { BookOpen, Code, Copy, Check, AlertTriangle, Terminal } from 'lucide-rea
 import { useTranslation } from 'react-i18next';
 import { Card, CardContent, Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui';
 import { ClientIcon } from '@/components/icons/client-icons';
+import { PageHeader } from '@/components/layout/page-header';
 
 interface CodeBlockProps {
   code: string;
@@ -35,23 +36,15 @@ export function DocumentationPage() {
   const { t } = useTranslation();
 
   return (
-    <div className="flex flex-col h-full bg-background">
-      {/* Header */}
-      <div className="h-[73px] flex items-center justify-between px-6 border-b border-border bg-card shrink-0">
-        <div className="flex items-center gap-3">
-          <div className="p-2 bg-accent/10 rounded-lg">
-            <BookOpen size={20} className="text-accent" />
-          </div>
-          <div>
-            <h2 className="text-lg font-semibold text-foreground leading-tight">
-              {t('documentation.title')}
-            </h2>
-            <p className="text-xs text-muted-foreground">{t('documentation.description')}</p>
-          </div>
-        </div>
-      </div>
+    <div className="flex flex-col h-full">
+      <PageHeader
+        icon={BookOpen}
+        iconClassName="text-blue-500"
+        title={t('documentation.title')}
+        description={t('documentation.description')}
+      />
 
-      <div className="flex-1 overflow-y-auto p-6">
+      <div className="flex-1 overflow-y-auto p-4 md:p-6">
         <div className="max-w-7xl mx-auto">
           <DocumentationSection />
         </div>

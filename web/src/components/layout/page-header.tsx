@@ -1,8 +1,9 @@
 import type { LucideIcon } from 'lucide-react';
-import type { ReactNode } from 'react';
+import type { ReactNode, ReactElement } from 'react';
+import { isValidElement } from 'react';
 
 interface PageHeaderProps {
-  icon?: LucideIcon;
+  icon?: LucideIcon | ReactElement;
   iconClassName?: string;
   title: string;
   description?: string;
@@ -22,8 +23,12 @@ export function PageHeader({
     <header className="h-[73px] flex items-center justify-between px-6 border-b border-border bg-card shrink-0">
       <div className="flex items-center gap-3">
         {Icon && (
-          <div className="p-2 bg-linear-to-br from-surface-secondary/80 to-surface-secondary/40 rounded-lg shadow-sm">
-            <Icon size={20} className={iconClassName} />
+          <div className="p-2 bg-secondary/50 rounded-lg border border-border/50">
+            {isValidElement(Icon) ? (
+              Icon
+            ) : (
+              <Icon size={20} className={iconClassName} />
+            )}
           </div>
         )}
         <div>

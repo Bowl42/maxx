@@ -20,7 +20,8 @@ import {
   useDeleteRoutingStrategy,
   useProjects,
 } from '@/hooks/queries';
-import { Plus, Trash2, Pencil } from 'lucide-react';
+import { PageHeader } from '@/components/layout/page-header';
+import { Plus, Trash2, Pencil, Workflow } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import type { RoutingStrategy, RoutingStrategyType } from '@/lib/transport';
 
@@ -84,14 +85,22 @@ export function RoutingStrategiesPage() {
   const isPending = createStrategy.isPending || updateStrategy.isPending;
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h2 className="text-2xl font-bold">{t('routingStrategies.title')}</h2>
-        <Button onClick={() => setShowForm(true)}>
-          <Plus className="mr-2 h-4 w-4" />
-          {t('routingStrategies.addStrategy')}
-        </Button>
-      </div>
+    <div className="flex flex-col h-full">
+      <PageHeader
+        icon={Workflow}
+        iconClassName="text-cyan-500"
+        title={t('routingStrategies.title')}
+        description={t('routingStrategies.description')}
+        actions={
+          <Button size="sm" onClick={() => setShowForm(true)}>
+            <Plus className="mr-2 h-4 w-4" />
+            {t('routingStrategies.addStrategy')}
+          </Button>
+        }
+      />
+
+      <div className="flex-1 overflow-auto p-4 md:p-6">
+        <div className="space-y-6 max-w-7xl mx-auto">
 
       {showForm && (
         <Card>
@@ -211,6 +220,8 @@ export function RoutingStrategiesPage() {
           )}
         </CardContent>
       </Card>
+        </div>
+      </div>
     </div>
   );
 }
