@@ -1,16 +1,17 @@
 import {
   Server,
   Wand2,
-  ChevronLeft,
   Layers,
   Grid3X3,
   CheckCircle2,
   FilePlus,
   Cloud,
   Code2,
+  ChevronLeft,
 } from 'lucide-react';
 import { quickTemplates, PROVIDER_TYPE_CONFIGS } from '../types';
 import { Button } from '@/components/ui';
+import { PageHeader } from '@/components/layout/page-header';
 import { useTranslation } from 'react-i18next';
 import { useProviderForm } from '../context/provider-form-context';
 import { useProviderNavigation } from '../hooks/use-provider-navigation';
@@ -58,19 +59,11 @@ export function SelectTypeStep() {
 
   return (
     <div className="flex flex-col h-full">
-      <div className="px-4 sm:px-6 h-[73px] flex items-center gap-4 border-b border-border bg-card">
-        <Button onClick={goToProviders} variant={'ghost'} size="icon">
-          <ChevronLeft className="size-5" />
-        </Button>
-        <div className="flex-1 min-w-0">
-          <h2 className="text-base sm:text-lg font-semibold text-foreground truncate">
-            {t('addProvider.title')}
-          </h2>
-          <p className="text-xs sm:text-sm text-muted-foreground truncate">
-            {t('addProvider.subtitle')}
-          </p>
-        </div>
-      </div>
+      <PageHeader
+        icon={<ChevronLeft className="cursor-pointer" onClick={goToProviders} />}
+        title={t('addProvider.title')}
+        description={t('addProvider.subtitle')}
+      />
 
       <div className="flex-1 overflow-y-auto p-4 sm:p-6">
         <div className="max-w-7xl mx-auto space-y-6 sm:space-y-8 lg:space-y-10">

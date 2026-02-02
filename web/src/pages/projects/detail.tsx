@@ -68,7 +68,7 @@ export function ProjectDetailPage() {
       {/* Header */}
       <PageHeader
         icon={FolderKanban}
-        iconClassName="text-accent"
+        iconClassName="text-purple-500"
         title={project.name}
         description={project.slug}
         actions={

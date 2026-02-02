@@ -20,6 +20,7 @@ import type {
 import { ANTIGRAVITY_COLOR } from '../types';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { PageHeader } from '@/components/layout/page-header';
 import { cn } from '@/lib/utils';
 import { useProviderNavigation } from '../hooks/use-provider-navigation';
 import { useCreateProvider } from '@/hooks/queries';
@@ -233,26 +234,10 @@ export function AntigravityTokenImport() {
 
   return (
     <div className="flex flex-col h-full bg-card">
-      {/* Header */}
-      <div className="h-16 flex items-center gap-4 px-6 border-b border-border bg-card/80 backdrop-blur-sm sticky top-0 z-10">
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={goToSelectType}
-          className="rounded-full hover:bg-accent -ml-2"
-        >
-          <ChevronLeft size={20} className="text-muted-foreground" />
-        </Button>
-        <div>
-          <h2 className="text-lg font-semibold text-foreground flex items-center gap-2">
-            <span
-              className="w-2 h-2 rounded-full inline-block"
-              style={{ backgroundColor: ANTIGRAVITY_COLOR }}
-            />
-            {t('providers.antigravityTokenImport.title')}
-          </h2>
-        </div>
-      </div>
+      <PageHeader
+        icon={<ChevronLeft className="cursor-pointer" onClick={goToSelectType} />}
+        title={t('providers.antigravityTokenImport.title')}
+      />
 
       <div className="flex-1 overflow-y-auto">
         <div className="container max-w-2xl mx-auto py-8 px-6 space-y-8">
