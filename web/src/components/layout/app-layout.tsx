@@ -17,10 +17,6 @@ export function AppLayout() {
       <SidebarProvider className="h-svh! min-h-0! overflow-hidden">
         <AppSidebar />
         <SidebarInset className="flex flex-col">
-          {/* Mobile header with sidebar trigger */}
-          <header className="flex h-12 shrink-0 items-center gap-2 border-b px-4 md:hidden">
-            <SidebarTrigger />
-          </header>
           <div className="@container/main flex-1 min-h-0 overflow-hidden">
             <Outlet />
           </div>

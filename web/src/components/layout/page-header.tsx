@@ -1,6 +1,7 @@
 import type { LucideIcon } from 'lucide-react';
 import type { ReactNode, ReactElement } from 'react';
 import { isValidElement } from 'react';
+import { SidebarTrigger } from '@/components/ui/sidebar';
 
 interface PageHeaderProps {
   icon?: LucideIcon | ReactElement;
@@ -22,6 +23,7 @@ export function PageHeader({
   return (
     <header className="h-[73px] flex items-center justify-between px-6 border-b border-border bg-card shrink-0">
       <div className="flex items-center gap-3">
+        <SidebarTrigger className="-ml-2" />
         {Icon && (
           <div className="p-2 bg-secondary/50 rounded-lg border border-border/50">
             {isValidElement(Icon) ? (

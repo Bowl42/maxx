@@ -1,6 +1,7 @@
 import { Badge, Button } from '@/components/ui';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { ArrowLeft, RefreshCw } from 'lucide-react';
+import { SidebarTrigger } from '@/components/ui/sidebar';
 import { statusVariant } from '../index';
 import type { ProxyRequest, ClientType } from '@/lib/transport';
 import { ClientIcon, getClientName, getClientColor } from '@/components/icons/client-icons';
@@ -44,11 +45,12 @@ export function RequestHeader({
       <div className="flex items-center justify-between gap-6 w-full">
         {/* Left: Back + Main Info */}
         <div className="flex items-center gap-3 min-w-0">
+          <SidebarTrigger className="-ml-2" />
           <Button
             variant="ghost"
             size="icon"
             onClick={onBack}
-            className="h-8 w-8 -ml-2 text-muted-foreground hover:text-foreground shrink-0"
+            className="h-8 w-8 text-muted-foreground hover:text-foreground shrink-0"
           >
             <ArrowLeft className="h-5 w-5" />
           </Button>
