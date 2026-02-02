@@ -17,6 +17,7 @@ import (
 	_ "github.com/awsl-project/maxx/internal/adapter/provider/kiro"   // Register kiro adapter
 	"github.com/awsl-project/maxx/internal/cooldown"
 	"github.com/awsl-project/maxx/internal/core"
+	"github.com/awsl-project/maxx/internal/debug"
 	"github.com/awsl-project/maxx/internal/executor"
 	"github.com/awsl-project/maxx/internal/handler"
 	"github.com/awsl-project/maxx/internal/repository/cached"
@@ -48,8 +49,11 @@ func main() {
 	// Parse flags
 	addr := flag.String("addr", ":9880", "Server address")
 	dataDir := flag.String("data", "", "Data directory for database and logs (default: ~/.config/maxx)")
+	debugFlag := flag.Bool("debug", false, "Enable debug logging for request details")
 	showVersion := flag.Bool("version", false, "Show version information and exit")
 	flag.Parse()
+
+	debug.SetEnabled(*debugFlag)
 
 	// Show version and exit if requested
 	if *showVersion {

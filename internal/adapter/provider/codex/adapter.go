@@ -15,6 +15,7 @@ import (
 
 	"github.com/awsl-project/maxx/internal/adapter/provider"
 	ctxutil "github.com/awsl-project/maxx/internal/context"
+	"github.com/awsl-project/maxx/internal/debug"
 	"github.com/awsl-project/maxx/internal/domain"
 	"github.com/awsl-project/maxx/internal/usage"
 )
@@ -232,7 +233,10 @@ func (a *CodexAdapter) handleNonStreamResponse(ctx context.Context, w http.Respo
 	if err != nil {
 		return domain.NewProxyErrorWithMessage(domain.ErrUpstreamError, true, "failed to read upstream response")
 	}
-	_, _ = os.Stdout.Write(body)
+	if debug.Enabled() {
+		_, _ = os.Stdout.Write([]byte("=========上游返回>>>>>>>>\n"))
+		_, _ = os.Stdout.Write(body)
+	}
 
 	// Send events via EventChannel
 	eventChan := ctxutil.GetEventChan(ctx)
@@ -265,6 +269,8 @@ func (a *CodexAdapter) handleNonStreamResponse(ctx context.Context, w http.Respo
 
 func (a *CodexAdapter) handleStreamResponse(ctx context.Context, w http.ResponseWriter, resp *http.Response) error {
 	eventChan := ctxutil.GetEventChan(ctx)
+	wrotePrefix := false
+	debugEnabled := debug.Enabled()
 
 	// Send initial response info
 	eventChan.SendResponseInfo(&domain.ResponseInfo{
@@ -314,15 +320,21 @@ func (a *CodexAdapter) handleStreamResponse(ctx context.Context, w http.Response
 				if readErr != nil {
 					lineBuffer.WriteString(line)
 					break
-			}
+				}
 
-			sseBuffer.WriteString(line)
-			_, _ = os.Stdout.Write([]byte(line))
+				sseBuffer.WriteString(line)
+				if debugEnabled {
+					if !wrotePrefix {
+						_, _ = os.Stdout.Write([]byte("=========上游返回>>>>>>>>\n"))
+						wrotePrefix = true
+					}
+					_, _ = os.Stdout.Write([]byte(line))
+				}
 
-			// Check for response.completed in data line
-			if strings.HasPrefix(line, "data:") && strings.Contains(line, "response.completed") {
-				responseCompleted = true
-			}
+				// Check for response.completed in data line
+				if strings.HasPrefix(line, "data:") && strings.Contains(line, "response.completed") {
+					responseCompleted = true
+				}
 
 				// Write to client
 				_, writeErr := w.Write([]byte(line))

@@ -152,7 +152,12 @@ func NewConvertingResponseWriter(
 	conv *converter.Registry,
 	originalType, targetType domain.ClientType,
 	isStream bool,
+	model string,
 ) *ConvertingResponseWriter {
+	streamState := converter.NewTransformState()
+	if model != "" {
+		streamState.Model = model
+	}
 	return &ConvertingResponseWriter{
 		underlying:   w,
 		converter:    conv,
@@ -161,7 +166,7 @@ func NewConvertingResponseWriter(
 		isStream:     isStream,
 		statusCode:   http.StatusOK,
 		headers:      make(http.Header),
-		streamState:  converter.NewTransformState(),
+		streamState:  streamState,
 	}
 }
 

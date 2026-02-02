@@ -16,6 +16,8 @@ type TransformState struct {
 	Buffer           string // SSE line buffer
 	Usage            *Usage
 	StopReason       string
+	Model            string
+	CreatedAt        int64
 }
 
 // ToolCallState tracks tool call conversion state

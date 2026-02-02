@@ -271,86 +271,59 @@ func (c *geminiToOpenAIResponse) TransformChunk(chunk []byte, state *TransformSt
 		// First chunk
 		if state.MessageID == "" {
 			state.MessageID = "chatcmpl-gemini"
-			openaiChunk := OpenAIStreamChunk{
-				ID:      state.MessageID,
-				Object:  "chat.completion.chunk",
-				Created: time.Now().Unix(),
-				Choices: []OpenAIChoice{{
-					Index: 0,
-					Delta: &OpenAIMessage{Role: "assistant", Content: ""},
-				}},
+			if state.CreatedAt == 0 {
+				state.CreatedAt = time.Now().Unix()
 			}
-			output = append(output, FormatSSE("", openaiChunk)...)
+			output = append(output, formatOpenAIStreamChunk(state, map[string]interface{}{
+				"role":    "assistant",
+				"content": "",
+			}, nil)...)
 		}
 
 		if len(geminiChunk.Candidates) > 0 {
 			candidate := geminiChunk.Candidates[0]
 			for _, part := range candidate.Content.Parts {
 				if part.Thought && part.Text != "" {
-					openaiChunk := OpenAIStreamChunk{
-						ID:      state.MessageID,
-						Object:  "chat.completion.chunk",
-						Created: time.Now().Unix(),
-						Choices: []OpenAIChoice{{
-							Index: 0,
-							Delta: &OpenAIMessage{ReasoningContent: part.Text},
-						}},
-					}
-					output = append(output, FormatSSE("", openaiChunk)...)
+					output = append(output, formatOpenAIStreamChunk(state, map[string]interface{}{
+						"reasoning_content": part.Text,
+					}, nil)...)
 					continue
 				}
 				if part.Text != "" {
-					openaiChunk := OpenAIStreamChunk{
-						ID:      state.MessageID,
-						Object:  "chat.completion.chunk",
-						Created: time.Now().Unix(),
-						Choices: []OpenAIChoice{{
-							Index: 0,
-							Delta: &OpenAIMessage{Content: part.Text},
-						}},
-					}
-					output = append(output, FormatSSE("", openaiChunk)...)
+					output = append(output, formatOpenAIStreamChunk(state, map[string]interface{}{
+						"content": part.Text,
+					}, nil)...)
 				}
 				if part.InlineData != nil && part.InlineData.Data != "" {
-					openaiChunk := OpenAIStreamChunk{
-						ID:      state.MessageID,
-						Object:  "chat.completion.chunk",
-						Created: time.Now().Unix(),
-						Choices: []OpenAIChoice{{
-							Index: 0,
-							Delta: &OpenAIMessage{
-								Content: []OpenAIContentPart{{
-									Type:     "image_url",
-									ImageURL: &OpenAIImageURL{URL: "data:" + part.InlineData.MimeType + ";base64," + part.InlineData.Data},
-								}},
+					output = append(output, formatOpenAIStreamChunk(state, map[string]interface{}{
+						"content": []interface{}{
+							map[string]interface{}{
+								"type": "image_url",
+								"image_url": map[string]interface{}{
+									"url": "data:" + part.InlineData.MimeType + ";base64," + part.InlineData.Data,
+								},
 							},
-						}},
-					}
-					output = append(output, FormatSSE("", openaiChunk)...)
+						},
+					}, nil)...)
 				}
 				if part.FunctionCall != nil {
 					id := part.FunctionCall.ID
 					if id == "" {
 						id = "call_" + part.FunctionCall.Name
 					}
-					openaiChunk := OpenAIStreamChunk{
-						ID:      state.MessageID,
-						Object:  "chat.completion.chunk",
-						Created: time.Now().Unix(),
-						Choices: []OpenAIChoice{{
-							Index: 0,
-							Delta: &OpenAIMessage{
-								ToolCalls: []OpenAIToolCall{{
-									Index:    state.CurrentIndex,
-									ID:       id,
-									Type:     "function",
-									Function: OpenAIFunctionCall{Name: part.FunctionCall.Name, Arguments: string(mustMarshal(part.FunctionCall.Args))},
-								}},
-							},
-						}},
+					tool := map[string]interface{}{
+						"index": state.CurrentIndex,
+						"id":    id,
+						"type":  "function",
+						"function": map[string]interface{}{
+							"name":      part.FunctionCall.Name,
+							"arguments": string(mustMarshal(part.FunctionCall.Args)),
+						},
 					}
 					state.CurrentIndex++
-					output = append(output, FormatSSE("", openaiChunk)...)
+					output = append(output, formatOpenAIStreamChunk(state, map[string]interface{}{
+						"tool_calls": []interface{}{tool},
+					}, nil)...)
 				}
 			}
 
@@ -359,17 +332,7 @@ func (c *geminiToOpenAIResponse) TransformChunk(chunk []byte, state *TransformSt
 				if candidate.FinishReason == "MAX_TOKENS" {
 					finishReason = "length"
 				}
-				openaiChunk := OpenAIStreamChunk{
-					ID:      state.MessageID,
-					Object:  "chat.completion.chunk",
-					Created: time.Now().Unix(),
-					Choices: []OpenAIChoice{{
-						Index:        0,
-						Delta:        &OpenAIMessage{},
-						FinishReason: finishReason,
-					}},
-				}
-				output = append(output, FormatSSE("", openaiChunk)...)
+				output = append(output, formatOpenAIStreamChunk(state, map[string]interface{}{}, &finishReason)...)
 				output = append(output, FormatDone()...)
 			}
 		}

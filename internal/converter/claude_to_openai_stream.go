@@ -26,16 +26,13 @@ func (c *claudeToOpenAIResponse) TransformChunk(chunk []byte, state *TransformSt
 			if claudeEvent.Message != nil {
 				state.MessageID = claudeEvent.Message.ID
 			}
-			chunk := OpenAIStreamChunk{
-				ID:      state.MessageID,
-				Object:  "chat.completion.chunk",
-				Created: time.Now().Unix(),
-				Choices: []OpenAIChoice{{
-					Index: 0,
-					Delta: &OpenAIMessage{Role: "assistant", Content: ""},
-				}},
+			if state.CreatedAt == 0 {
+				state.CreatedAt = time.Now().Unix()
 			}
-			output = append(output, FormatSSE("", chunk)...)
+			output = append(output, formatOpenAIStreamChunk(state, map[string]interface{}{
+				"role":    "assistant",
+				"content": "",
+			}, nil)...)
 
 		case "content_block_start":
 			if claudeEvent.ContentBlock != nil {
@@ -56,49 +53,30 @@ func (c *claudeToOpenAIResponse) TransformChunk(chunk []byte, state *TransformSt
 			if claudeEvent.Delta != nil {
 				switch claudeEvent.Delta.Type {
 				case "text_delta":
-					chunk := OpenAIStreamChunk{
-						ID:      state.MessageID,
-						Object:  "chat.completion.chunk",
-						Created: time.Now().Unix(),
-						Choices: []OpenAIChoice{{
-							Index: 0,
-							Delta: &OpenAIMessage{Content: claudeEvent.Delta.Text},
-						}},
-					}
-					output = append(output, FormatSSE("", chunk)...)
+					output = append(output, formatOpenAIStreamChunk(state, map[string]interface{}{
+						"content": claudeEvent.Delta.Text,
+					}, nil)...)
 				case "thinking_delta":
 					if claudeEvent.Delta.Thinking != "" {
-						chunk := OpenAIStreamChunk{
-							ID:      state.MessageID,
-							Object:  "chat.completion.chunk",
-							Created: time.Now().Unix(),
-							Choices: []OpenAIChoice{{
-								Index: 0,
-								Delta: &OpenAIMessage{ReasoningContent: claudeEvent.Delta.Thinking},
-							}},
-						}
-						output = append(output, FormatSSE("", chunk)...)
+						output = append(output, formatOpenAIStreamChunk(state, map[string]interface{}{
+							"reasoning_content": claudeEvent.Delta.Thinking,
+						}, nil)...)
 					}
 				case "input_json_delta":
 					if tc, ok := state.ToolCalls[state.CurrentIndex]; ok {
 						tc.Arguments += claudeEvent.Delta.PartialJSON
-						chunk := OpenAIStreamChunk{
-							ID:      state.MessageID,
-							Object:  "chat.completion.chunk",
-							Created: time.Now().Unix(),
-							Choices: []OpenAIChoice{{
-								Index: 0,
-								Delta: &OpenAIMessage{
-									ToolCalls: []OpenAIToolCall{{
-										Index:    state.CurrentIndex,
-										ID:       tc.ID,
-										Type:     "function",
-										Function: OpenAIFunctionCall{Name: tc.Name, Arguments: claudeEvent.Delta.PartialJSON},
-									}},
-								},
-							}},
+						tool := map[string]interface{}{
+							"index": state.CurrentIndex,
+							"id":    tc.ID,
+							"type":  "function",
+							"function": map[string]interface{}{
+								"name":      tc.Name,
+								"arguments": claudeEvent.Delta.PartialJSON,
+							},
 						}
-						output = append(output, FormatSSE("", chunk)...)
+						output = append(output, formatOpenAIStreamChunk(state, map[string]interface{}{
+							"tool_calls": []interface{}{tool},
+						}, nil)...)
 					}
 				}
 			}
@@ -124,17 +102,7 @@ func (c *claudeToOpenAIResponse) TransformChunk(chunk []byte, state *TransformSt
 			case "tool_use":
 				finishReason = "tool_calls"
 			}
-			chunk := OpenAIStreamChunk{
-				ID:      state.MessageID,
-				Object:  "chat.completion.chunk",
-				Created: time.Now().Unix(),
-				Choices: []OpenAIChoice{{
-					Index:        0,
-					Delta:        &OpenAIMessage{},
-					FinishReason: finishReason,
-				}},
-			}
-			output = append(output, FormatSSE("", chunk)...)
+			output = append(output, formatOpenAIStreamChunk(state, map[string]interface{}{}, &finishReason)...)
 			output = append(output, FormatDone()...)
 		}
 	}

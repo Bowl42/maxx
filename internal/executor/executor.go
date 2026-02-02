@@ -5,6 +5,7 @@ import (
 	"log"
 	"net/http"
 	"strconv"
+	"strings"
 	"time"
 
 	ctxutil "github.com/awsl-project/maxx/internal/context"
@@ -384,12 +385,16 @@ func (e *Executor) Execute(ctx context.Context, w http.ResponseWriter, req *http
 			// If format conversion is needed, use ConvertingResponseWriter
 			var responseWriter http.ResponseWriter
 			var convertingWriter *ConvertingResponseWriter
-			responseCapture := NewResponseCapture(w)
+			baseWriter := w
+			if strings.HasPrefix(req.URL.Path, "/v1/chat/completions") {
+				baseWriter = NewStdoutTeeResponseWriter(baseWriter)
+			}
+			responseCapture := NewResponseCapture(baseWriter)
 
 			if needsConversion {
 				// Use ConvertingResponseWriter to transform response from targetType back to originalType
 				convertingWriter = NewConvertingResponseWriter(
-					responseCapture, e.converter, originalClientType, targetClientType, isStream)
+					responseCapture, e.converter, originalClientType, targetClientType, isStream, requestModel)
 				responseWriter = convertingWriter
 			} else {
 				responseWriter = responseCapture

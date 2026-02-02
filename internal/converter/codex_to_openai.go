@@ -2,8 +2,9 @@ package converter
 
 import (
 	"encoding/json"
-	"time"
+	"os"
 
+	"github.com/awsl-project/maxx/internal/debug"
 	"github.com/awsl-project/maxx/internal/domain"
 )
 
@@ -103,7 +104,17 @@ func (c *codexToOpenAIRequest) Transform(body []byte, model string, stream bool)
 		})
 	}
 
-	return json.Marshal(openaiReq)
+	converted, err := json.Marshal(openaiReq)
+	if err != nil {
+		return nil, err
+	}
+
+	if debug.Enabled() {
+		_, _ = os.Stdout.Write([]byte("=========Codex 转 OpenAI 请求>>>>>>>>\n"))
+		_, _ = os.Stdout.Write(converted)
+	}
+
+	return converted, nil
 }
 
 func (c *codexToOpenAIResponse) Transform(body []byte) ([]byte, error) {
@@ -179,54 +190,132 @@ func (c *codexToOpenAIResponse) TransformChunk(chunk []byte, state *TransformSta
 		}
 
 		eventType, _ := codexEvent["type"].(string)
+		if eventType == "" && event.Event != "" {
+			eventType = event.Event
+		}
 
 		switch eventType {
 		case "response.created":
 			if resp, ok := codexEvent["response"].(map[string]interface{}); ok {
 				state.MessageID, _ = resp["id"].(string)
+				if model, ok := resp["model"].(string); ok && model != "" {
+					state.Model = model
+				}
+				if created := parseUnixSeconds(resp["created_at"]); created > 0 {
+					state.CreatedAt = created
+				}
 			}
-			openaiChunk := OpenAIStreamChunk{
-				ID:      state.MessageID,
-				Object:  "chat.completion.chunk",
-				Created: time.Now().Unix(),
-				Choices: []OpenAIChoice{{
-					Index: 0,
-					Delta: &OpenAIMessage{Role: "assistant", Content: ""},
-				}},
-			}
-			output = append(output, FormatSSE("", openaiChunk)...)
+			output = append(output, formatOpenAIStreamChunk(state, map[string]interface{}{
+				"role":    "assistant",
+				"content": "",
+			}, nil)...)
 
-		case "response.output_item.delta":
-			if delta, ok := codexEvent["delta"].(map[string]interface{}); ok {
-				if text, ok := delta["text"].(string); ok {
-					openaiChunk := OpenAIStreamChunk{
-						ID:      state.MessageID,
-						Object:  "chat.completion.chunk",
-						Created: time.Now().Unix(),
-						Choices: []OpenAIChoice{{
-							Index: 0,
-							Delta: &OpenAIMessage{Content: text},
-						}},
+		case "response.output_text.delta", "response.output_item.delta":
+			var text string
+			switch delta := codexEvent["delta"].(type) {
+			case string:
+				text = delta
+			case map[string]interface{}:
+				if t, ok := delta["text"].(string); ok {
+					text = t
+				}
+				if args, ok := delta["arguments"].(string); ok && args != "" {
+					toolIndex := -1
+					if id, ok := codexEvent["item_id"].(string); ok && id != "" {
+						toolIndex = findToolCallIndex(state, id)
+					} else if id, ok := codexEvent["id"].(string); ok && id != "" {
+						toolIndex = findToolCallIndex(state, id)
+					} else if id, ok := codexEvent["call_id"].(string); ok && id != "" {
+						toolIndex = findToolCallIndex(state, id)
 					}
-					output = append(output, FormatSSE("", openaiChunk)...)
+					if toolIndex < 0 {
+						if state.CurrentIndex > 0 {
+							toolIndex = state.CurrentIndex - 1
+						} else {
+							toolIndex = 0
+						}
+					}
+					var id string
+					var name string
+					if tc, ok := state.ToolCalls[toolIndex]; ok && tc != nil {
+						id = tc.ID
+						name = tc.Name
+					}
+					fn := map[string]interface{}{
+						"arguments": args,
+					}
+					if name != "" {
+						fn["name"] = name
+					}
+					tool := map[string]interface{}{
+						"index":    toolIndex,
+						"type":     "function",
+						"function": fn,
+					}
+					if id != "" {
+						tool["id"] = id
+					}
+					output = append(output, formatOpenAIStreamChunk(state, map[string]interface{}{
+						"tool_calls": []interface{}{tool},
+					}, nil)...)
+				}
+			}
+			if text != "" {
+				output = append(output, formatOpenAIStreamChunk(state, map[string]interface{}{
+					"content": text,
+				}, nil)...)
+			}
+
+		case "response.output_item.added":
+			if item, ok := codexEvent["item"].(map[string]interface{}); ok {
+				itemType, _ := item["type"].(string)
+				if itemType == "function_call" {
+					id, _ := item["id"].(string)
+					if id == "" {
+						id, _ = item["call_id"].(string)
+					}
+					name, _ := item["name"].(string)
+					args, _ := item["arguments"].(string)
+					if state.ToolCalls == nil {
+						state.ToolCalls = make(map[int]*ToolCallState)
+					}
+					state.ToolCalls[state.CurrentIndex] = &ToolCallState{ID: id, Name: name}
+					tool := map[string]interface{}{
+						"index": state.CurrentIndex,
+						"type":  "function",
+						"function": map[string]interface{}{
+							"name":      name,
+							"arguments": args,
+						},
+					}
+					if id != "" {
+						tool["id"] = id
+					}
+					output = append(output, formatOpenAIStreamChunk(state, map[string]interface{}{
+						"tool_calls": []interface{}{tool},
+					}, nil)...)
+					state.CurrentIndex++
 				}
 			}
 
-		case "response.done":
-			openaiChunk := OpenAIStreamChunk{
-				ID:      state.MessageID,
-				Object:  "chat.completion.chunk",
-				Created: time.Now().Unix(),
-				Choices: []OpenAIChoice{{
-					Index:        0,
-					Delta:        &OpenAIMessage{},
-					FinishReason: "stop",
-				}},
-			}
-			output = append(output, FormatSSE("", openaiChunk)...)
+		case "response.done", "response.completed":
+			stop := "stop"
+			output = append(output, formatOpenAIStreamChunk(state, map[string]interface{}{}, &stop)...)
 			output = append(output, FormatDone()...)
 		}
 	}
 
 	return output, nil
+}
+
+func findToolCallIndex(state *TransformState, id string) int {
+	if state == nil || id == "" || state.ToolCalls == nil {
+		return -1
+	}
+	for idx, tc := range state.ToolCalls {
+		if tc != nil && tc.ID == id {
+			return idx
+		}
+	}
+	return -1
 }
