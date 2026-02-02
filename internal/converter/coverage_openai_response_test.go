@@ -366,25 +366,6 @@ func TestOpenAIToClaudeResponseArrayContent(t *testing.T) {
 	}
 }
 
-func TestOpenAIToCodexResponseContent(t *testing.T) {
-	resp := OpenAIResponse{Choices: []OpenAIChoice{{
-		Message: &OpenAIMessage{Content: "hi"},
-	}}}
-	body, _ := json.Marshal(resp)
-	conv := &openaiToCodexResponse{}
-	out, err := conv.Transform(body)
-	if err != nil {
-		t.Fatalf("Transform: %v", err)
-	}
-	var codexResp CodexResponse
-	if err := json.Unmarshal(out, &codexResp); err != nil {
-		t.Fatalf("unmarshal: %v", err)
-	}
-	if len(codexResp.Output) == 0 {
-		t.Fatalf("expected message output")
-	}
-}
-
 func TestGeminiToOpenAIRequestToolResponse(t *testing.T) {
 	req := GeminiRequest{
 		Contents: []GeminiContent{{

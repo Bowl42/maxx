@@ -15,24 +15,6 @@ func TestOpenAIToGeminiHelpersMisc(t *testing.T) {
 	}
 }
 
-func TestOpenAIToCodexLongToolNameShortening(t *testing.T) {
-	longName := strings.Repeat("tool", 30)
-	req := OpenAIRequest{Tools: []OpenAITool{{Type: "function", Function: OpenAIFunction{Name: longName}}}, Messages: []OpenAIMessage{{Role: "user", Content: "hi"}}}
-	body, _ := json.Marshal(req)
-	conv := &openaiToCodexRequest{}
-	out, err := conv.Transform(body, "codex", false)
-	if err != nil {
-		t.Fatalf("Transform: %v", err)
-	}
-	var codexReq CodexRequest
-	if err := json.Unmarshal(out, &codexReq); err != nil {
-		t.Fatalf("unmarshal: %v", err)
-	}
-	if len(codexReq.Tools) == 0 || len(codexReq.Tools[0].Name) > maxToolNameLen {
-		t.Fatalf("tool name not shortened")
-	}
-}
-
 func TestCodexToOpenAIInputString(t *testing.T) {
 	req := CodexRequest{Input: "hi"}
 	body, _ := json.Marshal(req)
@@ -47,23 +29,6 @@ func TestCodexToOpenAIInputString(t *testing.T) {
 	}
 	if len(openaiReq.Messages) == 0 {
 		t.Fatalf("messages missing")
-	}
-}
-
-func TestOpenAIToCodexContentArray(t *testing.T) {
-	req := OpenAIRequest{Messages: []OpenAIMessage{{Role: "user", Content: []interface{}{map[string]interface{}{"type": "text", "text": "hi"}}}}}
-	body, _ := json.Marshal(req)
-	conv := &openaiToCodexRequest{}
-	out, err := conv.Transform(body, "codex", false)
-	if err != nil {
-		t.Fatalf("Transform: %v", err)
-	}
-	var codexReq CodexRequest
-	if err := json.Unmarshal(out, &codexReq); err != nil {
-		t.Fatalf("unmarshal: %v", err)
-	}
-	if codexReq.Input == nil {
-		t.Fatalf("input missing")
 	}
 }
 

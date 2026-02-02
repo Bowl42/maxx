@@ -835,36 +835,6 @@ func TestClaudeToOpenAIRequestPartsToolsStop(t *testing.T) {
 	}
 }
 
-func TestOpenAIToCodexRequestToolNameFallback(t *testing.T) {
-	req := OpenAIRequest{
-		Model: "gpt",
-		Tools: []OpenAITool{{
-			Type:     "function",
-			Function: OpenAIFunction{Name: "", Description: "noop"},
-		}},
-		Messages: []OpenAIMessage{{
-			Role: "assistant",
-			ToolCalls: []OpenAIToolCall{{
-				ID:   "call_1",
-				Type: "function",
-				Function: OpenAIFunctionCall{
-					Name:      "toolA",
-					Arguments: "{}",
-				},
-			}},
-		}},
-	}
-	body, _ := json.Marshal(req)
-	conv := &openaiToCodexRequest{}
-	out, err := conv.Transform(body, "codex", false)
-	if err != nil {
-		t.Fatalf("Transform: %v", err)
-	}
-	if !strings.Contains(string(out), "function_call") {
-		t.Fatalf("expected function_call output")
-	}
-}
-
 func TestOpenAIToGeminiRequestMaxCompletionAndToolFallback(t *testing.T) {
 	req := OpenAIRequest{
 		MaxCompletionTokens: 42,

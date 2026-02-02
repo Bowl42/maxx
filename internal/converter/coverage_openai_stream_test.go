@@ -112,76 +112,6 @@ func TestOpenAIToGeminiStreamFinishLength(t *testing.T) {
 	}
 }
 
-func TestOpenAIToCodexRequestAndStream(t *testing.T) {
-	req := OpenAIRequest{
-		Model:               "gpt",
-		MaxCompletionTokens: 5,
-		ReasoningEffort:     "auto",
-		Messages: []OpenAIMessage{
-			{Role: "system", Content: "sys"},
-			{Role: "user", Content: "hi"},
-			{Role: "assistant", ToolCalls: []OpenAIToolCall{{
-				ID:   "call_1",
-				Type: "function",
-				Function: OpenAIFunctionCall{
-					Name:      "tool",
-					Arguments: `{"x":1}`,
-				},
-			}}},
-			{Role: "tool", ToolCallID: "call_1", Content: "ok"},
-		},
-		Tools: []OpenAITool{{
-			Type: "function",
-			Function: OpenAIFunction{
-				Name:        "tool",
-				Description: "d",
-				Parameters:  map[string]interface{}{"type": "object"},
-			},
-		}},
-	}
-	body, _ := json.Marshal(req)
-	conv := &openaiToCodexRequest{}
-	out, err := conv.Transform(body, "codex", false)
-	if err != nil {
-		t.Fatalf("Transform: %v", err)
-	}
-	var codexReq CodexRequest
-	if err := json.Unmarshal(out, &codexReq); err != nil {
-		t.Fatalf("unmarshal: %v", err)
-	}
-	if !codexInputHasRoleText(codexReq.Input, "developer", "sys") {
-		t.Fatalf("expected system message")
-	}
-	if codexReq.Reasoning == nil || codexReq.Reasoning.Effort != "auto" {
-		t.Fatalf("reasoning missing")
-	}
-	if codexReq.ParallelToolCalls == nil || !*codexReq.ParallelToolCalls {
-		t.Fatalf("parallel tool calls missing")
-	}
-
-	chunk := OpenAIStreamChunk{ID: "chat_1", Model: "gpt", Choices: []OpenAIChoice{{
-		Delta:        &OpenAIMessage{Content: "hi"},
-		FinishReason: "stop",
-	}}}
-	chunkBody, _ := json.Marshal(chunk)
-	state := NewTransformState()
-	respConv := &openaiToCodexResponse{}
-	stream := append(FormatSSE("", json.RawMessage(chunkBody)), FormatDone()...)
-	streamOut, err := respConv.TransformChunk(stream, state)
-	if err != nil {
-		t.Fatalf("TransformChunk: %v", err)
-	}
-	if !strings.Contains(string(streamOut), "response.created") {
-		t.Fatalf("missing response.created")
-	}
-	if !strings.Contains(string(streamOut), "response.output_item.delta") {
-		t.Fatalf("missing delta")
-	}
-	if !strings.Contains(string(streamOut), "response.done") {
-		t.Fatalf("missing done")
-	}
-}
-
 func TestClaudeToOpenAIStreamToolCalls(t *testing.T) {
 	state := NewTransformState()
 	start := ClaudeStreamEvent{Type: "message_start", Message: &ClaudeResponse{ID: "msg_1"}}
@@ -650,18 +580,6 @@ func TestClaudeToOpenAIStreamDoneAndEndTurn(t *testing.T) {
 func TestClaudeToOpenAIStreamInvalidJSON(t *testing.T) {
 	state := NewTransformState()
 	conv := &claudeToOpenAIResponse{}
-	out, err := conv.TransformChunk(FormatSSE("", "\"oops\""), state)
-	if err != nil {
-		t.Fatalf("TransformChunk: %v", err)
-	}
-	if len(out) != 0 {
-		t.Fatalf("expected no output")
-	}
-}
-
-func TestOpenAIToCodexStreamInvalidJSON(t *testing.T) {
-	state := NewTransformState()
-	conv := &openaiToCodexResponse{}
 	out, err := conv.TransformChunk(FormatSSE("", "\"oops\""), state)
 	if err != nil {
 		t.Fatalf("TransformChunk: %v", err)

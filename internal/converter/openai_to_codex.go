@@ -17,32 +17,14 @@ type openaiToCodexResponse struct{}
 
 func (c *openaiToCodexRequest) Transform(body []byte, model string, stream bool) ([]byte, error) {
 	userAgent := ExtractCodexUserAgent(body)
+	var raw map[string]interface{}
+	if err := json.Unmarshal(body, &raw); err != nil {
+		return nil, err
+	}
 	var req OpenAIRequest
 	if err := json.Unmarshal(body, &req); err != nil {
 		return nil, err
 	}
-
-	codexReq := CodexRequest{
-		Model:           model,
-		Stream:          stream,
-		MaxOutputTokens: req.MaxTokens,
-		Temperature:     req.Temperature,
-		TopP:            req.TopP,
-	}
-
-	if req.MaxCompletionTokens > 0 && req.MaxTokens == 0 {
-		codexReq.MaxOutputTokens = req.MaxCompletionTokens
-	}
-
-	if req.ReasoningEffort != "" {
-		effort := strings.TrimSpace(req.ReasoningEffort)
-		codexReq.Reasoning = &CodexReasoning{
-			Effort: effort,
-		}
-	}
-	trueVal := true
-	codexReq.ParallelToolCalls = &trueVal
-	codexReq.Include = []string{"reasoning.encrypted_content"}
 
 	// Convert messages to input
 	shortMap := map[string]string{}
@@ -58,49 +40,50 @@ func (c *openaiToCodexRequest) Transform(body []byte, model string, stream bool)
 		}
 	}
 
-	var input []CodexInputItem
-	for _, msg := range req.Messages {
+	instructions := ""
+	if rawInstructions, ok := raw["instructions"].(string); ok && strings.TrimSpace(rawInstructions) != "" {
+		instructions = rawInstructions
+	}
+
+	messages := req.Messages
+	if instructions == "" {
+		for i, msg := range messages {
+			if msg.Role == "system" || msg.Role == "developer" {
+				instructions = stringifyContent(msg.Content)
+				messages = append(messages[:i], messages[i+1:]...)
+				break
+			}
+		}
+	}
+	if instructions == "" {
+		instructions = CodexInstructionsForModel(model, userAgent)
+	}
+
+	var inputItems []map[string]interface{}
+	for _, msg := range messages {
 		role := msg.Role
 		if role == "system" {
 			role = "developer"
 		}
 
 		if msg.Role == "tool" {
-			// Tool response
-			contentStr, _ := msg.Content.(string)
-			input = append(input, CodexInputItem{
-				Type:   "function_call_output",
-				CallID: msg.ToolCallID,
-				Output: contentStr,
+			output := stringifyContent(msg.Content)
+			inputItems = append(inputItems, map[string]interface{}{
+				"type":    "function_call_output",
+				"call_id": msg.ToolCallID,
+				"output":  output,
 			})
 			continue
 		}
 
-		item := CodexInputItem{
-			Type: "message",
-			Role: role,
+		if parts := codexContentParts(role, msg.Content); len(parts) > 0 {
+			inputItems = append(inputItems, map[string]interface{}{
+				"type":    "message",
+				"role":    role,
+				"content": parts,
+			})
 		}
 
-		switch content := msg.Content.(type) {
-		case string:
-			item.Content = content
-		case []interface{}:
-			var textContent string
-			for _, part := range content {
-				if m, ok := part.(map[string]interface{}); ok {
-					if m["type"] == "text" {
-						if text, ok := m["text"].(string); ok {
-							textContent += text
-						}
-					}
-				}
-			}
-			item.Content = textContent
-		}
-
-		input = append(input, item)
-
-		// Handle tool calls
 		for _, tc := range msg.ToolCalls {
 			name := tc.Function.Name
 			if short, ok := shortMap[name]; ok {
@@ -108,19 +91,19 @@ func (c *openaiToCodexRequest) Transform(body []byte, model string, stream bool)
 			} else {
 				name = shortenNameIfNeeded(name)
 			}
-			input = append(input, CodexInputItem{
-				Type:      "function_call",
-				ID:        tc.ID,
-				CallID:    tc.ID,
-				Name:      name,
-				Role:      "assistant",
-				Arguments: tc.Function.Arguments,
+			callID := tc.ID
+			inputItems = append(inputItems, map[string]interface{}{
+				"type":      "function_call",
+				"id":        callID,
+				"call_id":   callID,
+				"name":      name,
+				"arguments": tc.Function.Arguments,
 			})
 		}
 	}
-	codexReq.Input = input
 
 	// Convert tools
+	tools := []CodexTool{}
 	for _, tool := range req.Tools {
 		name := tool.Function.Name
 		if short, ok := shortMap[name]; ok {
@@ -128,7 +111,7 @@ func (c *openaiToCodexRequest) Transform(body []byte, model string, stream bool)
 		} else {
 			name = shortenNameIfNeeded(name)
 		}
-		codexReq.Tools = append(codexReq.Tools, CodexTool{
+		tools = append(tools, CodexTool{
 			Type:        "function",
 			Name:        name,
 			Description: tool.Function.Description,
@@ -136,20 +119,101 @@ func (c *openaiToCodexRequest) Transform(body []byte, model string, stream bool)
 		})
 	}
 
-	if instructions := CodexInstructionsForModel(model, userAgent); instructions != "" {
-		codexReq.Instructions = instructions
-	}
-	if codexReq.Reasoning == nil {
-		codexReq.Reasoning = &CodexReasoning{Effort: "medium"}
-	}
-	if codexReq.Reasoning.Effort == "" {
-		codexReq.Reasoning.Effort = "medium"
-	}
-	if codexReq.Reasoning.Summary == "" {
-		codexReq.Reasoning.Summary = "auto"
+	maxOutputTokens := req.MaxTokens
+	if req.MaxCompletionTokens > 0 && req.MaxTokens == 0 {
+		maxOutputTokens = req.MaxCompletionTokens
 	}
 
-	return json.Marshal(codexReq)
+	reasoningEffort := strings.TrimSpace(req.ReasoningEffort)
+	if reasoningEffort == "" {
+		reasoningEffort = "high"
+	}
+
+	toolChoice := req.ToolChoice
+	if toolChoice == nil {
+		toolChoice = "auto"
+	}
+
+	payload := map[string]interface{}{
+		"model":               model,
+		"instructions":        instructions,
+		"input":               inputItems,
+		"tools":               tools,
+		"tool_choice":         toolChoice,
+		"parallel_tool_calls": true,
+		"reasoning": map[string]interface{}{
+			"effort":  reasoningEffort,
+			"summary": "auto",
+		},
+		"store":  false,
+		"stream": stream,
+		"include": []string{
+			"reasoning.encrypted_content",
+		},
+	}
+
+	if maxOutputTokens > 0 {
+		payload["max_output_tokens"] = maxOutputTokens
+	}
+	if req.TopP != nil {
+		payload["top_p"] = *req.TopP
+	}
+	if prevID, ok := raw["previous_response_id"].(string); ok && prevID != "" {
+		payload["previous_response_id"] = prevID
+	}
+	if cacheKey, ok := raw["prompt_cache_key"].(string); ok && cacheKey != "" {
+		payload["prompt_cache_key"] = cacheKey
+	}
+
+	return json.Marshal(payload)
+}
+
+func codexContentParts(role string, content interface{}) []map[string]interface{} {
+	partType := "input_text"
+	if role == "assistant" {
+		partType = "output_text"
+	}
+	switch c := content.(type) {
+	case string:
+		if strings.TrimSpace(c) == "" {
+			return nil
+		}
+		return []map[string]interface{}{
+			{
+				"type": partType,
+				"text": c,
+			},
+		}
+	case []interface{}:
+		var parts []map[string]interface{}
+		for _, part := range c {
+			if m, ok := part.(map[string]interface{}); ok {
+				if text, ok := m["text"].(string); ok && strings.TrimSpace(text) != "" {
+					if typ, _ := m["type"].(string); typ != "" && typ != "text" && typ != "input_text" && typ != "output_text" {
+						continue
+					}
+					parts = append(parts, map[string]interface{}{
+						"type": partType,
+						"text": text,
+					})
+				}
+			}
+		}
+		if len(parts) == 0 {
+			return nil
+		}
+		return parts
+	case map[string]interface{}:
+		if text, ok := c["text"].(string); ok && strings.TrimSpace(text) != "" {
+			return []map[string]interface{}{
+				{
+					"type": partType,
+					"text": text,
+				},
+			}
+		}
+	}
+	return nil
 }
 
 func (c *openaiToCodexResponse) Transform(body []byte) ([]byte, error) {

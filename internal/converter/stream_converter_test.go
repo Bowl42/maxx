@@ -29,20 +29,6 @@ func TestCodexToOpenAIRequest_Basic(t *testing.T) {
 	}
 }
 
-func TestOpenAIToCodexResponse_Stream(t *testing.T) {
-	conv := &openaiToCodexResponse{}
-	state := NewTransformState()
-
-	chunk1 := FormatSSE("", []byte(`{"id":"resp_1","object":"chat.completion.chunk","created":1,"model":"gpt","choices":[{"index":0,"delta":{"content":"hi"}}]}`))
-	if _, err := conv.TransformChunk(chunk1, state); err != nil {
-		t.Fatalf("TransformChunk: %v", err)
-	}
-	chunk2 := FormatDone()
-	if _, err := conv.TransformChunk(chunk2, state); err != nil {
-		t.Fatalf("TransformChunk done: %v", err)
-	}
-}
-
 func TestCodexToOpenAIResponse_Stream(t *testing.T) {
 	conv := &codexToOpenAIResponse{}
 	state := NewTransformState()

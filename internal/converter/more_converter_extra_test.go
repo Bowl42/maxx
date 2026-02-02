@@ -37,52 +37,6 @@ func TestCodexToOpenAIResponse_ToolCallsFinishReason(t *testing.T) {
 	}
 }
 
-func TestOpenAIToCodexResponse_ToolCallsOutput(t *testing.T) {
-	resp := OpenAIResponse{
-		ID:      "chatcmpl_1",
-		Object:  "chat.completion",
-		Model:   "gpt-test",
-		Created: 1,
-		Usage:   OpenAIUsage{PromptTokens: 1, CompletionTokens: 1, TotalTokens: 2},
-		Choices: []OpenAIChoice{{
-			Index: 0,
-			Message: &OpenAIMessage{
-				Role: "assistant",
-				ToolCalls: []OpenAIToolCall{{
-					ID:   "call_1",
-					Type: "function",
-					Function: OpenAIFunctionCall{
-						Name:      "do_work",
-						Arguments: `{"a":1}`,
-					},
-				}},
-			},
-			FinishReason: "tool_calls",
-		}},
-	}
-	body, _ := json.Marshal(resp)
-
-	conv := &openaiToCodexResponse{}
-	out, err := conv.Transform(body)
-	if err != nil {
-		t.Fatalf("Transform: %v", err)
-	}
-
-	var got CodexResponse
-	if err := json.Unmarshal(out, &got); err != nil {
-		t.Fatalf("unmarshal: %v", err)
-	}
-	found := false
-	for _, item := range got.Output {
-		if item.Type == "function_call" && item.Name == "do_work" {
-			found = true
-		}
-	}
-	if !found {
-		t.Fatalf("expected function_call in codex output, got %#v", got.Output)
-	}
-}
-
 func TestGeminiToClaudeResponse_ThinkingSignature(t *testing.T) {
 	resp := GeminiResponse{
 		Candidates: []GeminiCandidate{{

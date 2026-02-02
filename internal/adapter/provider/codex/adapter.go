@@ -8,6 +8,7 @@ import (
 	"io"
 	"net"
 	"net/http"
+	"os"
 	"strings"
 	"sync"
 	"time"
@@ -231,6 +232,7 @@ func (a *CodexAdapter) handleNonStreamResponse(ctx context.Context, w http.Respo
 	if err != nil {
 		return domain.NewProxyErrorWithMessage(domain.ErrUpstreamError, true, "failed to read upstream response")
 	}
+	_, _ = os.Stdout.Write(body)
 
 	// Send events via EventChannel
 	eventChan := ctxutil.GetEventChan(ctx)
@@ -312,14 +314,15 @@ func (a *CodexAdapter) handleStreamResponse(ctx context.Context, w http.Response
 				if readErr != nil {
 					lineBuffer.WriteString(line)
 					break
-				}
+			}
 
-				sseBuffer.WriteString(line)
+			sseBuffer.WriteString(line)
+			_, _ = os.Stdout.Write([]byte(line))
 
-				// Check for response.completed in data line
-				if strings.HasPrefix(line, "data:") && strings.Contains(line, "response.completed") {
-					responseCompleted = true
-				}
+			// Check for response.completed in data line
+			if strings.HasPrefix(line, "data:") && strings.Contains(line, "response.completed") {
+				responseCompleted = true
+			}
 
 				// Write to client
 				_, writeErr := w.Write([]byte(line))
