@@ -79,10 +79,16 @@ export function RequestsPage() {
   // Status 过滤器
   const [selectedStatus, setSelectedStatus] = useState<string | undefined>(undefined);
   const scrollContainerRef = useRef<HTMLDivElement | null>(null);
+  const [containerReady, setContainerReady] = useState(false);
   const [scrollTop, setScrollTop] = useState(0);
   const [viewportHeight, setViewportHeight] = useState(0);
   const [rowHeight, setRowHeight] = useState(DEFAULT_ROW_HEIGHT);
   const rowMeasureObserver = useRef<ResizeObserver | null>(null);
+
+  const handleContainerRef = useCallback((node: HTMLDivElement | null) => {
+    scrollContainerRef.current = node;
+    setContainerReady(!!node);
+  }, []);
 
   const currentCursor = cursors[pageIndex];
   const { data, isLoading, refetch } = useProxyRequests({
@@ -165,7 +171,7 @@ export function RequestsPage() {
         window.cancelAnimationFrame(rafId);
       }
     };
-  }, []);
+  }, [containerReady]);
 
   // 下一页
   const goToNextPage = () => {
@@ -311,7 +317,7 @@ export function RequestsPage() {
             <p className="text-caption mt-1">{t('requests.noRequestsHint')}</p>
           </div>
         ) : (
-          <div className="flex-1 min-h-0 overflow-auto" ref={scrollContainerRef}>
+          <div className="flex-1 min-h-0 overflow-auto" ref={handleContainerRef}>
             <Table>
               <TableHeader className="bg-card/80 backdrop-blur-md sticky top-0 z-10 shadow-sm border-b border-border">
                 <TableRow className="hover:bg-transparent border-none text-sm">
