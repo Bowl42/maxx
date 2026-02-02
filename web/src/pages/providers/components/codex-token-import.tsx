@@ -302,7 +302,12 @@ export function CodexTokenImport() {
   return (
     <div className="flex flex-col h-full bg-card">
       <PageHeader
-        icon={<ChevronLeft className="cursor-pointer" onClick={goToSelectType} />}
+        icon={
+          <button type="button" onClick={goToSelectType} className="inline-flex items-center">
+            <ChevronLeft className="cursor-pointer" />
+            <span className="sr-only">{t('common.back')}</span>
+          </button>
+        }
         title={t('providers.codexTokenImport.title')}
       />
 
