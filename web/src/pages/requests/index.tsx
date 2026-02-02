@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef, useCallback, type Ref } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import {
@@ -53,6 +53,8 @@ const PROVIDER_TYPE_LABELS: Record<ProviderTypeKey, string> = {
 };
 
 const PAGE_SIZE = 50;
+const DEFAULT_ROW_HEIGHT = 36;
+const OVERSCAN = 8;
 
 export const statusVariant: Record<
   ProxyRequestStatus,
@@ -76,6 +78,17 @@ export function RequestsPage() {
   const [selectedProviderId, setSelectedProviderId] = useState<number | undefined>(undefined);
   // Status 过滤器
   const [selectedStatus, setSelectedStatus] = useState<string | undefined>(undefined);
+  const scrollContainerRef = useRef<HTMLDivElement | null>(null);
+  const [containerReady, setContainerReady] = useState(false);
+  const [scrollTop, setScrollTop] = useState(0);
+  const [viewportHeight, setViewportHeight] = useState(0);
+  const [rowHeight, setRowHeight] = useState(DEFAULT_ROW_HEIGHT);
+  const rowMeasureObserver = useRef<ResizeObserver | null>(null);
+
+  const handleContainerRef = useCallback((node: HTMLDivElement | null) => {
+    scrollContainerRef.current = node;
+    setContainerReady(!!node);
+  }, []);
 
   const currentCursor = cursors[pageIndex];
   const { data, isLoading, refetch } = useProxyRequests({
@@ -114,6 +127,51 @@ export function RequestsPage() {
 
   // 使用 totalCount
   const total = typeof totalCount === 'number' ? totalCount : 0;
+  const columnCount = 14 + (hasProjects ? 1 : 0) + (apiTokenAuthEnabled ? 1 : 0);
+
+  useEffect(() => {
+    const node = scrollContainerRef.current;
+    if (!node) return;
+
+    let rafId = 0;
+    const updateScrollTop = () => {
+      if (rafId) return;
+      rafId = window.requestAnimationFrame(() => {
+        rafId = 0;
+        setScrollTop(node.scrollTop);
+      });
+    };
+
+    const updateViewport = () => {
+      setViewportHeight(node.clientHeight);
+    };
+
+    updateScrollTop();
+    updateViewport();
+    node.addEventListener('scroll', updateScrollTop, { passive: true });
+
+    let resizeObserver: ResizeObserver | null = null;
+    if (typeof ResizeObserver !== 'undefined') {
+      resizeObserver = new ResizeObserver(() => {
+        updateViewport();
+      });
+      resizeObserver.observe(node);
+    } else {
+      window.addEventListener('resize', updateViewport);
+    }
+
+    return () => {
+      node.removeEventListener('scroll', updateScrollTop);
+      if (resizeObserver) {
+        resizeObserver.disconnect();
+      } else {
+        window.removeEventListener('resize', updateViewport);
+      }
+      if (rafId) {
+        window.cancelAnimationFrame(rafId);
+      }
+    };
+  }, [containerReady]);
 
   // 下一页
   const goToNextPage = () => {
@@ -138,6 +196,8 @@ export function RequestsPage() {
   const handleRefresh = () => {
     setCursors([undefined]);
     setPageIndex(0);
+    scrollContainerRef.current?.scrollTo({ top: 0 });
+    setScrollTop(0);
     refetch();
     refetchCount();
   };
@@ -147,6 +207,8 @@ export function RequestsPage() {
     setSelectedProviderId(providerId);
     setCursors([undefined]);
     setPageIndex(0);
+    scrollContainerRef.current?.scrollTo({ top: 0 });
+    setScrollTop(0);
   };
 
   // Status 过滤器变化时重置分页
@@ -154,7 +216,55 @@ export function RequestsPage() {
     setSelectedStatus(status);
     setCursors([undefined]);
     setPageIndex(0);
+    scrollContainerRef.current?.scrollTo({ top: 0 });
+    setScrollTop(0);
   };
+
+  const totalRows = requests.length;
+  const shouldVirtualize = totalRows > 0 && viewportHeight > 0;
+  const startIndex = shouldVirtualize
+    ? Math.max(0, Math.floor(scrollTop / rowHeight) - OVERSCAN)
+    : 0;
+  const endIndex = shouldVirtualize
+    ? Math.min(
+        totalRows,
+        Math.ceil((scrollTop + viewportHeight) / rowHeight) + OVERSCAN,
+      )
+    : totalRows;
+  const visibleRequests = shouldVirtualize
+    ? requests.slice(startIndex, endIndex)
+    : requests;
+  const paddingTop = shouldVirtualize ? startIndex * rowHeight : 0;
+  const paddingBottom = shouldVirtualize ? (totalRows - endIndex) * rowHeight : 0;
+
+  const handleRowMeasure = useCallback((node: HTMLTableRowElement | null) => {
+    if (!node) {
+      if (rowMeasureObserver.current) {
+        rowMeasureObserver.current.disconnect();
+        rowMeasureObserver.current = null;
+      }
+      return;
+    }
+
+    const updateHeight = () => {
+      const nextHeight = node.getBoundingClientRect().height;
+      if (nextHeight > 0 && Math.abs(nextHeight - rowHeight) > 0.5) {
+        setRowHeight(nextHeight);
+      }
+    };
+
+    updateHeight();
+
+    if (rowMeasureObserver.current) {
+      rowMeasureObserver.current.disconnect();
+    }
+
+    if (typeof ResizeObserver !== 'undefined') {
+      const observer = new ResizeObserver(updateHeight);
+      observer.observe(node);
+      rowMeasureObserver.current = observer;
+    }
+  }, [rowHeight]);
 
   return (
     <div className="flex flex-col h-full bg-background">
@@ -207,7 +317,7 @@ export function RequestsPage() {
             <p className="text-caption mt-1">{t('requests.noRequestsHint')}</p>
           </div>
         ) : (
-          <div className="flex-1 min-h-0 overflow-auto">
+          <div className="flex-1 min-h-0 overflow-auto" ref={handleContainerRef}>
             <Table>
               <TableHeader className="bg-card/80 backdrop-blur-md sticky top-0 z-10 shadow-sm border-b border-border">
                 <TableRow className="hover:bg-transparent border-none text-sm">
@@ -268,11 +378,19 @@ export function RequestsPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {requests.map((req, index) => (
+                {paddingTop > 0 && (
+                  <TableRow
+                    style={{ height: paddingTop }}
+                    className="pointer-events-none hover:bg-transparent"
+                  >
+                    <TableCell colSpan={columnCount} className="p-0 border-0" />
+                  </TableRow>
+                )}
+                {visibleRequests.map((req, index) => (
                   <LogRow
                     key={req.id}
                     request={req}
-                    index={index}
+                    index={startIndex + index}
                     providerName={providerMap.get(req.providerID)}
                     projectName={projectMap.get(req.projectID)}
                     tokenName={tokenMap.get(req.apiTokenID)}
@@ -280,8 +398,17 @@ export function RequestsPage() {
                     showTokenColumn={apiTokenAuthEnabled}
                     forceProjectBinding={forceProjectBinding}
                     onClick={() => navigate(`/requests/${req.id}`)}
+                    rowRef={index === 0 ? handleRowMeasure : undefined}
                   />
                 ))}
+                {paddingBottom > 0 && (
+                  <TableRow
+                    style={{ height: paddingBottom }}
+                    className="pointer-events-none hover:bg-transparent"
+                  >
+                    <TableCell colSpan={columnCount} className="p-0 border-0" />
+                  </TableRow>
+                )}
               </TableBody>
             </Table>
           </div>
@@ -473,6 +600,7 @@ function LogRow({
   showTokenColumn,
   forceProjectBinding,
   onClick,
+  rowRef,
 }: {
   request: ProxyRequest;
   index: number;
@@ -483,6 +611,7 @@ function LogRow({
   showTokenColumn?: boolean;
   forceProjectBinding?: boolean;
   onClick: () => void;
+  rowRef?: Ref<HTMLTableRowElement>;
 }) {
   const isPending = request.status === 'PENDING' || request.status === 'IN_PROGRESS';
   const isFailed = request.status === 'FAILED';
@@ -563,6 +692,7 @@ function LogRow({
 
   return (
     <TableRow
+      ref={rowRef}
       onClick={onClick}
       className={cn(
         'cursor-pointer group transition-colors',
