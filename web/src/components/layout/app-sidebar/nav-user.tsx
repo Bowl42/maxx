@@ -1,6 +1,5 @@
 'use client';
 
-import { useMemo } from 'react';
 import { Moon, Sun, Laptop, Languages, Sparkles, Gem } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '@/components/theme-provider';
@@ -35,28 +34,25 @@ export function NavUser() {
     avatar: '/logo.png',
   };
 
-  const triggerButton = useMemo(
-    () => (
-      <SidebarMenuButton
-        size="lg"
-        className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground justify-center p-0!"
-      >
-        <Avatar className="h-8 w-8 rounded-lg">
-          <AvatarImage src={user.avatar} alt={user.name} />
-          <AvatarFallback className="rounded-lg">
-            {user.name.substring(0, 2).toUpperCase()}
-          </AvatarFallback>
-        </Avatar>
-      </SidebarMenuButton>
-    ),
-    [user.avatar, user.name],
-  );
-
   return (
     <SidebarMenu>
       <SidebarMenuItem>
         <DropdownMenu>
-          <DropdownMenuTrigger render={triggerButton} />
+          <DropdownMenuTrigger
+            render={
+              <SidebarMenuButton
+                size="lg"
+                className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground justify-center p-0!"
+              >
+                <Avatar className="h-8 w-8 rounded-lg">
+                  <AvatarImage src={user.avatar} alt={user.name} />
+                  <AvatarFallback className="rounded-lg">
+                    {user.name.substring(0, 2).toUpperCase()}
+                  </AvatarFallback>
+                </Avatar>
+              </SidebarMenuButton>
+            }
+          />
           <DropdownMenuContent
             className="w-[--radix-dropdown-menu-trigger-width] rounded-lg max-w-xs"
             side={isMobile ? 'bottom' : 'right'}
