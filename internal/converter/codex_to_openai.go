@@ -3,6 +3,7 @@ package converter
 import (
 	"encoding/json"
 	"os"
+	"strconv"
 
 	"github.com/awsl-project/maxx/internal/debug"
 	"github.com/awsl-project/maxx/internal/domain"
@@ -299,8 +300,12 @@ func (c *codexToOpenAIResponse) TransformChunk(chunk []byte, state *TransformSta
 			}
 
 		case "response.done", "response.completed":
+			if resp, ok := codexEvent["response"].(map[string]interface{}); ok {
+				updateCodexUsageFromResponse(state, resp)
+			}
+			usage := buildOpenAIUsageFromState(state)
 			stop := "stop"
-			output = append(output, formatOpenAIStreamChunk(state, map[string]interface{}{}, &stop)...)
+			output = append(output, formatOpenAIStreamChunkWithUsage(state, map[string]interface{}{}, &stop, usage)...)
 			output = append(output, FormatDone()...)
 		}
 	}
@@ -318,4 +323,113 @@ func findToolCallIndex(state *TransformState, id string) int {
 		}
 	}
 	return -1
+}
+
+func updateCodexUsageFromResponse(state *TransformState, resp map[string]interface{}) {
+	if state == nil || resp == nil {
+		return
+	}
+	if model, ok := resp["model"].(string); ok && model != "" {
+		state.Model = model
+	}
+	if created := parseUnixSeconds(resp["created_at"]); created > 0 {
+		state.CreatedAt = created
+	}
+	usage, ok := resp["usage"].(map[string]interface{})
+	if !ok {
+		return
+	}
+	if state.Usage == nil {
+		state.Usage = &Usage{}
+	}
+	if v := parseIntValue(usage["input_tokens"]); v > 0 {
+		state.Usage.InputTokens = v
+	}
+	if v := parseIntValue(usage["output_tokens"]); v > 0 {
+		state.Usage.OutputTokens = v
+	}
+	if v := parseIntValue(usage["cache_read_input_tokens"]); v > 0 {
+		state.Usage.CacheRead = v
+	}
+	if details, ok := usage["input_tokens_details"].(map[string]interface{}); ok {
+		if v := parseIntValue(details["cached_tokens"]); v > 0 {
+			state.Usage.CacheRead = v
+		}
+	}
+	if details, ok := usage["prompt_tokens_details"].(map[string]interface{}); ok {
+		if v := parseIntValue(details["cached_tokens"]); v > 0 {
+			state.Usage.CacheRead = v
+		}
+	}
+}
+
+func buildOpenAIUsageFromState(state *TransformState) map[string]interface{} {
+	if state == nil || state.Usage == nil {
+		return nil
+	}
+	inputTokens := state.Usage.InputTokens
+	outputTokens := state.Usage.OutputTokens
+	cacheRead := state.Usage.CacheRead
+	if inputTokens == 0 && outputTokens == 0 && cacheRead == 0 {
+		return nil
+	}
+	usage := map[string]interface{}{
+		"prompt_tokens":     inputTokens,
+		"completion_tokens": outputTokens,
+		"total_tokens":      inputTokens + outputTokens,
+		"input_tokens":      inputTokens,
+		"output_tokens":     outputTokens,
+	}
+	if cacheRead > 0 {
+		usage["cache_read_input_tokens"] = cacheRead
+		usage["prompt_tokens_details"] = map[string]interface{}{"cached_tokens": cacheRead}
+		usage["input_tokens_details"] = map[string]interface{}{"cached_tokens": cacheRead}
+	}
+	return usage
+}
+
+func formatOpenAIStreamChunkWithUsage(state *TransformState, delta map[string]interface{}, finishReason *string, usage map[string]interface{}) []byte {
+	if delta == nil {
+		delta = map[string]interface{}{}
+	}
+	id, model, created := ensureOpenAIStreamMeta(state)
+	choice := map[string]interface{}{
+		"index":         0,
+		"delta":         delta,
+		"finish_reason": nil,
+	}
+	if finishReason != nil {
+		choice["finish_reason"] = *finishReason
+	}
+	chunk := map[string]interface{}{
+		"id":      id,
+		"object":  "chat.completion.chunk",
+		"created": created,
+		"model":   model,
+		"choices": []interface{}{choice},
+	}
+	if usage != nil {
+		chunk["usage"] = usage
+	}
+	return FormatSSE("", chunk)
+}
+
+func parseIntValue(v interface{}) int {
+	switch t := v.(type) {
+	case int:
+		return t
+	case int64:
+		return int(t)
+	case float64:
+		return int(t)
+	case json.Number:
+		if n, err := t.Int64(); err == nil {
+			return int(n)
+		}
+	case string:
+		if n, err := strconv.Atoi(t); err == nil {
+			return n
+		}
+	}
+	return 0
 }

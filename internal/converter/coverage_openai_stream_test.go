@@ -455,6 +455,41 @@ func TestCodexToOpenAIStreamDoneFlow(t *testing.T) {
 	}
 }
 
+func TestCodexToOpenAIStreamUsage(t *testing.T) {
+	state := NewTransformState()
+	created := map[string]interface{}{
+		"type":     "response.created",
+		"response": map[string]interface{}{"id": "resp_1"},
+	}
+	completed := map[string]interface{}{
+		"type": "response.completed",
+		"response": map[string]interface{}{
+			"id": "resp_1",
+			"usage": map[string]interface{}{
+				"input_tokens":  12,
+				"output_tokens": 34,
+				"input_tokens_details": map[string]interface{}{
+					"cached_tokens": 5,
+				},
+			},
+		},
+	}
+	c1, _ := json.Marshal(created)
+	c2, _ := json.Marshal(completed)
+	stream := append(FormatSSE("", json.RawMessage(c1)), FormatSSE("", json.RawMessage(c2))...)
+	conv := &codexToOpenAIResponse{}
+	out, err := conv.TransformChunk(stream, state)
+	if err != nil {
+		t.Fatalf("TransformChunk: %v", err)
+	}
+	if !strings.Contains(string(out), "\"usage\"") {
+		t.Fatalf("expected usage in openai stream")
+	}
+	if !strings.Contains(string(out), "input_tokens") || !strings.Contains(string(out), "cached_tokens") {
+		t.Fatalf("expected input_tokens and cached_tokens in usage")
+	}
+}
+
 func TestOpenAIToClaudeStreamInvalidJSON(t *testing.T) {
 	state := NewTransformState()
 	conv := &openaiToClaudeResponse{}
