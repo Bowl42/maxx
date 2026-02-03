@@ -274,6 +274,9 @@ type EditFormData = {
   apiKey: string;
   clients: ClientConfig[];
   supportModels: string[];
+  cloakMode?: 'auto' | 'always' | 'never';
+  cloakStrictMode?: boolean;
+  cloakSensitiveWords?: string;
 };
 
 export function ProviderEditFlow({ provider, onClose }: ProviderEditFlowProps) {
@@ -301,6 +304,9 @@ export function ProviderEditFlow({ provider, onClose }: ProviderEditFlowProps) {
     apiKey: provider.config?.custom?.apiKey || '',
     clients: initClients(),
     supportModels: provider.supportModels || [],
+    cloakMode: provider.config?.custom?.cloak?.mode || 'auto',
+    cloakStrictMode: provider.config?.custom?.cloak?.strictMode || false,
+    cloakSensitiveWords: (provider.config?.custom?.cloak?.sensitiveWords || []).join('\n'),
   });
 
   const updateClient = (clientId: ClientType, updates: Partial<ClientConfig>) => {
@@ -325,6 +331,13 @@ export function ProviderEditFlow({ provider, onClose }: ProviderEditFlowProps) {
     setSaveStatus('idle');
 
     try {
+      const parseSensitiveWords = (value: string): string[] => {
+        return value
+          .split(/[\n,]/)
+          .map((item) => item.trim())
+          .filter(Boolean);
+      };
+
       const supportedClientTypes = formData.clients.filter((c) => c.enabled).map((c) => c.id);
       const clientBaseURL: Partial<Record<ClientType, string>> = {};
       const clientMultiplier: Partial<Record<ClientType, number>> = {};
@@ -346,6 +359,16 @@ export function ProviderEditFlow({ provider, onClose }: ProviderEditFlowProps) {
             apiKey: formData.apiKey || provider.config?.custom?.apiKey || '',
             clientBaseURL: Object.keys(clientBaseURL).length > 0 ? clientBaseURL : undefined,
             clientMultiplier: Object.keys(clientMultiplier).length > 0 ? clientMultiplier : undefined,
+            cloak:
+              formData.cloakMode !== 'auto' ||
+              formData.cloakStrictMode ||
+              parseSensitiveWords(formData.cloakSensitiveWords || '').length > 0
+                ? {
+                    mode: formData.cloakMode,
+                    strictMode: formData.cloakStrictMode,
+                    sensitiveWords: parseSensitiveWords(formData.cloakSensitiveWords || ''),
+                  }
+                : undefined,
           },
         },
         supportedClientTypes,
@@ -533,7 +556,23 @@ export function ProviderEditFlow({ provider, onClose }: ProviderEditFlowProps) {
             <h3 className="text-lg font-semibold text-foreground border-b border-border pb-2">
               {t('provider.clientConfig')}
             </h3>
-            <ClientsConfigSection clients={formData.clients} onUpdateClient={updateClient} />
+            <ClientsConfigSection
+              clients={formData.clients}
+              onUpdateClient={updateClient}
+              cloak={{
+                mode: formData.cloakMode || 'auto',
+                strictMode: !!formData.cloakStrictMode,
+                sensitiveWords: formData.cloakSensitiveWords || '',
+              }}
+              onUpdateCloak={(updates) =>
+                setFormData((prev) => ({
+                  ...prev,
+                  cloakMode: updates?.mode ?? prev.cloakMode,
+                  cloakStrictMode: updates?.strictMode ?? prev.cloakStrictMode,
+                  cloakSensitiveWords: updates?.sensitiveWords ?? prev.cloakSensitiveWords,
+                }))
+              }
+            />
           </div>
 
           {/* Provider Supported Models Filter */}
