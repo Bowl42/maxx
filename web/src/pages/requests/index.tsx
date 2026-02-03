@@ -83,6 +83,7 @@ export function RequestsPage() {
   const [scrollTop, setScrollTop] = useState(0);
   const [viewportHeight, setViewportHeight] = useState(0);
   const [rowHeight, setRowHeight] = useState(DEFAULT_ROW_HEIGHT);
+  const rowHeightRef = useRef(DEFAULT_ROW_HEIGHT);
   const rowMeasureObserver = useRef<ResizeObserver | null>(null);
 
   const handleContainerRef = useCallback((node: HTMLDivElement | null) => {
@@ -248,7 +249,8 @@ export function RequestsPage() {
 
     const updateHeight = () => {
       const nextHeight = node.getBoundingClientRect().height;
-      if (nextHeight > 0 && Math.abs(nextHeight - rowHeight) > 0.5) {
+      if (nextHeight > 0 && Math.abs(nextHeight - rowHeightRef.current) > 0.5) {
+        rowHeightRef.current = nextHeight;
         setRowHeight(nextHeight);
       }
     };
@@ -264,7 +266,7 @@ export function RequestsPage() {
       observer.observe(node);
       rowMeasureObserver.current = observer;
     }
-  }, [rowHeight]);
+  }, []);
 
   return (
     <div className="flex flex-col h-full bg-background">
