@@ -871,8 +871,8 @@ export function StatsPage() {
             ) : chartData.length === 0 ? (
               <div className="text-center text-muted-foreground py-8">{t('common.noData')}</div>
             ) : (
-              <Card className="flex flex-col flex-1 min-h-0 border-border/50 bg-card/50 backdrop-blur-sm">
-                <CardHeader className="flex flex-row items-center justify-between shrink-0 pb-2">
+              <Card className="border-border/50 bg-card/50 backdrop-blur-sm">
+                <CardHeader className="flex flex-row items-center justify-between pb-2">
                   <CardTitle className="text-base font-semibold flex items-center gap-2">
                     <BarChart3 className="h-4 w-4 text-emerald-500" />
                     {t('stats.chart')}
@@ -884,8 +884,8 @@ export function StatsPage() {
                     </TabsList>
                   </Tabs>
                 </CardHeader>
-                                <CardContent className="flex-1 min-h-0">
-                                  <div className="w-full h-full" style={{ minHeight: '300px' }}>
+                                <CardContent className="pt-2">
+                                  <div className="w-full" style={{ height: '400px' }}>
                                     <ResponsiveContainer width="100%" height="100%">
                                       <ComposedChart data={chartData}>
                                         <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" opacity={0.5} />
@@ -948,7 +948,7 @@ export function StatsPage() {
                                               dataKey="successful"
                                               name={t('stats.successful')}
                                               stackId="a"
-                                              fill="var(--color-chart-2)"
+                                              fill="var(--color-chart-1)"
                                               radius={[0, 0, 0, 0]}
                                             />
                                             <Bar
@@ -956,7 +956,7 @@ export function StatsPage() {
                                               dataKey="failed"
                                               name={t('stats.failed')}
                                               stackId="a"
-                                              fill="var(--color-destructive)"
+                                              fill="var(--color-chart-2)"
                                               radius={[4, 4, 0, 0]}
                                             />
                                           </>

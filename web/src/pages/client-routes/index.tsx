@@ -8,6 +8,7 @@ import { useParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { Search, Globe, FolderKanban, ArrowUpDown, Zap, Code2 } from 'lucide-react';
 import { ClientIcon, getClientName } from '@/components/icons/client-icons';
+import { PageHeader } from '@/components/layout/page-header';
 import type { ClientType } from '@/lib/transport';
 import { ClientTypeRoutesContent } from '@/components/routes/ClientTypeRoutesContent';
 import { Input } from '@/components/ui/input';
@@ -102,35 +103,26 @@ export function ClientRoutesPage() {
   };
 
   return (
-    <div className="flex flex-col h-full bg-background">
-      {/* Header */}
-      <div className="h-[73px] flex items-center justify-between px-6 border-b border-border bg-card shrink-0">
-        <div className="flex items-center gap-3">
-          <div className="p-2 bg-accent/10 rounded-lg">
-            <ClientIcon type={activeClientType} size={20} className="text-accent" />
+    <div className="flex flex-col h-full">
+      <PageHeader
+        icon={<ClientIcon type={activeClientType} size={20} />}
+        title={t('routes.clientRoutesTitle', { client: getClientName(activeClientType) })}
+        description={t('routes.configureRoutingFor', { client: getClientName(activeClientType) })}
+        actions={
+          <div className="relative">
+            <Search
+              size={14}
+              className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground"
+            />
+            <Input
+              placeholder={t('common.searchProviders')}
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-9 w-48"
+            />
           </div>
-          <div>
-            <h2 className="text-lg font-semibold text-foreground leading-tight">
-              {t('routes.clientRoutesTitle', { client: getClientName(activeClientType) })}
-            </h2>
-            <p className="text-xs text-muted-foreground">
-              {t('routes.configureRoutingFor', { client: getClientName(activeClientType) })}
-            </p>
-          </div>
-        </div>
-        <div className="relative">
-          <Search
-            size={14}
-            className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground"
-          />
-          <Input
-            placeholder={t('common.searchProviders')}
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-9 w-48"
-          />
-        </div>
-      </div>
+        }
+      />
 
       {/* Tabs for Global / Projects */}
       <Tabs value={selectedProjectId} onValueChange={setSelectedProjectId} className="flex-1 min-h-0 flex flex-col">

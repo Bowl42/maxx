@@ -6,6 +6,7 @@ import { ClientsConfigSection } from './clients-config-section';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ModelInput } from '@/components/ui/model-input';
+import { PageHeader } from '@/components/layout/page-header';
 import { useProviderForm } from '../context/provider-form-context';
 import { useProviderNavigation } from '../hooks/use-provider-navigation';
 
@@ -85,37 +86,26 @@ export function CustomConfigStep() {
 
   return (
     <div className="flex flex-col h-full">
-      <div className="h-[73px] flex items-center justify-between px-6 border-b border-border bg-card">
-        <div className="flex items-center gap-4">
-          <Button onClick={goToSelectType} variant="ghost" size="sm">
-            <ChevronLeft size={20} />
-          </Button>
-          <div>
-            <h2 className="text-headline font-semibold text-foreground">
-              {t('provider.configure')}
-            </h2>
-            <p className="text-caption text-muted-foreground">
-              {t('provider.configureDescription')}
-            </p>
-          </div>
-        </div>
-        <div className="flex items-center gap-2">
-          <Button onClick={goToProviders} variant={'secondary'}>
-            {t('common.cancel')}
-          </Button>
-          <Button onClick={handleSave} disabled={isSaving || !isValid()} variant={'default'}>
-            {isSaving ? (
-              t('common.saving')
-            ) : saveStatus === 'success' ? (
-              <>
-                <Check size={14} /> {t('common.saved')}
-              </>
-            ) : (
-              t('provider.create')
-            )}
-          </Button>
-        </div>
-      </div>
+      <PageHeader
+        icon={<ChevronLeft className="cursor-pointer" onClick={goToSelectType} />}
+        title={t('provider.configure')}
+        description={t('provider.configureDescription')}
+      >
+        <Button onClick={goToProviders} variant={'secondary'}>
+          {t('common.cancel')}
+        </Button>
+        <Button onClick={handleSave} disabled={isSaving || !isValid()} variant={'default'}>
+          {isSaving ? (
+            t('common.saving')
+          ) : saveStatus === 'success' ? (
+            <>
+              <Check size={14} /> {t('common.saved')}
+            </>
+          ) : (
+            t('provider.create')
+          )}
+        </Button>
+      </PageHeader>
 
       <div className="flex-1 overflow-y-auto p-6">
         <div className="mx-auto max-w-7xl space-y-8">

@@ -367,12 +367,12 @@ export function OverviewPage() {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <ChartContainer config={chartConfig} className="h-[180px] w-full">
-                  {trendLoading ? (
-                    <div className="h-full flex items-center justify-center text-muted-foreground">
-                      {t('common.loading')}
-                    </div>
-                  ) : trendData && trendData.length > 0 ? (
+                {trendLoading ? (
+                  <div className="h-[180px] w-full flex items-center justify-center text-muted-foreground">
+                    {t('common.loading')}
+                  </div>
+                ) : trendData && trendData.length > 0 ? (
+                  <ChartContainer config={chartConfig} className="h-[180px] w-full">
                     <AreaChart data={trendData}>
                       <defs>
                         <linearGradient id="colorRequests" x1="0" y1="0" x2="0" y2="1">
@@ -411,12 +411,12 @@ export function OverviewPage() {
                         strokeWidth={2}
                       />
                     </AreaChart>
-                  ) : (
-                    <div className="h-full flex items-center justify-center text-muted-foreground">
-                      {t('common.noData')}
-                    </div>
-                  )}
-                </ChartContainer>
+                  </ChartContainer>
+                ) : (
+                  <div className="h-[180px] w-full flex items-center justify-center text-muted-foreground">
+                    {t('common.noData')}
+                  </div>
+                )}
               </CardContent>
             </Card>
 

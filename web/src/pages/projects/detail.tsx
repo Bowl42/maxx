@@ -14,6 +14,7 @@ import {
 } from 'lucide-react';
 import { useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
+import { PageHeader } from '@/components/layout/page-header';
 import { OverviewTab } from './tabs/overview';
 import { RoutesTab } from './tabs/routes';
 import { SessionsTab } from './tabs/sessions';
@@ -65,45 +66,41 @@ export function ProjectDetailPage() {
   return (
     <div className="flex flex-col h-full bg-background">
       {/* Header */}
-      <div className="h-[73px] flex items-center justify-between px-6 border-b border-border bg-card shrink-0 z-10">
-        <div className="flex items-center gap-4">
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => navigate('/projects')}
-            className="h-8 w-8 p-0 hover:bg-accent rounded-full"
-          >
-            <ArrowLeft className="h-4 w-4" />
-          </Button>
-          <div className="flex items-center gap-3">
-            <div className="p-2 bg-accent/10 rounded-lg">
-              <FolderKanban size={20} className="text-accent" />
-            </div>
-            <div>
-              <h2 className="text-lg font-semibold text-foreground leading-tight">
-                {project.name}
-              </h2>
-              <p className="text-xs text-muted-foreground font-mono mt-0.5">{project.slug}</p>
-            </div>
+      <PageHeader
+        icon={FolderKanban}
+        iconClassName="text-purple-500"
+        title={project.name}
+        description={project.slug}
+        actions={
+          <div className="flex items-center gap-2">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => navigate('/projects')}
+              className="h-8 px-3"
+            >
+              <ArrowLeft className="mr-2 h-4 w-4" />
+              {t('common.back')}
+            </Button>
+            <Button
+              variant="destructive"
+              size="sm"
+              onClick={handleDelete}
+              disabled={deleteProject.isPending}
+              className="opacity-80 hover:opacity-100"
+            >
+              {deleteProject.isPending ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <>
+                  <Trash2 className="mr-2 h-4 w-4" />
+                  {t('projects.deleteProject')}
+                </>
+              )}
+            </Button>
           </div>
-        </div>
-        <Button
-          variant="destructive"
-          size="sm"
-          onClick={handleDelete}
-          disabled={deleteProject.isPending}
-          className="opacity-80 hover:opacity-100"
-        >
-          {deleteProject.isPending ? (
-            <Loader2 className="h-4 w-4 animate-spin" />
-          ) : (
-            <>
-              <Trash2 className="mr-2 h-4 w-4" />
-              {t('projects.deleteProject')}
-            </>
-          )}
-        </Button>
-      </div>
+        }
+      />
 
       {/* Tabs */}
       <Tabs

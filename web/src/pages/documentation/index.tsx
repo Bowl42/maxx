@@ -1,15 +1,9 @@
 import { useState } from 'react';
 import { BookOpen, Code, Copy, Check, AlertTriangle, Terminal } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import {
-  Card,
-  CardContent,
-  Tabs,
-  TabsList,
-  TabsTrigger,
-  TabsContent,
-} from '@/components/ui';
+import { Card, CardContent, Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui';
 import { ClientIcon } from '@/components/icons/client-icons';
+import { PageHeader } from '@/components/layout/page-header';
 
 interface CodeBlockProps {
   code: string;
@@ -42,23 +36,15 @@ export function DocumentationPage() {
   const { t } = useTranslation();
 
   return (
-    <div className="flex flex-col h-full bg-background">
-      {/* Header */}
-      <div className="h-[73px] flex items-center justify-between px-6 border-b border-border bg-card shrink-0">
-        <div className="flex items-center gap-3">
-          <div className="p-2 bg-accent/10 rounded-lg">
-            <BookOpen size={20} className="text-accent" />
-          </div>
-          <div>
-            <h2 className="text-lg font-semibold text-foreground leading-tight">
-              {t('documentation.title')}
-            </h2>
-            <p className="text-xs text-muted-foreground">{t('documentation.description')}</p>
-          </div>
-        </div>
-      </div>
+    <div className="flex flex-col h-full">
+      <PageHeader
+        icon={BookOpen}
+        iconClassName="text-blue-500"
+        title={t('documentation.title')}
+        description={t('documentation.description')}
+      />
 
-      <div className="flex-1 overflow-y-auto p-6">
+      <div className="flex-1 overflow-y-auto p-4 md:p-6">
         <div className="max-w-7xl mx-auto">
           <DocumentationSection />
         </div>
@@ -82,37 +68,25 @@ function DocumentationSection() {
       <CardContent className="space-y-6 pt-6">
         <Tabs defaultValue="claude" className="w-full">
           <TabsList className="grid w-full grid-cols-4 h-12 p-1 bg-muted">
-            <TabsTrigger
-              value="claude"
-              className="data-active:!bg-background data-active:!shadow-lg data-active:!border-2 data-active:!border-border font-semibold h-full"
-            >
+            <TabsTrigger value="claude">
               <div className="flex items-center justify-center gap-2">
                 <ClientIcon type="claude" size={16} className="shrink-0" />
                 <span className="leading-none">Claude Code</span>
               </div>
             </TabsTrigger>
-            <TabsTrigger
-              value="openai"
-              className="data-active:!bg-background data-active:!shadow-lg data-active:!border-2 data-active:!border-border font-semibold h-full"
-            >
+            <TabsTrigger value="openai">
               <div className="flex items-center justify-center gap-2">
                 <ClientIcon type="openai" size={16} className="shrink-0" />
                 <span className="leading-none">OpenAI</span>
               </div>
             </TabsTrigger>
-            <TabsTrigger
-              value="codex"
-              className="data-active:!bg-background data-active:!shadow-lg data-active:!border-2 data-active:!border-border font-semibold h-full"
-            >
+            <TabsTrigger value="codex">
               <div className="flex items-center justify-center gap-2">
                 <ClientIcon type="codex" size={16} className="shrink-0" />
                 <span className="leading-none">Codex CLI</span>
               </div>
             </TabsTrigger>
-            <TabsTrigger
-              value="gemini"
-              className="data-active:!bg-background data-active:!shadow-lg data-active:!border-2 data-active:!border-border font-semibold h-full"
-            >
+            <TabsTrigger value="gemini">
               <div className="flex items-center justify-center gap-2">
                 <ClientIcon type="gemini" size={16} className="shrink-0" />
                 <span className="leading-none">Gemini</span>
@@ -148,7 +122,9 @@ function DocumentationSection() {
 
             <div className="space-y-3">
               <h3 className="text-sm font-semibold">{t('documentation.shellFunction')}</h3>
-              <p className="text-xs text-muted-foreground">{t('documentation.shellFunctionDesc')}</p>
+              <p className="text-xs text-muted-foreground">
+                {t('documentation.shellFunctionDesc')}
+              </p>
               <CodeBlock
                 code={`claude_maxx() {
     export ANTHROPIC_BASE_URL="http://localhost:9880"
@@ -170,11 +146,11 @@ function DocumentationSection() {
 
               <div className="p-4 rounded-md bg-muted/30 border border-border space-y-2">
                 <p className="text-sm font-medium">{t('documentation.tokenEnabled')}</p>
-                <p className="text-xs text-muted-foreground">{t('documentation.tokenEnabledDesc')}</p>
+                <p className="text-xs text-muted-foreground">
+                  {t('documentation.tokenEnabledDesc')}
+                </p>
                 <div className="text-xs text-muted-foreground space-y-1 pl-2">
-                  <p>
-                    {t('documentation.claudeTokenEnabledNote')}
-                  </p>
+                  <p>{t('documentation.claudeTokenEnabledNote')}</p>
                 </div>
               </div>
 
@@ -251,7 +227,9 @@ function DocumentationSection() {
 
               <div className="p-4 rounded-md bg-muted/30 border border-border space-y-2">
                 <p className="text-sm font-medium">{t('documentation.tokenEnabled')}</p>
-                <p className="text-xs text-muted-foreground">{t('documentation.tokenEnabledDesc')}</p>
+                <p className="text-xs text-muted-foreground">
+                  {t('documentation.tokenEnabledDesc')}
+                </p>
                 <div className="text-xs text-muted-foreground space-y-1 pl-2">
                   <p>
                     <strong>{t('documentation.requestHeader')}:</strong>{' '}
@@ -351,11 +329,11 @@ codex`}
 
               <div className="p-4 rounded-md bg-muted/30 border border-border space-y-2">
                 <p className="text-sm font-medium">{t('documentation.tokenEnabled')}</p>
-                <p className="text-xs text-muted-foreground">{t('documentation.tokenEnabledDesc')}</p>
+                <p className="text-xs text-muted-foreground">
+                  {t('documentation.tokenEnabledDesc')}
+                </p>
                 <div className="text-xs text-muted-foreground space-y-1 pl-2">
-                  <p>
-                    {t('documentation.codexTokenEnabledNote')}
-                  </p>
+                  <p>{t('documentation.codexTokenEnabledNote')}</p>
                 </div>
               </div>
 
@@ -431,7 +409,9 @@ codex`}
 
               <div className="p-4 rounded-md bg-muted/30 border border-border space-y-2">
                 <p className="text-sm font-medium">{t('documentation.tokenEnabled')}</p>
-                <p className="text-xs text-muted-foreground">{t('documentation.tokenEnabledDesc')}</p>
+                <p className="text-xs text-muted-foreground">
+                  {t('documentation.tokenEnabledDesc')}
+                </p>
                 <div className="text-xs text-muted-foreground space-y-1 pl-2">
                   <p>
                     <strong>{t('documentation.requestHeader')}:</strong>{' '}

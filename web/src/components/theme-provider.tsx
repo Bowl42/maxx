@@ -53,15 +53,7 @@ export function ThemeProvider({
 
     // Remove all theme classes
     root.classList.remove('light', 'dark');
-    const luxuryClasses = [
-      'theme-hermes',
-      'theme-tiffany',
-      'theme-chanel',
-      'theme-cartier',
-      'theme-burberry',
-      'theme-gucci',
-      'theme-dior',
-    ];
+    const luxuryClasses = ['theme-hermes', 'theme-tiffany'];
     luxuryClasses.forEach((cls) => root.classList.remove(cls));
 
     // Handle system theme

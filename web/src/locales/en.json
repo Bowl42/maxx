@@ -54,7 +54,8 @@
     "week": "Week",
     "noActivity": "No Activity",
     "clear": "Clear",
-    "unknown": "Unknown"
+    "unknown": "Unknown",
+    "back": "Back"
   },
   "clientTypes": {
     "claude": "Claude",
@@ -77,7 +78,12 @@
     "stats": "Statistics",
     "routes": "ROUTES",
     "management": "MANAGEMENT",
-    "config": "CONFIG"
+    "config": "CONFIG",
+    "account": "Account",
+    "notifications": "Notifications",
+    "theme": "Theme",
+    "language": "Language",
+    "logout": "Log out"
   },
   "dashboard": {
     "title": "Dashboard",
@@ -648,7 +654,9 @@
     "theme": {
       "light": "Light",
       "dark": "Dark",
-      "system": "System"
+      "system": "System",
+      "hermes": "Hermès",
+      "tiffany": "Tiffany"
     },
     "language": "Language",
     "languagePreference": "Language Preference",

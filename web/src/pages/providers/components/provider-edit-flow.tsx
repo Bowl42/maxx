@@ -42,6 +42,7 @@ import { CodexProviderView } from './codex-provider-view';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ModelInput } from '@/components/ui/model-input';
+import { PageHeader } from '@/components/layout/page-header';
 
 // Provider Model Mappings Section for Custom Providers
 function ProviderModelMappings({ provider }: { provider: Provider }) {
@@ -438,39 +439,30 @@ export function ProviderEditFlow({ provider, onClose }: ProviderEditFlowProps) {
   // Custom provider edit form
   return (
     <div className="flex flex-col h-full">
-      <div className="h-[73px] flex items-center justify-between px-6 border-b border-border bg-card">
-        <div className="flex items-center gap-4">
-          <Button onClick={onClose} variant={'ghost'}>
-            <ChevronLeft size={20} />
-          </Button>
-          <div>
-            <h2 className="text-headline font-semibold text-foreground">{t('provider.edit')}</h2>
-            <p className="text-caption text-muted-foreground">
-              {t('provider.editDescription')}
-            </p>
-          </div>
-        </div>
-        <div className="flex items-center gap-2">
-          <Button onClick={() => setShowDeleteConfirm(true)} variant={'destructive'}>
-            <Trash2 size={14} />
-            {t('provider.delete')}
-          </Button>
-          <Button onClick={onClose} variant={'secondary'}>
-            {t('provider.cancel')}
-          </Button>
-          <Button onClick={handleSave} disabled={saving || !isValid()} variant={'default'}>
-            {saving ? (
-              t('common.saving')
-            ) : saveStatus === 'success' ? (
-              <>
-                <Check size={14} /> {t('common.saved')}
-              </>
-            ) : (
-              t('provider.saveChanges')
-            )}
-          </Button>
-        </div>
-      </div>
+      <PageHeader
+        icon={<ChevronLeft className="cursor-pointer" onClick={onClose} />}
+        title={t('provider.edit')}
+        description={t('provider.editDescription')}
+      >
+        <Button onClick={() => setShowDeleteConfirm(true)} variant={'destructive'}>
+          <Trash2 size={14} />
+          {t('provider.delete')}
+        </Button>
+        <Button onClick={onClose} variant={'secondary'}>
+          {t('provider.cancel')}
+        </Button>
+        <Button onClick={handleSave} disabled={saving || !isValid()} variant={'default'}>
+          {saving ? (
+            t('common.saving')
+          ) : saveStatus === 'success' ? (
+            <>
+              <Check size={14} /> {t('common.saved')}
+            </>
+          ) : (
+            t('provider.saveChanges')
+          )}
+        </Button>
+      </PageHeader>
 
       <div className="flex-1 overflow-y-auto p-6">
         <div className="mx-auto max-w-7xl space-y-8">
