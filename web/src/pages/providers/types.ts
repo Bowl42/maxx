@@ -219,6 +219,9 @@ export type ProviderFormData = {
   baseURL: string;
   apiKey: string;
   clients: ClientConfig[];
+  cloakMode?: 'auto' | 'always' | 'never';
+  cloakStrictMode?: boolean;
+  cloakSensitiveWords?: string;
   modelMappings?: TemplateModelMapping[]; // 模型映射
   logo?: string; // Logo URL
 };

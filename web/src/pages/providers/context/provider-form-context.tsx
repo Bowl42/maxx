@@ -37,6 +37,9 @@ const initialFormData: ProviderFormData = {
   baseURL: '',
   apiKey: '',
   clients: [...defaultClients],
+  cloakMode: 'auto',
+  cloakStrictMode: false,
+  cloakSensitiveWords: '',
 };
 
 export function ProviderFormProvider({ children }: { children: ReactNode }) {

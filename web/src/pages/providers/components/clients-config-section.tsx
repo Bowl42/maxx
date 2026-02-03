@@ -1,6 +1,14 @@
 import { useState, useEffect } from 'react';
 import { Switch } from '@/components/ui';
 import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { ClientIcon } from '@/components/icons/client-icons';
 import type { ClientType } from '@/lib/transport';
 import type { ClientConfig } from '../types';
@@ -9,6 +17,12 @@ import { useTranslation } from 'react-i18next';
 interface ClientsConfigSectionProps {
   clients: ClientConfig[];
   onUpdateClient: (clientId: ClientType, updates: Partial<ClientConfig>) => void;
+  cloak?: {
+    mode: 'auto' | 'always' | 'never';
+    strictMode: boolean;
+    sensitiveWords: string;
+  };
+  onUpdateCloak?: (updates: Partial<ClientsConfigSectionProps['cloak']>) => void;
 }
 
 // Separate component for multiplier input to manage local state
@@ -57,21 +71,24 @@ function MultiplierInput({
   );
 }
 
-export function ClientsConfigSection({ clients, onUpdateClient }: ClientsConfigSectionProps) {
+export function ClientsConfigSection({
+  clients,
+  onUpdateClient,
+  cloak,
+  onUpdateCloak,
+}: ClientsConfigSectionProps) {
   const { t } = useTranslation();
   return (
     <div>
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {clients.map((client) => (
+      <div className="rounded-xl border border-border overflow-hidden bg-card">
+        {clients.map((client, index) => (
           <div
             key={client.id}
-            className={`rounded-xl border transition-all duration-200 flex flex-col ${
-              client.enabled
-                ? 'bg-card border-border shadow-sm'
-                : 'bg-muted/30 border-transparent opacity-80 hover:opacity-100 hover:bg-muted/50'
-            }`}
+            className={`px-4 py-4 transition-colors duration-200 ${
+              client.enabled ? 'bg-card' : 'bg-muted/30'
+            } ${index > 0 ? 'border-t border-border' : ''}`}
           >
-            <div className="flex items-center justify-between p-4 border-b border-transparent">
+            <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <ClientIcon type={client.id} size={32} />
                 <span
@@ -90,10 +107,12 @@ export function ClientsConfigSection({ clients, onUpdateClient }: ClientsConfigS
 
             {/* Expandable/Visible Content */}
             <div
-              className={`px-4 pb-4 transition-all duration-200 ${client.enabled ? 'opacity-100' : 'opacity-50 grayscale pointer-events-none'}`}
+              className={`pt-4 transition-all duration-200 ${
+                client.enabled ? 'opacity-100' : 'opacity-50 grayscale pointer-events-none'
+              }`}
             >
-              <div className="space-y-3">
-                <div className="bg-muted/50 rounded-lg p-3 border border-border/50">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
                   <label className="text-xs font-medium text-muted-foreground block mb-1.5 uppercase tracking-wide">
                     {t('provider.endpointOverride')}
                   </label>
@@ -106,7 +125,7 @@ export function ClientsConfigSection({ clients, onUpdateClient }: ClientsConfigS
                     className="text-sm w-full bg-card h-9"
                   />
                 </div>
-                <div className="bg-muted/50 rounded-lg p-3 border border-border/50">
+                <div>
                   <label className="text-xs font-medium text-muted-foreground block mb-1.5 uppercase tracking-wide">
                     {t('provider.multiplier', 'Price Multiplier')}
                   </label>
@@ -123,6 +142,65 @@ export function ClientsConfigSection({ clients, onUpdateClient }: ClientsConfigS
                   </div>
                 </div>
               </div>
+
+              {client.id === 'claude' && cloak && onUpdateCloak && (
+                <div className="mt-5 space-y-4">
+                  <div className="border-t border-border/60" />
+                  <div>
+                    <label className="text-xs font-medium text-muted-foreground block mb-1.5 uppercase tracking-wide">
+                      {t('provider.cloakMode')}
+                    </label>
+                    <Select
+                      value={cloak.mode}
+                      onValueChange={(value) =>
+                        onUpdateCloak({ mode: value as 'auto' | 'always' | 'never' })
+                      }
+                    >
+                      <SelectTrigger className="w-full">
+                        <SelectValue placeholder={t('provider.cloakModeAuto')} />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="auto">{t('provider.cloakModeAuto')}</SelectItem>
+                        <SelectItem value="always">{t('provider.cloakModeAlways')}</SelectItem>
+                        <SelectItem value="never">{t('provider.cloakModeNever')}</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      {t('provider.cloakModeDesc')}
+                    </p>
+                  </div>
+
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="space-y-1">
+                      <p className="text-sm font-medium text-foreground">
+                        {t('provider.cloakStrictMode')}
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        {t('provider.cloakStrictModeDesc')}
+                      </p>
+                    </div>
+                    <Switch
+                      checked={cloak.strictMode}
+                      onCheckedChange={(checked) => onUpdateCloak({ strictMode: checked })}
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-xs font-medium text-muted-foreground block mb-1.5 uppercase tracking-wide">
+                      {t('provider.cloakSensitiveWords')}
+                    </label>
+                    <Textarea
+                      value={cloak.sensitiveWords}
+                      onChange={(e) => onUpdateCloak({ sensitiveWords: e.target.value })}
+                      placeholder={t('provider.cloakSensitiveWordsPlaceholder')}
+                      className="min-h-[88px]"
+                    />
+                    <p className="text-xs text-muted-foreground mt-1">
+                      {t('provider.cloakSensitiveWordsDesc')}
+                    </p>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         ))}

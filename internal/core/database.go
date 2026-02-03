@@ -358,6 +358,7 @@ func InitializeServerComponents(
 	kiroHandler := handler.NewKiroHandler(adminService)
 	codexHandler := handler.NewCodexHandler(adminService, repos.CodexQuotaRepo, wailsBroadcaster)
 	codexOAuthServer := NewCodexOAuthServer(codexHandler)
+	codexHandler.SetOAuthServer(codexOAuthServer)
 	projectProxyHandler := handler.NewProjectProxyHandler(proxyHandler, modelsHandler, repos.CachedProjectRepo)
 
 	log.Printf("[Core] Creating request tracker for graceful shutdown")

@@ -26,6 +26,13 @@ export function CustomConfigStep() {
   const createProvider = useCreateProvider();
   const createModelMapping = useCreateModelMapping();
 
+  const parseSensitiveWords = (value: string): string[] => {
+    return value
+      .split(/[\n,]/)
+      .map((item) => item.trim())
+      .filter(Boolean);
+  };
+
   const handleSave = async () => {
     if (!isValid()) return;
 
@@ -55,6 +62,16 @@ export function CustomConfigStep() {
             apiKey: formData.apiKey,
             clientBaseURL: Object.keys(clientBaseURL).length > 0 ? clientBaseURL : undefined,
             clientMultiplier: Object.keys(clientMultiplier).length > 0 ? clientMultiplier : undefined,
+            cloak:
+              formData.cloakMode !== 'auto' ||
+              formData.cloakStrictMode ||
+              parseSensitiveWords(formData.cloakSensitiveWords || '').length > 0
+                ? {
+                    mode: formData.cloakMode,
+                    strictMode: formData.cloakStrictMode,
+                    sensitiveWords: parseSensitiveWords(formData.cloakSensitiveWords || ''),
+                  }
+                : undefined,
           },
         },
         supportedClientTypes,
@@ -170,7 +187,22 @@ export function CustomConfigStep() {
             <h3 className="text-lg font-semibold text-text-primary border-b border-border pb-2">
               {t('provider.clientConfig')}
             </h3>
-            <ClientsConfigSection clients={formData.clients} onUpdateClient={updateClient} />
+            <ClientsConfigSection
+              clients={formData.clients}
+              onUpdateClient={updateClient}
+              cloak={{
+                mode: formData.cloakMode || 'auto',
+                strictMode: !!formData.cloakStrictMode,
+                sensitiveWords: formData.cloakSensitiveWords || '',
+              }}
+              onUpdateCloak={(updates) =>
+                updateFormData({
+                  cloakMode: updates?.mode ?? formData.cloakMode,
+                  cloakStrictMode: updates?.strictMode ?? formData.cloakStrictMode,
+                  cloakSensitiveWords: updates?.sensitiveWords ?? formData.cloakSensitiveWords,
+                })
+              }
+            />
           </div>
 
           {/* Model Mapping Section */}
