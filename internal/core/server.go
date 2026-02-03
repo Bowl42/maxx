@@ -135,13 +135,6 @@ func (s *ManagedServer) Start(ctx context.Context) error {
 		}
 	}
 
-	// 启动 Codex OAuth 回调服务器
-	if s.config.Components != nil && s.config.Components.CodexOAuthServer != nil {
-		if err := s.config.Components.CodexOAuthServer.Start(s.ctx); err != nil {
-			log.Printf("[Server] Failed to start Codex OAuth server: %v", err)
-		}
-	}
-
 	s.isRunning = true
 	log.Printf("[Server] Server started successfully")
 	return nil

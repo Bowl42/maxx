@@ -22,6 +22,14 @@ type CodexHandler struct {
 	quotaRepo    repository.CodexQuotaRepository
 	oauthManager *codex.OAuthManager
 	taskSvc      *service.CodexTaskService
+	oauthServer  OAuthServer
+}
+
+// OAuthServer is a minimal interface for the local OAuth callback server.
+type OAuthServer interface {
+	Start(ctx context.Context) error
+	Stop(ctx context.Context) error
+	IsRunning() bool
 }
 
 // NewCodexHandler creates a new Codex handler
@@ -36,6 +44,11 @@ func NewCodexHandler(svc *service.AdminService, quotaRepo repository.CodexQuotaR
 // SetTaskService sets the CodexTaskService for background task operations
 func (h *CodexHandler) SetTaskService(taskSvc *service.CodexTaskService) {
 	h.taskSvc = taskSvc
+}
+
+// SetOAuthServer injects the local OAuth callback server.
+func (h *CodexHandler) SetOAuthServer(server OAuthServer) {
+	h.oauthServer = server
 }
 
 // ServeHTTP routes Codex requests
@@ -183,6 +196,16 @@ func (h *CodexHandler) handleValidateToken(w http.ResponseWriter, r *http.Reques
 
 // handleOAuthStart starts the OAuth authorization flow
 func (h *CodexHandler) handleOAuthStart(w http.ResponseWriter, r *http.Request) {
+	if h.oauthServer != nil && !h.oauthServer.IsRunning() {
+		startCtx, cancel := context.WithTimeout(r.Context(), 2*time.Second)
+		if err := h.oauthServer.Start(startCtx); err != nil {
+			cancel()
+			writeJSON(w, http.StatusInternalServerError, map[string]string{"error": err.Error()})
+			return
+		}
+		cancel()
+	}
+
 	result, err := h.StartOAuth()
 	if err != nil {
 		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": err.Error()})
@@ -260,6 +283,8 @@ func (h *CodexHandler) handleOAuthCallback(w http.ResponseWriter, r *http.Reques
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	w.WriteHeader(http.StatusOK)
 	w.Write([]byte(codexOAuthSuccessHTML))
+
+	h.stopOAuthServerAsync()
 }
 
 // handleOAuthExchange handles POST /codex/oauth/exchange
@@ -351,6 +376,19 @@ func (h *CodexHandler) sendOAuthErrorResult(w http.ResponseWriter, state, errorM
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	w.WriteHeader(http.StatusBadRequest)
 	w.Write([]byte(codexOAuthErrorHTML))
+
+	h.stopOAuthServerAsync()
+}
+
+func (h *CodexHandler) stopOAuthServerAsync() {
+	if h.oauthServer == nil || !h.oauthServer.IsRunning() {
+		return
+	}
+	go func() {
+		ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+		defer cancel()
+		_ = h.oauthServer.Stop(ctx)
+	}()
 }
 
 // RefreshProviderInfo refreshes the Codex provider info by re-validating the refresh token

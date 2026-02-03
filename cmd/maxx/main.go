@@ -376,11 +376,9 @@ func main() {
 		Handler: loggedMux,
 	}
 
-	// Start Codex OAuth callback server (listens on localhost:1455)
+	// Initialize Codex OAuth callback server (start on-demand)
 	codexOAuthServer := core.NewCodexOAuthServer(codexHandler)
-	if err := codexOAuthServer.Start(context.Background()); err != nil {
-		log.Printf("Warning: Failed to start Codex OAuth server: %v", err)
-	}
+	codexHandler.SetOAuthServer(codexOAuthServer)
 
 	// Start server in goroutine
 	log.Printf("Starting Maxx server %s on %s", version.Info(), *addr)
