@@ -39,8 +39,9 @@ export function NavUser() {
       <SidebarMenuItem>
         <DropdownMenu>
           <DropdownMenuTrigger
-            render={
+            render={(props) => (
               <SidebarMenuButton
+                {...props}
                 size="lg"
                 className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground justify-center p-0!"
               >
@@ -51,7 +52,7 @@ export function NavUser() {
                   </AvatarFallback>
                 </Avatar>
               </SidebarMenuButton>
-            }
+            )}
           />
           <DropdownMenuContent
             className="w-[--radix-dropdown-menu-trigger-width] rounded-lg max-w-xs"
@@ -97,15 +98,15 @@ export function NavUser() {
                     </DropdownMenuLabel>
                     <DropdownMenuItem onClick={() => setTheme('light')}>
                       <Sun />
-                      <span>Light</span>
+                      <span>{t('settings.theme.light')}</span>
                     </DropdownMenuItem>
                     <DropdownMenuItem onClick={() => setTheme('dark')}>
                       <Moon />
-                      <span>Dark</span>
+                      <span>{t('settings.theme.dark')}</span>
                     </DropdownMenuItem>
                     <DropdownMenuItem onClick={() => setTheme('system')}>
                       <Laptop />
-                      <span>System</span>
+                      <span>{t('settings.theme.system')}</span>
                     </DropdownMenuItem>
                     <DropdownMenuSeparator />
                     <DropdownMenuLabel className="text-xs text-muted-foreground">
@@ -113,11 +114,11 @@ export function NavUser() {
                     </DropdownMenuLabel>
                     <DropdownMenuItem onClick={() => setTheme('hermes')}>
                       <Sparkles className="text-orange-500" />
-                      <span>Hermès</span>
+                      <span>{t('settings.theme.hermes')}</span>
                     </DropdownMenuItem>
                     <DropdownMenuItem onClick={() => setTheme('tiffany')}>
                       <Gem className="text-cyan-500" />
-                      <span>Tiffany</span>
+                      <span>{t('settings.theme.tiffany')}</span>
                     </DropdownMenuItem>
                   </DropdownMenuSubContent>
                 </DropdownMenuPortal>
@@ -130,10 +131,10 @@ export function NavUser() {
                 <DropdownMenuPortal>
                   <DropdownMenuSubContent>
                     <DropdownMenuItem onClick={() => i18n.changeLanguage('en')}>
-                      <span>English</span>
+                      <span>{t('settings.languages.en')}</span>
                     </DropdownMenuItem>
                     <DropdownMenuItem onClick={() => i18n.changeLanguage('zh')}>
-                      <span>简体中文</span>
+                      <span>{t('settings.languages.zh')}</span>
                     </DropdownMenuItem>
                   </DropdownMenuSubContent>
                 </DropdownMenuPortal>
