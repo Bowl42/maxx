@@ -15,6 +15,7 @@ import (
 	"github.com/awsl-project/maxx/internal/adapter/client"
 	_ "github.com/awsl-project/maxx/internal/adapter/provider/custom" // Register custom adapter
 	_ "github.com/awsl-project/maxx/internal/adapter/provider/kiro"   // Register kiro adapter
+	_ "github.com/awsl-project/maxx/internal/converter/builtins"      // Register converter subpackages
 	"github.com/awsl-project/maxx/internal/cooldown"
 	"github.com/awsl-project/maxx/internal/core"
 	"github.com/awsl-project/maxx/internal/debug"

@@ -8,6 +8,7 @@ import (
 	goruntime "runtime"
 	"time"
 
+	_ "github.com/awsl-project/maxx/internal/converter/builtins" // Register converter subpackages
 	"github.com/awsl-project/maxx/internal/desktop"
 	"github.com/awsl-project/maxx/internal/handler"
 	"github.com/wailsapp/wails/v2"

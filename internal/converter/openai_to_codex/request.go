@@ -1,27 +1,21 @@
-package converter
+package openai_to_codex
 
 import (
 	"encoding/json"
 	"strings"
-	"time"
 
-	"github.com/awsl-project/maxx/internal/domain"
+	"github.com/awsl-project/maxx/internal/converter"
 )
 
-func init() {
-	RegisterConverter(domain.ClientTypeOpenAI, domain.ClientTypeCodex, &openaiToCodexRequest{}, &openaiToCodexResponse{})
-}
+type Request struct{}
 
-type openaiToCodexRequest struct{}
-type openaiToCodexResponse struct{}
-
-func (c *openaiToCodexRequest) Transform(body []byte, model string, stream bool) ([]byte, error) {
-	userAgent := ExtractCodexUserAgent(body)
+func (c *Request) Transform(body []byte, model string, stream bool) ([]byte, error) {
+	userAgent := converter.ExtractCodexUserAgent(body)
 	var raw map[string]interface{}
 	if err := json.Unmarshal(body, &raw); err != nil {
 		return nil, err
 	}
-	var req OpenAIRequest
+	var req converter.OpenAIRequest
 	if err := json.Unmarshal(body, &req); err != nil {
 		return nil, err
 	}
@@ -36,7 +30,7 @@ func (c *openaiToCodexRequest) Transform(body []byte, model string, stream bool)
 			}
 		}
 		if len(names) > 0 {
-			shortMap = buildShortNameMap(names)
+			shortMap = converter.BuildShortNameMap(names)
 		}
 	}
 
@@ -49,14 +43,14 @@ func (c *openaiToCodexRequest) Transform(body []byte, model string, stream bool)
 	if instructions == "" {
 		for i, msg := range messages {
 			if msg.Role == "system" || msg.Role == "developer" {
-				instructions = stringifyContent(msg.Content)
+				instructions = converter.StringifyContent(msg.Content)
 				messages = append(messages[:i], messages[i+1:]...)
 				break
 			}
 		}
 	}
 	if instructions == "" {
-		instructions = CodexInstructionsForModel(model, userAgent)
+		instructions = converter.CodexInstructionsForModel(model, userAgent)
 	}
 
 	var inputItems []map[string]interface{}
@@ -67,7 +61,7 @@ func (c *openaiToCodexRequest) Transform(body []byte, model string, stream bool)
 		}
 
 		if msg.Role == "tool" {
-			output := stringifyContent(msg.Content)
+			output := converter.StringifyContent(msg.Content)
 			inputItems = append(inputItems, map[string]interface{}{
 				"type":    "function_call_output",
 				"call_id": msg.ToolCallID,
@@ -89,7 +83,7 @@ func (c *openaiToCodexRequest) Transform(body []byte, model string, stream bool)
 			if short, ok := shortMap[name]; ok {
 				name = short
 			} else {
-				name = shortenNameIfNeeded(name)
+				name = converter.ShortenNameIfNeeded(name)
 			}
 			callID := tc.ID
 			inputItems = append(inputItems, map[string]interface{}{
@@ -103,15 +97,15 @@ func (c *openaiToCodexRequest) Transform(body []byte, model string, stream bool)
 	}
 
 	// Convert tools
-	tools := []CodexTool{}
+	tools := []converter.CodexTool{}
 	for _, tool := range req.Tools {
 		name := tool.Function.Name
 		if short, ok := shortMap[name]; ok {
 			name = short
 		} else {
-			name = shortenNameIfNeeded(name)
+			name = converter.ShortenNameIfNeeded(name)
 		}
-		tools = append(tools, CodexTool{
+		tools = append(tools, converter.CodexTool{
 			Type:        "function",
 			Name:        name,
 			Description: tool.Function.Description,
@@ -214,117 +208,4 @@ func codexContentParts(role string, content interface{}) []map[string]interface{
 		}
 	}
 	return nil
-}
-
-func (c *openaiToCodexResponse) Transform(body []byte) ([]byte, error) {
-	var resp OpenAIResponse
-	if err := json.Unmarshal(body, &resp); err != nil {
-		return nil, err
-	}
-
-	codexResp := CodexResponse{
-		ID:        resp.ID,
-		Object:    "response",
-		CreatedAt: resp.Created,
-		Model:     resp.Model,
-		Status:    "completed",
-		Usage: CodexUsage{
-			InputTokens:  resp.Usage.PromptTokens,
-			OutputTokens: resp.Usage.CompletionTokens,
-			TotalTokens:  resp.Usage.TotalTokens,
-		},
-	}
-
-	if len(resp.Choices) > 0 {
-		choice := resp.Choices[0]
-		if choice.Message != nil {
-			if content, ok := choice.Message.Content.(string); ok && content != "" {
-				codexResp.Output = append(codexResp.Output, CodexOutput{
-					Type:    "message",
-					Role:    "assistant",
-					Content: content,
-				})
-			}
-			for _, tc := range choice.Message.ToolCalls {
-				codexResp.Output = append(codexResp.Output, CodexOutput{
-					Type:      "function_call",
-					ID:        tc.ID,
-					CallID:    tc.ID,
-					Name:      tc.Function.Name,
-					Arguments: tc.Function.Arguments,
-					Status:    "completed",
-				})
-			}
-		}
-	}
-
-	return json.Marshal(codexResp)
-}
-
-func (c *openaiToCodexResponse) TransformChunk(chunk []byte, state *TransformState) ([]byte, error) {
-	events, remaining := ParseSSE(state.Buffer + string(chunk))
-	state.Buffer = remaining
-
-	var output []byte
-	for _, event := range events {
-		if event.Event == "done" {
-			codexEvent := map[string]interface{}{
-				"type": "response.done",
-				"response": map[string]interface{}{
-					"id":     state.MessageID,
-					"status": "completed",
-				},
-			}
-			output = append(output, FormatSSE("", codexEvent)...)
-			continue
-		}
-
-		var openaiChunk OpenAIStreamChunk
-		if err := json.Unmarshal(event.Data, &openaiChunk); err != nil {
-			continue
-		}
-
-		if state.MessageID == "" {
-			state.MessageID = openaiChunk.ID
-			codexEvent := map[string]interface{}{
-				"type": "response.created",
-				"response": map[string]interface{}{
-					"id":         openaiChunk.ID,
-					"model":      openaiChunk.Model,
-					"status":     "in_progress",
-					"created_at": time.Now().Unix(),
-				},
-			}
-			output = append(output, FormatSSE("", codexEvent)...)
-		}
-
-		if len(openaiChunk.Choices) > 0 {
-			choice := openaiChunk.Choices[0]
-			if choice.Delta != nil {
-				if content, ok := choice.Delta.Content.(string); ok && content != "" {
-					codexEvent := map[string]interface{}{
-						"type": "response.output_item.delta",
-						"delta": map[string]interface{}{
-							"type": "text",
-							"text": content,
-						},
-					}
-					output = append(output, FormatSSE("", codexEvent)...)
-				}
-			}
-
-			if choice.FinishReason != "" {
-				codexEvent := map[string]interface{}{
-					"type": "response.done",
-					"response": map[string]interface{}{
-						"id":     state.MessageID,
-						"status": "completed",
-					},
-				}
-				output = append(output, FormatSSE("", codexEvent)...)
-			}
-		}
-	}
-
-	return output, nil
 }

@@ -13,10 +13,6 @@ func TestValidation_InvalidJSONRequests(t *testing.T) {
 			_, err := (&claudeToGeminiRequest{}).Transform([]byte("{"), "gemini", false)
 			return err
 		}()},
-		{"openai_to_codex", func() error {
-			_, err := (&openaiToCodexRequest{}).Transform([]byte("{"), "codex", false)
-			return err
-		}()},
 		{"codex_to_openai", func() error {
 			_, err := (&codexToOpenAIRequest{}).Transform([]byte("{"), "gpt", false)
 			return err
@@ -70,10 +66,6 @@ func TestValidation_InvalidJSONResponses(t *testing.T) {
 		name string
 		err  error
 	}{
-		{"openai_to_codex", func() error {
-			_, err := (&openaiToCodexResponse{}).Transform([]byte("{"))
-			return err
-		}()},
 		{"openai_to_claude", func() error {
 			_, err := (&openaiToClaudeResponse{}).Transform([]byte("{"))
 			return err
