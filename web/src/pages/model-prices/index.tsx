@@ -160,7 +160,10 @@ export function ModelPricesPage() {
   };
 
   const isPending =
-    createPrice.isPending || updatePrice.isPending || deletePrice.isPending || resetPrices.isPending;
+    createPrice.isPending ||
+    updatePrice.isPending ||
+    deletePrice.isPending ||
+    resetPrices.isPending;
 
   if (isLoading) return null;
 
@@ -175,7 +178,12 @@ export function ModelPricesPage() {
         description={t('modelPrices.description', { count: prices?.length || 0 })}
         actions={
           <div className="flex items-center gap-2">
-            <Button variant="outline" size="sm" onClick={() => setResetConfirmOpen(true)} disabled={isPending}>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setResetConfirmOpen(true)}
+              disabled={isPending}
+            >
               <RotateCcw className="h-4 w-4 mr-1" />
               {t('modelPrices.resetToDefaults')}
             </Button>
@@ -213,9 +221,7 @@ export function ModelPricesPage() {
                     key={price.id}
                     className="flex items-center gap-3 py-2 hover:bg-accent/50 rounded px-2 -mx-2"
                   >
-                    <div className="flex-1 min-w-0 font-mono text-sm truncate">
-                      {price.modelId}
-                    </div>
+                    <div className="flex-1 min-w-0 font-mono text-sm truncate">{price.modelId}</div>
                     <div className="w-24 text-right text-sm font-mono">
                       {formatMicroPrice(price.inputPriceMicro)}
                     </div>
@@ -415,10 +421,7 @@ export function ModelPricesPage() {
             <Button variant="outline" onClick={() => setIsDialogOpen(false)}>
               {t('common.cancel')}
             </Button>
-            <Button
-              onClick={handleSave}
-              disabled={!formData.modelId.trim() || isPending}
-            >
+            <Button onClick={handleSave} disabled={!formData.modelId.trim() || isPending}>
               {t('common.save')}
             </Button>
           </DialogFooter>
@@ -426,7 +429,10 @@ export function ModelPricesPage() {
       </Dialog>
 
       {/* Delete Confirmation Dialog */}
-      <AlertDialog open={deleteConfirmId !== null} onOpenChange={(open) => !open && setDeleteConfirmId(null)}>
+      <AlertDialog
+        open={deleteConfirmId !== null}
+        onOpenChange={(open) => !open && setDeleteConfirmId(null)}
+      >
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>{t('common.confirm')}</AlertDialogTitle>

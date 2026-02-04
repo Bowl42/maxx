@@ -2,7 +2,13 @@ import { useMemo, useRef, useState } from 'react';
 import { Plus, Layers, Download, Upload, Search, RefreshCw } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
-import { useProviders, useAllProviderStats, useSettings, useUpdateSetting, useProxyRequestUpdates } from '@/hooks/queries';
+import {
+  useProviders,
+  useAllProviderStats,
+  useSettings,
+  useUpdateSetting,
+  useProxyRequestUpdates,
+} from '@/hooks/queries';
 import { useStreamingRequests } from '@/hooks/use-streaming';
 import type { Provider, ImportResult } from '@/lib/transport';
 import { getTransport } from '@/lib/transport';
@@ -252,91 +258,95 @@ export function ProvidersPage() {
             <AntigravityQuotasProvider>
               <CodexQuotasProvider>
                 <div className="space-y-8">
-                {/* 动态渲染各类型分组 */}
-                {(Object.keys(PROVIDER_TYPE_CONFIGS) as ProviderTypeKey[]).map((typeKey) => {
-                  const typeProviders = groupedProviders[typeKey];
-                  if (typeProviders.length === 0) return null;
+                  {/* 动态渲染各类型分组 */}
+                  {(Object.keys(PROVIDER_TYPE_CONFIGS) as ProviderTypeKey[]).map((typeKey) => {
+                    const typeProviders = groupedProviders[typeKey];
+                    if (typeProviders.length === 0) return null;
 
-                  const config = PROVIDER_TYPE_CONFIGS[typeKey];
-                  const TypeIcon = config.icon;
+                    const config = PROVIDER_TYPE_CONFIGS[typeKey];
+                    const TypeIcon = config.icon;
 
-                  return (
-                    <section key={typeKey} className="space-y-3">
-                      <div className="flex items-center gap-2 px-1">
-                        <TypeIcon size={16} style={{ color: config.color }} />
-                        <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">
-                          {config.label}
-                        </h3>
-                        <div className="h-px flex-1 bg-border/50 ml-2" />
-                        {/* Refresh Quotas Button - Only for Antigravity */}
-                        {typeKey === 'antigravity' && (
-                          <>
-                            <div className="flex items-center gap-1.5">
-                              <span className="text-xs text-muted-foreground">{t('settings.autoSortAntigravity')}</span>
-                              <Switch
-                                checked={autoSortAntigravity}
-                                onCheckedChange={handleToggleAutoSortAntigravity}
-                                disabled={updateSetting.isPending}
-                              />
-                            </div>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={handleRefreshQuotas}
-                              disabled={isRefreshingQuotas}
-                              className="h-7 px-2 gap-1.5 text-xs text-muted-foreground hover:text-foreground shrink-0"
-                              title={t('providers.refreshQuotas')}
-                            >
-                              <RefreshCw
-                                size={12}
-                                className={isRefreshingQuotas ? 'animate-spin' : ''}
-                              />
-                              <span>{t('common.refresh')}</span>
-                            </Button>
-                          </>
-                        )}
-                        {/* Refresh Button - Only for Codex */}
-                        {typeKey === 'codex' && (
-                          <>
-                            <div className="flex items-center gap-1.5">
-                              <span className="text-xs text-muted-foreground">{t('settings.autoSortCodex')}</span>
-                              <Switch
-                                checked={autoSortCodex}
-                                onCheckedChange={handleToggleAutoSortCodex}
-                                disabled={updateSetting.isPending}
-                              />
-                            </div>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={handleRefreshCodex}
-                              disabled={isRefreshingCodex}
-                              className="h-7 px-2 gap-1.5 text-xs text-muted-foreground hover:text-foreground shrink-0"
-                              title={t('providers.refreshCodex')}
-                            >
-                              <RefreshCw
-                                size={12}
-                                className={isRefreshingCodex ? 'animate-spin' : ''}
-                              />
-                              <span>{t('common.refresh')}</span>
-                            </Button>
-                          </>
-                        )}
-                      </div>
-                      <div className="space-y-3">
-                        {typeProviders.map((provider) => (
-                          <ProviderRow
-                            key={provider.id}
-                            provider={provider}
-                            stats={providerStats[provider.id]}
-                            streamingCount={countsByProvider.get(provider.id) || 0}
-                            onClick={() => navigate(`/providers/${provider.id}/edit`)}
-                          />
-                        ))}
-                      </div>
-                    </section>
-                  );
-                })}
+                    return (
+                      <section key={typeKey} className="space-y-3">
+                        <div className="flex items-center gap-2 px-1">
+                          <TypeIcon size={16} style={{ color: config.color }} />
+                          <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">
+                            {config.label}
+                          </h3>
+                          <div className="h-px flex-1 bg-border/50 ml-2" />
+                          {/* Refresh Quotas Button - Only for Antigravity */}
+                          {typeKey === 'antigravity' && (
+                            <>
+                              <div className="flex items-center gap-1.5">
+                                <span className="text-xs text-muted-foreground">
+                                  {t('settings.autoSortAntigravity')}
+                                </span>
+                                <Switch
+                                  checked={autoSortAntigravity}
+                                  onCheckedChange={handleToggleAutoSortAntigravity}
+                                  disabled={updateSetting.isPending}
+                                />
+                              </div>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={handleRefreshQuotas}
+                                disabled={isRefreshingQuotas}
+                                className="h-7 px-2 gap-1.5 text-xs text-muted-foreground hover:text-foreground shrink-0"
+                                title={t('providers.refreshQuotas')}
+                              >
+                                <RefreshCw
+                                  size={12}
+                                  className={isRefreshingQuotas ? 'animate-spin' : ''}
+                                />
+                                <span>{t('common.refresh')}</span>
+                              </Button>
+                            </>
+                          )}
+                          {/* Refresh Button - Only for Codex */}
+                          {typeKey === 'codex' && (
+                            <>
+                              <div className="flex items-center gap-1.5">
+                                <span className="text-xs text-muted-foreground">
+                                  {t('settings.autoSortCodex')}
+                                </span>
+                                <Switch
+                                  checked={autoSortCodex}
+                                  onCheckedChange={handleToggleAutoSortCodex}
+                                  disabled={updateSetting.isPending}
+                                />
+                              </div>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={handleRefreshCodex}
+                                disabled={isRefreshingCodex}
+                                className="h-7 px-2 gap-1.5 text-xs text-muted-foreground hover:text-foreground shrink-0"
+                                title={t('providers.refreshCodex')}
+                              >
+                                <RefreshCw
+                                  size={12}
+                                  className={isRefreshingCodex ? 'animate-spin' : ''}
+                                />
+                                <span>{t('common.refresh')}</span>
+                              </Button>
+                            </>
+                          )}
+                        </div>
+                        <div className="space-y-3">
+                          {typeProviders.map((provider) => (
+                            <ProviderRow
+                              key={provider.id}
+                              provider={provider}
+                              stats={providerStats[provider.id]}
+                              streamingCount={countsByProvider.get(provider.id) || 0}
+                              onClick={() => navigate(`/providers/${provider.id}/edit`)}
+                            />
+                          ))}
+                        </div>
+                      </section>
+                    );
+                  })}
                 </div>
               </CodexQuotasProvider>
             </AntigravityQuotasProvider>

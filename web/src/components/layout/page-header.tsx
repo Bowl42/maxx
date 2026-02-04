@@ -26,11 +26,7 @@ export function PageHeader({
         <SidebarTrigger className="-ml-2" />
         {Icon && (
           <div className="p-2 bg-secondary/50 rounded-lg border border-border/50">
-            {isValidElement(Icon) ? (
-              Icon
-            ) : (
-              <Icon size={20} className={iconClassName} />
-            )}
+            {isValidElement(Icon) ? Icon : <Icon size={20} className={iconClassName} />}
           </div>
         )}
         <div>

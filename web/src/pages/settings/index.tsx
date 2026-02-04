@@ -527,9 +527,7 @@ function AntigravitySection() {
 
         <div className="flex items-start gap-2 p-3 rounded-md bg-blue-500/10 border border-blue-500/20">
           <AlertTriangle className="h-4 w-4 text-blue-500 mt-0.5 shrink-0" />
-          <p className="text-xs text-blue-600 dark:text-blue-400">
-            {t('settings.routesSortNote')}
-          </p>
+          <p className="text-xs text-blue-600 dark:text-blue-400">{t('settings.routesSortNote')}</p>
         </div>
       </CardContent>
     </Card>
@@ -582,7 +580,16 @@ function PprofSection() {
         setPasswordDraft(pprofPassword);
       }
     }
-  }, [pprofEnabled, pprofPort, pprofPassword, initialized, enabledDraft, portDraft, usePasswordDraft, passwordDraft]);
+  }, [
+    pprofEnabled,
+    pprofPort,
+    pprofPassword,
+    initialized,
+    enabledDraft,
+    portDraft,
+    usePasswordDraft,
+    passwordDraft,
+  ]);
 
   // Clear password error when password changes
   useEffect(() => {
@@ -615,7 +622,7 @@ function PprofSection() {
     !isPasswordInvalid &&
     !isPortInvalid &&
     (enabledDraft !== pprofEnabled ||
-      (enabledDraft && portDraft !== pprofPort) ||  // 只在启用时检查端口变化
+      (enabledDraft && portDraft !== pprofPort) || // 只在启用时检查端口变化
       usePasswordDraft !== (pprofPassword !== '') ||
       (usePasswordDraft && passwordDraft !== pprofPassword));
 
@@ -689,7 +696,9 @@ function PprofSection() {
             disabled={!hasChanges || updateSetting.isPending || deleteSetting.isPending}
             size="sm"
           >
-            {updateSetting.isPending || deleteSetting.isPending ? t('common.saving') : t('common.save')}
+            {updateSetting.isPending || deleteSetting.isPending
+              ? t('common.saving')
+              : t('common.save')}
           </Button>
         </div>
       </CardHeader>
@@ -700,9 +709,7 @@ function PprofSection() {
             <label className="text-sm font-medium text-foreground">
               {t('settings.enablePprof')}
             </label>
-            <p className="text-xs text-muted-foreground mt-1">
-              {t('settings.enablePprofDesc')}
-            </p>
+            <p className="text-xs text-muted-foreground mt-1">{t('settings.enablePprofDesc')}</p>
           </div>
           <Switch
             checked={enabledDraft}
@@ -728,9 +735,7 @@ function PprofSection() {
                   max={65535}
                   disabled={updateSetting.isPending}
                 />
-                <span className="text-xs text-muted-foreground">
-                  {t('settings.pprofPortDesc')}
-                </span>
+                <span className="text-xs text-muted-foreground">{t('settings.pprofPortDesc')}</span>
               </div>
               {portError && (
                 <div className="flex items-center gap-3">
@@ -779,11 +784,7 @@ function PprofSection() {
                       className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
                       tabIndex={-1}
                     >
-                      {showPassword ? (
-                        <EyeOff className="h-4 w-4" />
-                      ) : (
-                        <Eye className="h-4 w-4" />
-                      )}
+                      {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                     </button>
                   </div>
                 </div>

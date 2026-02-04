@@ -271,7 +271,9 @@ export function RequestDetailPanel({
   const attemptCostBreakdown =
     selectedAttempt && priceTable
       ? calculateCostBreakdown(
-          selectedAttempt.responseModel || selectedAttempt.mappedModel || selectedAttempt.requestModel,
+          selectedAttempt.responseModel ||
+            selectedAttempt.mappedModel ||
+            selectedAttempt.requestModel,
           selectedAttempt.inputTokenCount,
           selectedAttempt.outputTokenCount,
           selectedAttempt.cacheReadCount,
@@ -409,8 +411,8 @@ export function RequestDetailPanel({
 
               {selectedAttempt.requestInfo.body && (
                 <div className="flex flex-col min-h-0 gap-3 flex-1">
-                <div className="flex items-center justify-between shrink-0">
-                  <h5 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-2">
+                  <div className="flex items-center justify-between shrink-0">
+                    <h5 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-2">
                       <Database size={14} /> {t('requests.body')}
                     </h5>
                     <div className="flex items-center gap-2">
@@ -490,7 +492,7 @@ export function RequestDetailPanel({
               <div className="flex flex-col min-h-0 gap-3 flex-1">
                 <div className="flex items-center justify-between shrink-0">
                   <h5 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-2">
-                    <Code size={14} /> {t('requests.headers')}
+                    <Code size={14} /> {t('requests.responseHeaders')}
                   </h5>
                   <CopyButton content={formatJSON(selectedAttempt.responseInfo.headers)} />
                 </div>
@@ -508,9 +510,9 @@ export function RequestDetailPanel({
 
               {selectedAttempt.responseInfo.body && (
                 <div className="flex flex-col min-h-0 gap-3 flex-1">
-                <div className="flex items-center justify-between shrink-0">
-                  <h5 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-2">
-                      <Database size={14} /> {t('requests.body')}
+                  <div className="flex items-center justify-between shrink-0">
+                    <h5 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-2">
+                      <Database size={14} /> {t('requests.responseBody')}
                     </h5>
                     <CopyButton
                       content={(() => {
@@ -638,7 +640,9 @@ export function RequestDetailPanel({
                     TTFT
                   </dt>
                   <dd className="text-sm text-foreground font-mono font-medium">
-                    {selectedAttempt.ttft && selectedAttempt.ttft > 0 ? formatDuration(selectedAttempt.ttft) : '-'}
+                    {selectedAttempt.ttft && selectedAttempt.ttft > 0
+                      ? formatDuration(selectedAttempt.ttft)
+                      : '-'}
                   </dd>
                 </div>
                 <div className="flex justify-between items-center border-b border-border/30 pb-2">
@@ -649,9 +653,15 @@ export function RequestDetailPanel({
                     <span>{selectedAttempt.inputTokenCount.toLocaleString()}</span>
                     {attemptCostBreakdown?.items.find((i) => i.label === 'Input') && (
                       <span className="text-xs text-muted-foreground">
-                        × {formatPricePerM(attemptCostBreakdown.items.find((i) => i.label === 'Input')!.pricePerM)} ={' '}
+                        ×{' '}
+                        {formatPricePerM(
+                          attemptCostBreakdown.items.find((i) => i.label === 'Input')!.pricePerM,
+                        )}{' '}
+                        ={' '}
                         <span className="text-blue-400">
-                          {formatCost(attemptCostBreakdown.items.find((i) => i.label === 'Input')!.cost)}
+                          {formatCost(
+                            attemptCostBreakdown.items.find((i) => i.label === 'Input')!.cost,
+                          )}
                         </span>
                       </span>
                     )}
@@ -665,9 +675,15 @@ export function RequestDetailPanel({
                     <span>{selectedAttempt.outputTokenCount.toLocaleString()}</span>
                     {attemptCostBreakdown?.items.find((i) => i.label === 'Output') && (
                       <span className="text-xs text-muted-foreground">
-                        × {formatPricePerM(attemptCostBreakdown.items.find((i) => i.label === 'Output')!.pricePerM)} ={' '}
+                        ×{' '}
+                        {formatPricePerM(
+                          attemptCostBreakdown.items.find((i) => i.label === 'Output')!.pricePerM,
+                        )}{' '}
+                        ={' '}
                         <span className="text-blue-400">
-                          {formatCost(attemptCostBreakdown.items.find((i) => i.label === 'Output')!.cost)}
+                          {formatCost(
+                            attemptCostBreakdown.items.find((i) => i.label === 'Output')!.cost,
+                          )}
                         </span>
                       </span>
                     )}
@@ -681,9 +697,16 @@ export function RequestDetailPanel({
                     <span>{selectedAttempt.cacheReadCount.toLocaleString()}</span>
                     {attemptCostBreakdown?.items.find((i) => i.label === 'Cache Read') && (
                       <span className="text-xs text-muted-foreground">
-                        × {formatPricePerM(attemptCostBreakdown.items.find((i) => i.label === 'Cache Read')!.pricePerM)} ={' '}
+                        ×{' '}
+                        {formatPricePerM(
+                          attemptCostBreakdown.items.find((i) => i.label === 'Cache Read')!
+                            .pricePerM,
+                        )}{' '}
+                        ={' '}
                         <span className="text-blue-400">
-                          {formatCost(attemptCostBreakdown.items.find((i) => i.label === 'Cache Read')!.cost)}
+                          {formatCost(
+                            attemptCostBreakdown.items.find((i) => i.label === 'Cache Read')!.cost,
+                          )}
                         </span>
                       </span>
                     )}
@@ -696,9 +719,15 @@ export function RequestDetailPanel({
                   <dd className="text-sm text-amber-400 font-mono font-medium flex items-center gap-2">
                     <span>{selectedAttempt.cacheWriteCount.toLocaleString()}</span>
                     {(() => {
-                      const cache5m = attemptCostBreakdown?.items.find((i) => i.label === 'Cache Write (5m)');
-                      const cache1h = attemptCostBreakdown?.items.find((i) => i.label === 'Cache Write (1h)');
-                      const cacheWrite = attemptCostBreakdown?.items.find((i) => i.label === 'Cache Write');
+                      const cache5m = attemptCostBreakdown?.items.find(
+                        (i) => i.label === 'Cache Write (5m)',
+                      );
+                      const cache1h = attemptCostBreakdown?.items.find(
+                        (i) => i.label === 'Cache Write (1h)',
+                      );
+                      const cacheWrite = attemptCostBreakdown?.items.find(
+                        (i) => i.label === 'Cache Write',
+                      );
                       const item = cache5m || cache1h || cacheWrite;
                       if (!item) return null;
                       return (
@@ -722,8 +751,12 @@ export function RequestDetailPanel({
                     </dt>
                     <dd className="text-xs text-muted-foreground font-mono">
                       {(() => {
-                        const cache5m = attemptCostBreakdown?.items.find((i) => i.label === 'Cache Write (5m)');
-                        const cache1h = attemptCostBreakdown?.items.find((i) => i.label === 'Cache Write (1h)');
+                        const cache5m = attemptCostBreakdown?.items.find(
+                          (i) => i.label === 'Cache Write (5m)',
+                        );
+                        const cache1h = attemptCostBreakdown?.items.find(
+                          (i) => i.label === 'Cache Write (1h)',
+                        );
                         const parts: string[] = [];
                         if (cache5m) parts.push(`5m: ${formatCost(cache5m.cost)}`);
                         if (cache1h) parts.push(`1h: ${formatCost(cache1h.cost)}`);
@@ -733,23 +766,30 @@ export function RequestDetailPanel({
                   </div>
                 )}
                 {/* Subtotal before multiplier - only show when multiplier != 1.0x */}
-                {attemptCostBreakdown && selectedAttempt.multiplier > 0 && selectedAttempt.multiplier !== 10000 && (
-                  <div className="flex justify-between items-center border-b border-border/30 pb-2">
-                    <dt className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                      {t('requests.subtotal')}
-                    </dt>
-                    <dd className="text-sm text-muted-foreground font-mono font-medium">
-                      {formatCost(attemptCostBreakdown.totalCost)}
-                    </dd>
-                  </div>
-                )}
+                {attemptCostBreakdown &&
+                  selectedAttempt.multiplier > 0 &&
+                  selectedAttempt.multiplier !== 10000 && (
+                    <div className="flex justify-between items-center border-b border-border/30 pb-2">
+                      <dt className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                        {t('requests.subtotal')}
+                      </dt>
+                      <dd className="text-sm text-muted-foreground font-mono font-medium">
+                        {formatCost(attemptCostBreakdown.totalCost)}
+                      </dd>
+                    </div>
+                  )}
                 {/* Multiplier row - always show */}
                 <div className="flex justify-between items-center border-b border-border/30 pb-2">
                   <dt className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
                     {t('requests.multiplier')}
                   </dt>
-                  <dd className={`text-sm font-mono font-medium ${selectedAttempt.multiplier > 0 && selectedAttempt.multiplier !== 10000 ? 'text-yellow-400' : 'text-foreground'}`}>
-                    ×{((selectedAttempt.multiplier > 0 ? selectedAttempt.multiplier : 10000) / 10000).toFixed(2)}
+                  <dd
+                    className={`text-sm font-mono font-medium ${selectedAttempt.multiplier > 0 && selectedAttempt.multiplier !== 10000 ? 'text-yellow-400' : 'text-foreground'}`}
+                  >
+                    ×
+                    {(
+                      (selectedAttempt.multiplier > 0 ? selectedAttempt.multiplier : 10000) / 10000
+                    ).toFixed(2)}
                   </dd>
                 </div>
                 <div className="flex justify-between items-center">
@@ -758,22 +798,26 @@ export function RequestDetailPanel({
                   </dt>
                   <dd className="text-sm font-mono font-medium flex items-center gap-2">
                     <span className="text-blue-400">{formatCost(selectedAttempt.cost)}</span>
-                    {attemptCostBreakdown && (() => {
-                      // Calculate expected cost with multiplier applied
-                      const multiplier = selectedAttempt.multiplier > 0 ? selectedAttempt.multiplier : 10000;
-                      const expectedCost = Math.floor(attemptCostBreakdown.totalCost * multiplier / 10000);
-                      if (expectedCost !== selectedAttempt.cost) {
-                        return (
-                          <span
-                            className="text-xs text-amber-400"
-                            title={t('requests.costMismatchTitle')}
-                          >
-                            {t('requests.calculatedCost', { cost: formatCost(expectedCost) })}
-                          </span>
+                    {attemptCostBreakdown &&
+                      (() => {
+                        // Calculate expected cost with multiplier applied
+                        const multiplier =
+                          selectedAttempt.multiplier > 0 ? selectedAttempt.multiplier : 10000;
+                        const expectedCost = Math.floor(
+                          (attemptCostBreakdown.totalCost * multiplier) / 10000,
                         );
-                      }
-                      return null;
-                    })()}
+                        if (expectedCost !== selectedAttempt.cost) {
+                          return (
+                            <span
+                              className="text-xs text-amber-400"
+                              title={t('requests.costMismatchTitle')}
+                            >
+                              {t('requests.calculatedCost', { cost: formatCost(expectedCost) })}
+                            </span>
+                          );
+                        }
+                        return null;
+                      })()}
                   </dd>
                 </div>
               </dl>

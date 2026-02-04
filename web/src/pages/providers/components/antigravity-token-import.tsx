@@ -139,7 +139,9 @@ export function AntigravityTokenImport() {
       const result = await getTransport().validateAntigravityToken(token.trim());
       setValidationResult(result);
       if (!result.valid) {
-        setError(result.error || t('providers.antigravityTokenImport.errors.tokenValidationFailed'));
+        setError(
+          result.error || t('providers.antigravityTokenImport.errors.tokenValidationFailed'),
+        );
       }
     } catch (err) {
       setError(

@@ -20,7 +20,13 @@ import {
 import { useTranslation } from 'react-i18next';
 import { useQueryClient } from '@tanstack/react-query';
 import { ClientIcon } from '@/components/icons/client-icons';
-import type { Provider, ModelMapping, ModelMappingInput, CodexUsageResponse, CodexUsageWindow } from '@/lib/transport';
+import type {
+  Provider,
+  ModelMapping,
+  ModelMappingInput,
+  CodexUsageResponse,
+  CodexUsageWindow,
+} from '@/lib/transport';
 import { getTransport } from '@/lib/transport';
 import {
   useModelMappings,
@@ -107,7 +113,10 @@ function formatRelativeTime(dateStr: string | undefined, t: (key: string) => str
 }
 
 // Format reset time from seconds
-function formatResetTime(window: CodexUsageWindow | undefined | null, t: (key: string, params?: Record<string, unknown>) => string): string {
+function formatResetTime(
+  window: CodexUsageWindow | undefined | null,
+  t: (key: string, params?: Record<string, unknown>) => string,
+): string {
   if (!window) return '-';
 
   // Try resetAfterSeconds first
@@ -153,7 +162,15 @@ function getRemainingPercent(window: CodexUsageWindow | undefined | null): numbe
 }
 
 // Quota progress bar component
-function QuotaProgressBar({ percent, label, resetLabel }: { percent: number | null; label: string; resetLabel: string }) {
+function QuotaProgressBar({
+  percent,
+  label,
+  resetLabel,
+}: {
+  percent: number | null;
+  label: string;
+  resetLabel: string;
+}) {
   const displayPercent = percent ?? 0;
   const isUnknown = percent === null;
 
@@ -360,10 +377,12 @@ export function CodexProviderView({ provider, onDelete, onClose }: CodexProvider
         primaryWindow: cachedQuota.primaryWindow,
         secondaryWindow: cachedQuota.secondaryWindow,
       },
-      codeReviewRateLimit: cachedQuota.codeReviewWindow ? {
-        allowed: true,
-        primaryWindow: cachedQuota.codeReviewWindow,
-      } : undefined,
+      codeReviewRateLimit: cachedQuota.codeReviewWindow
+        ? {
+            allowed: true,
+            primaryWindow: cachedQuota.codeReviewWindow,
+          }
+        : undefined,
     };
   }, [usage, cachedQuota]);
 
@@ -471,7 +490,11 @@ export function CodexProviderView({ provider, onDelete, onClose }: CodexProvider
                     className="p-1.5 rounded-lg hover:bg-accent text-muted-foreground hover:text-foreground transition-colors"
                     title={t('common.copy')}
                   >
-                    {tokenCopied ? <Check size={16} className="text-green-500" /> : <Copy size={16} />}
+                    {tokenCopied ? (
+                      <Check size={16} className="text-green-500" />
+                    ) : (
+                      <Copy size={16} />
+                    )}
                   </button>
                 </div>
               </div>

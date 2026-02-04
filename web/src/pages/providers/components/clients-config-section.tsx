@@ -157,7 +157,7 @@ export function ClientsConfigSection({
                       }
                     >
                       <SelectTrigger className="w-full">
-                        <SelectValue placeholder={t('provider.cloakModeAuto')} />
+                        <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="auto">{t('provider.cloakModeAuto')}</SelectItem>

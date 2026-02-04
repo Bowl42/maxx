@@ -200,6 +200,8 @@
     "providerFallback": "Provider #{{id}}",
     "headers": "Headers",
     "body": "Body",
+    "responseHeaders": "Response Headers",
+    "responseBody": "Response Body",
     "responseStatus": "Response Status",
     "attemptInfo": "Attempt Info",
     "requestInfo": "Request Info",

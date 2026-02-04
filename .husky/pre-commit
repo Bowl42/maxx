@@ -1,7 +1,10 @@
 #!/bin/sh
 
-# 进入 web 目录并运行类型检查
-cd web && pnpm tsc --noEmit
+cd web
+
+# TypeScript 类型检查 (全量)
+echo "🔍 运行 TypeScript 类型检查..."
+pnpm tsc --build --force
 
 if [ $? -ne 0 ]; then
   echo "❌ TypeScript 类型检查失败，提交被阻止"
@@ -9,4 +12,13 @@ if [ $? -ne 0 ]; then
   exit 1
 fi
 
-echo "✅ TypeScript 类型检查通过"
+# Lint 和格式化 (仅暂存文件)
+echo "🎨 运行 lint-staged (检查暂存文件)..."
+pnpm lint-staged
+
+if [ $? -ne 0 ]; then
+  echo "❌ Lint/格式化检查失败，提交被阻止"
+  exit 1
+fi
+
+echo "✅ 所有检查通过"

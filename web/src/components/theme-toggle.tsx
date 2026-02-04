@@ -32,7 +32,8 @@ export function ThemeToggle() {
   const handleKeyDown = React.useCallback(
     (e: React.KeyboardEvent<HTMLDivElement>) => {
       const allThemes = [...defaultThemes, ...luxuryThemes];
-      const currentIndex = focusedIndex >= 0 ? focusedIndex : allThemes.findIndex((t) => t.id === theme);
+      const currentIndex =
+        focusedIndex >= 0 ? focusedIndex : allThemes.findIndex((t) => t.id === theme);
 
       switch (e.key) {
         case 'ArrowRight':
@@ -129,7 +130,11 @@ export function ThemeToggle() {
           </Button>
         )}
       />
-      <DropdownMenuContent align="end" className="w-80 p-0 overflow-hidden" onKeyDown={handleKeyDown}>
+      <DropdownMenuContent
+        align="end"
+        className="w-80 p-0 overflow-hidden"
+        onKeyDown={handleKeyDown}
+      >
         <div className="p-4 space-y-4">
           {/* Default Themes Section */}
           <div>

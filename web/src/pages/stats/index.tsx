@@ -53,7 +53,19 @@ import {
   Legend,
 } from 'recharts';
 
-type TimeRange = '1h' | '24h' | '7d' | '30d' | '90d' | 'today' | 'yesterday' | 'thisWeek' | 'lastWeek' | 'thisMonth' | 'lastMonth' | 'all';
+type TimeRange =
+  | '1h'
+  | '24h'
+  | '7d'
+  | '30d'
+  | '90d'
+  | 'today'
+  | 'yesterday'
+  | 'thisWeek'
+  | 'lastWeek'
+  | 'thisMonth'
+  | 'lastMonth'
+  | 'all';
 
 interface TimeRangeConfig {
   start: Date | null; // null means all time
@@ -157,7 +169,9 @@ function getTimeRangeConfig(range: TimeRange): TimeRangeConfig {
       end = new Date(thisMonthStart.getTime() - 1);
       granularity = 'day';
       // 计算上月天数
-      const lastMonthDays = Math.floor((thisMonthStart.getTime() - lastMonthStart.getTime()) / (24 * 60 * 60 * 1000));
+      const lastMonthDays = Math.floor(
+        (thisMonthStart.getTime() - lastMonthStart.getTime()) / (24 * 60 * 60 * 1000),
+      );
       durationMinutes = lastMonthDays * 24 * 60;
       break;
     }
@@ -441,7 +455,6 @@ export function StatsPage() {
     return unsubscribe;
   }, []);
 
-
   const { data: providers } = useProviders();
   const { data: projects } = useProjects();
   const { data: apiTokens } = useAPITokens();
@@ -522,14 +535,12 @@ export function StatsPage() {
     // 计算缓存命中率 = cacheRead / (inputTokens + cacheRead)
     // 即：从缓存读取的 token 占实际输入 token 的比例
     const totalInputWithCache = totals.totalInputTokens + totals.totalCacheRead;
-    const cacheHitRate = totalInputWithCache > 0
-      ? (totals.totalCacheRead / totalInputWithCache) * 100
-      : 0;
+    const cacheHitRate =
+      totalInputWithCache > 0 ? (totals.totalCacheRead / totalInputWithCache) * 100 : 0;
 
     // 计算平均 TTFT (毫秒转秒)
-    const avgTtft = totals.successfulRequests > 0
-      ? totals.totalTtftMs / totals.successfulRequests / 1000
-      : 0;
+    const avgTtft =
+      totals.successfulRequests > 0 ? totals.totalTtftMs / totals.successfulRequests / 1000 : 0;
 
     // 基于 totalDurationMs 计算 RPM 和 TPM
     // RPM = (totalRequests / totalDurationMs) * 60000
@@ -561,7 +572,11 @@ export function StatsPage() {
               variant="outline"
               size="sm"
               onClick={() => recalculateCostsMutation.mutate()}
-              disabled={recalculateCostsMutation.isPending || recalculateStatsMutation.isPending || !!costsProgress}
+              disabled={
+                recalculateCostsMutation.isPending ||
+                recalculateStatsMutation.isPending ||
+                !!costsProgress
+              }
             >
               <Calculator
                 className={`h-4 w-4 mr-2 ${recalculateCostsMutation.isPending || costsProgress ? 'animate-spin' : ''}`}
@@ -572,7 +587,11 @@ export function StatsPage() {
               variant="outline"
               size="sm"
               onClick={() => recalculateStatsMutation.mutate()}
-              disabled={recalculateStatsMutation.isPending || recalculateCostsMutation.isPending || !!costsProgress}
+              disabled={
+                recalculateStatsMutation.isPending ||
+                recalculateCostsMutation.isPending ||
+                !!costsProgress
+              }
             >
               <RefreshCw
                 className={`h-4 w-4 mr-2 ${recalculateStatsMutation.isPending ? 'animate-spin' : ''}`}
@@ -768,12 +787,7 @@ export function StatsPage() {
                 onClear={() => setModel('all')}
               >
                 {responseModels.map((m) => (
-                  <FilterChip
-                    key={m}
-                    selected={model === m}
-                    onClick={() => setModel(m)}
-                    title={m}
-                  >
+                  <FilterChip key={m} selected={model === m} onClick={() => setModel(m)} title={m}>
                     {m}
                   </FilterChip>
                 ))}
@@ -781,11 +795,7 @@ export function StatsPage() {
             )}
 
             {/* 重置按钮 */}
-            <Button
-              variant="outline"
-              className="w-full text-xs h-8"
-              onClick={handleResetFilters}
-            >
+            <Button variant="outline" className="w-full text-xs h-8" onClick={handleResetFilters}>
               <RefreshCw className="h-3 w-3 mr-2" />
               {t('common.reset')}
             </Button>
@@ -805,12 +815,14 @@ export function StatsPage() {
               </span>
               {providerId !== 'all' && (
                 <span className="bg-muted/50 px-2 py-0.5 rounded text-xs">
-                  {t('stats.provider')}: {providers?.find((p) => String(p.id) === providerId)?.name || providerId}
+                  {t('stats.provider')}:{' '}
+                  {providers?.find((p) => String(p.id) === providerId)?.name || providerId}
                 </span>
               )}
               {projectId !== 'all' && (
                 <span className="bg-muted/50 px-2 py-0.5 rounded text-xs">
-                  {t('stats.project')}: {projects?.find((p) => String(p.id) === projectId)?.name || projectId}
+                  {t('stats.project')}:{' '}
+                  {projects?.find((p) => String(p.id) === projectId)?.name || projectId}
                 </span>
               )}
               {clientType !== 'all' && (
@@ -820,7 +832,8 @@ export function StatsPage() {
               )}
               {apiTokenId !== 'all' && (
                 <span className="bg-muted/50 px-2 py-0.5 rounded text-xs">
-                  {t('stats.apiToken')}: {apiTokens?.find((t) => String(t.id) === apiTokenId)?.name || apiTokenId}
+                  {t('stats.apiToken')}:{' '}
+                  {apiTokens?.find((t) => String(t.id) === apiTokenId)?.name || apiTokenId}
                 </span>
               )}
               {model !== 'all' && (
@@ -857,11 +870,11 @@ export function StatsPage() {
                 value={`${summary.totalRequests > 0 ? ((summary.successfulRequests / summary.totalRequests) * 100).toFixed(1) : 0}%`}
                 icon={CheckCircle}
                 iconClassName={cn(
-                  (summary.successfulRequests / summary.totalRequests) >= 0.95
+                  summary.successfulRequests / summary.totalRequests >= 0.95
                     ? 'text-emerald-600 dark:text-emerald-400'
-                    : (summary.successfulRequests / summary.totalRequests) >= 0.8
+                    : summary.successfulRequests / summary.totalRequests >= 0.8
                       ? 'text-amber-600 dark:text-amber-400'
-                      : 'text-red-600 dark:text-red-400'
+                      : 'text-red-600 dark:text-red-400',
                 )}
               />
             </div>
@@ -884,129 +897,130 @@ export function StatsPage() {
                     </TabsList>
                   </Tabs>
                 </CardHeader>
-                                <CardContent className="pt-2">
-                                  <div className="w-full" style={{ height: '400px' }}>
-                                    <ResponsiveContainer width="100%" height="100%">
-                                      <ComposedChart data={chartData}>
-                                        <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" opacity={0.5} />
-                                        <XAxis
-                                          dataKey="label"
-                                          tick={{ fontSize: 11 }}
-                                          tickLine={false}
-                                          axisLine={false}
-                                          interval="preserveStartEnd"
-                                        />
-                                        <YAxis
-                                          yAxisId="left"
-                                          tick={{ fontSize: 11 }}
-                                          tickLine={false}
-                                          axisLine={false}
-                                          tickFormatter={(v) => formatNumber(v)}
-                                        />
-                                        <YAxis
-                                          yAxisId="right"
-                                          orientation="right"
-                                          tick={{ fontSize: 11 }}
-                                          tickLine={false}
-                                          axisLine={false}
-                                          tickFormatter={(v) => `${v.toFixed(2)}`}
-                                        />
-                                        <Tooltip
-                                          contentStyle={{
-                                            backgroundColor: 'var(--card)',
-                                            border: '1px solid var(--border)',
-                                            borderRadius: '8px',
-                                            fontSize: '12px',
-                                            boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
-                                          }}
-                                          itemSorter={(a) => (a.name === t('stats.costUSD') ? -1 : 0)}
-                                          formatter={(value, name) => {
-                                            const numValue = typeof value === 'number' ? value : 0;
-                                            const nameStr = name ?? '';
-                                            if (nameStr === t('stats.costUSD'))
-                                              return [`$${numValue.toFixed(4)}`, nameStr];
-                                            return [numValue.toLocaleString(), nameStr];
-                                          }}
-                                        />
-                                        <Legend
-                                          wrapperStyle={{ fontSize: '12px', paddingTop: '8px' }}
-                                          itemSorter={(a) => (a.value === t('stats.costUSD') ? -1 : 0)}
-                                        />
-                                        {chartView === 'requests' && (
-                                          <>
-                                            <Line
-                                              yAxisId="right"
-                                              type="monotone"
-                                              dataKey="cost"
-                                              name={t('stats.costUSD')}
-                                              stroke="var(--color-chart-3)"
-                                              strokeWidth={2}
-                                              dot={false}
-                                            />
-                                            <Bar
-                                              yAxisId="left"
-                                              dataKey="successful"
-                                              name={t('stats.successful')}
-                                              stackId="a"
-                                              fill="var(--color-chart-1)"
-                                              radius={[0, 0, 0, 0]}
-                                            />
-                                            <Bar
-                                              yAxisId="left"
-                                              dataKey="failed"
-                                              name={t('stats.failed')}
-                                              stackId="a"
-                                              fill="var(--color-chart-2)"
-                                              radius={[4, 4, 0, 0]}
-                                            />
-                                          </>
-                                        )}
-                                        {chartView === 'tokens' && (
-                                          <>
-                                            <Line
-                                              yAxisId="right"
-                                              type="monotone"
-                                              dataKey="cost"
-                                              name={t('stats.costUSD')}
-                                              stroke="var(--color-chart-3)"
-                                              strokeWidth={2}
-                                              dot={false}
-                                            />
-                                            <Bar
-                                              yAxisId="left"
-                                              dataKey="inputTokens"
-                                              name={t('stats.inputTokens')}
-                                              stackId="a"
-                                              fill="var(--color-chart-1)"
-                                              radius={[0, 0, 0, 0]}
-                                            />
-                                            <Bar
-                                              yAxisId="left"
-                                              dataKey="outputTokens"
-                                              name={t('stats.outputTokens')}
-                                              stackId="a"
-                                              fill="var(--color-chart-2)"
-                                              radius={[0, 0, 0, 0]}
-                                            />
-                                            <Bar
-                                              yAxisId="left"
-                                              dataKey="cacheRead"
-                                              name={t('stats.cacheRead')}
-                                              stackId="a"
-                                              fill="var(--color-chart-4)"
-                                              radius={[0, 0, 0, 0]}
-                                            />
-                                            <Bar
-                                              yAxisId="left"
-                                              dataKey="cacheWrite"
-                                              name={t('stats.cacheWrite')}
-                                              stackId="a"
-                                              fill="var(--color-chart-5)"
-                                              radius={[4, 4, 0, 0]}
-                                            />
-                                          </>
-                                        )}
-                                      </ComposedChart>                    </ResponsiveContainer>
+                <CardContent className="pt-2">
+                  <div className="w-full" style={{ height: '400px' }}>
+                    <ResponsiveContainer width="100%" height="100%">
+                      <ComposedChart data={chartData}>
+                        <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" opacity={0.5} />
+                        <XAxis
+                          dataKey="label"
+                          tick={{ fontSize: 11 }}
+                          tickLine={false}
+                          axisLine={false}
+                          interval="preserveStartEnd"
+                        />
+                        <YAxis
+                          yAxisId="left"
+                          tick={{ fontSize: 11 }}
+                          tickLine={false}
+                          axisLine={false}
+                          tickFormatter={(v) => formatNumber(v)}
+                        />
+                        <YAxis
+                          yAxisId="right"
+                          orientation="right"
+                          tick={{ fontSize: 11 }}
+                          tickLine={false}
+                          axisLine={false}
+                          tickFormatter={(v) => `${v.toFixed(2)}`}
+                        />
+                        <Tooltip
+                          contentStyle={{
+                            backgroundColor: 'var(--card)',
+                            border: '1px solid var(--border)',
+                            borderRadius: '8px',
+                            fontSize: '12px',
+                            boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
+                          }}
+                          itemSorter={(a) => (a.name === t('stats.costUSD') ? -1 : 0)}
+                          formatter={(value, name) => {
+                            const numValue = typeof value === 'number' ? value : 0;
+                            const nameStr = name ?? '';
+                            if (nameStr === t('stats.costUSD'))
+                              return [`$${numValue.toFixed(4)}`, nameStr];
+                            return [numValue.toLocaleString(), nameStr];
+                          }}
+                        />
+                        <Legend
+                          wrapperStyle={{ fontSize: '12px', paddingTop: '8px' }}
+                          itemSorter={(a) => (a.value === t('stats.costUSD') ? -1 : 0)}
+                        />
+                        {chartView === 'requests' && (
+                          <>
+                            <Line
+                              yAxisId="right"
+                              type="monotone"
+                              dataKey="cost"
+                              name={t('stats.costUSD')}
+                              stroke="var(--color-chart-3)"
+                              strokeWidth={2}
+                              dot={false}
+                            />
+                            <Bar
+                              yAxisId="left"
+                              dataKey="successful"
+                              name={t('stats.successful')}
+                              stackId="a"
+                              fill="var(--color-chart-1)"
+                              radius={[0, 0, 0, 0]}
+                            />
+                            <Bar
+                              yAxisId="left"
+                              dataKey="failed"
+                              name={t('stats.failed')}
+                              stackId="a"
+                              fill="var(--color-chart-2)"
+                              radius={[4, 4, 0, 0]}
+                            />
+                          </>
+                        )}
+                        {chartView === 'tokens' && (
+                          <>
+                            <Line
+                              yAxisId="right"
+                              type="monotone"
+                              dataKey="cost"
+                              name={t('stats.costUSD')}
+                              stroke="var(--color-chart-3)"
+                              strokeWidth={2}
+                              dot={false}
+                            />
+                            <Bar
+                              yAxisId="left"
+                              dataKey="inputTokens"
+                              name={t('stats.inputTokens')}
+                              stackId="a"
+                              fill="var(--color-chart-1)"
+                              radius={[0, 0, 0, 0]}
+                            />
+                            <Bar
+                              yAxisId="left"
+                              dataKey="outputTokens"
+                              name={t('stats.outputTokens')}
+                              stackId="a"
+                              fill="var(--color-chart-2)"
+                              radius={[0, 0, 0, 0]}
+                            />
+                            <Bar
+                              yAxisId="left"
+                              dataKey="cacheRead"
+                              name={t('stats.cacheRead')}
+                              stackId="a"
+                              fill="var(--color-chart-4)"
+                              radius={[0, 0, 0, 0]}
+                            />
+                            <Bar
+                              yAxisId="left"
+                              dataKey="cacheWrite"
+                              name={t('stats.cacheWrite')}
+                              stackId="a"
+                              fill="var(--color-chart-5)"
+                              radius={[4, 4, 0, 0]}
+                            />
+                          </>
+                        )}
+                      </ComposedChart>{' '}
+                    </ResponsiveContainer>
                   </div>
                 </CardContent>
               </Card>
@@ -1039,9 +1053,7 @@ function StatCard({
             <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
               {title}
             </p>
-            <p className="text-2xl font-bold text-foreground font-mono tracking-tight">
-              {value}
-            </p>
+            <p className="text-2xl font-bold text-foreground font-mono tracking-tight">{value}</p>
             {subtitle && (
               <div className="flex items-center gap-2">
                 <span className="text-xs text-muted-foreground">{subtitle}</span>
@@ -1051,7 +1063,7 @@ function StatCard({
           <div
             className={cn(
               'w-10 h-10 rounded-xl bg-muted flex items-center justify-center box-border border-2 border-transparent transition-shadow duration-300',
-              iconClassName
+              iconClassName,
             )}
           >
             <Icon className="h-5 w-5" />
@@ -1086,8 +1098,8 @@ function FilterSection({
             type="button"
             onClick={onClear}
             className={cn(
-              "p-1 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-colors",
-              showClear ? "opacity-100" : "opacity-0 pointer-events-none"
+              'p-1 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-colors',
+              showClear ? 'opacity-100' : 'opacity-0 pointer-events-none',
             )}
             title={t('common.clear')}
           >
@@ -1095,9 +1107,7 @@ function FilterSection({
           </button>
         )}
       </div>
-      <div className="flex flex-wrap gap-2">
-        {children}
-      </div>
+      <div className="flex flex-wrap gap-2">{children}</div>
     </div>
   );
 }
@@ -1119,10 +1129,10 @@ function FilterChip({
       onClick={onClick}
       title={title}
       className={cn(
-        "h-8 px-3 text-sm rounded-full transition-all truncate max-w-full border flex items-center",
+        'h-8 px-3 text-sm rounded-full transition-all truncate max-w-full border flex items-center',
         selected
-          ? "bg-primary text-primary-foreground border-primary hover:bg-primary/90"
-          : "bg-background text-foreground border-input hover:bg-accent hover:text-accent-foreground"
+          ? 'bg-primary text-primary-foreground border-primary hover:bg-primary/90'
+          : 'bg-background text-foreground border-input hover:bg-accent hover:text-accent-foreground',
       )}
     >
       {children}

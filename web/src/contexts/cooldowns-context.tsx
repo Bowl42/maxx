@@ -3,7 +3,7 @@
  * 提供共享的 Cooldowns 数据，减少重复请求
  */
 
-import { createContext, useContext, useEffect, useState, useCallback, type ReactNode } from 'react';
+import { createContext, useContext, useEffect, useCallback, type ReactNode } from 'react';
 import { useQuery, useQueryClient, useMutation } from '@tanstack/react-query';
 import { getTransport } from '@/lib/transport';
 import type { Cooldown } from '@/lib/transport';
@@ -29,13 +29,8 @@ interface CooldownsProviderProps {
 
 export function CooldownsProvider({ children }: CooldownsProviderProps) {
   const queryClient = useQueryClient();
-  // Force re-render counter to trigger updates when cooldowns expire
-  const [refreshKey, setRefreshKey] = useState(0);
 
-  const {
-    data: cooldowns = [],
-    isLoading,
-  } = useQuery({
+  const { data: cooldowns = [], isLoading } = useQuery({
     queryKey: ['cooldowns'],
     queryFn: () => getTransport().getCooldowns(),
     staleTime: 5000,
@@ -63,7 +58,11 @@ export function CooldownsProvider({ children }: CooldownsProviderProps) {
 
   // Mutation for setting cooldown
   const setCooldownMutation = useMutation({
-    mutationFn: async ({ providerId, untilTime, clientType }: {
+    mutationFn: async ({
+      providerId,
+      untilTime,
+      clientType,
+    }: {
       providerId: number;
       untilTime: string;
       clientType?: string;
@@ -95,7 +94,7 @@ export function CooldownsProvider({ children }: CooldownsProviderProps) {
 
       if (delay > 0) {
         const timeout = setTimeout(() => {
-          setRefreshKey((prev) => prev + 1);
+          queryClient.invalidateQueries({ queryKey: ['cooldowns'] });
         }, delay + 100);
         timeouts.push(timeout);
       }
@@ -104,33 +103,38 @@ export function CooldownsProvider({ children }: CooldownsProviderProps) {
     return () => {
       timeouts.forEach((timeout) => clearTimeout(timeout));
     };
-  }, [cooldowns]);
+  }, [cooldowns, queryClient]);
 
-  const getCooldownForProvider = useCallback((providerId: number, clientType?: string) => {
-    return cooldowns.find((cd: Cooldown) => {
-      const matchesProvider = cd.providerID === providerId;
-      const matchesClientType =
-        cd.clientType === '' ||
-        cd.clientType === 'all' ||
-        (clientType && cd.clientType === clientType);
+  const getCooldownForProvider = useCallback(
+    (providerId: number, clientType?: string) => {
+      return cooldowns.find((cd: Cooldown) => {
+        const matchesProvider = cd.providerID === providerId;
+        const matchesClientType =
+          cd.clientType === '' ||
+          cd.clientType === 'all' ||
+          (clientType && cd.clientType === clientType);
 
-      if (!matchesProvider || !matchesClientType) {
-        return false;
-      }
+        if (!matchesProvider || !matchesClientType) {
+          return false;
+        }
 
-      if (!cd.until) {
-        return false;
-      }
-      const until = new Date(cd.until).getTime();
-      const now = Date.now();
-      return until > now;
-    });
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [cooldowns, refreshKey]);
+        if (!cd.until) {
+          return false;
+        }
+        const until = new Date(cd.until).getTime();
+        const now = Date.now();
+        return until > now;
+      });
+    },
+    [cooldowns],
+  );
 
-  const isProviderInCooldown = useCallback((providerId: number, clientType?: string) => {
-    return !!getCooldownForProvider(providerId, clientType);
-  }, [getCooldownForProvider]);
+  const isProviderInCooldown = useCallback(
+    (providerId: number, clientType?: string) => {
+      return !!getCooldownForProvider(providerId, clientType);
+    },
+    [getCooldownForProvider],
+  );
 
   const getRemainingSeconds = useCallback((cooldown: Cooldown) => {
     if (!cooldown.until) return 0;
@@ -141,31 +145,40 @@ export function CooldownsProvider({ children }: CooldownsProviderProps) {
     return Math.max(0, Math.floor(diff / 1000));
   }, []);
 
-  const formatRemaining = useCallback((cooldown: Cooldown) => {
-    const seconds = getRemainingSeconds(cooldown);
+  const formatRemaining = useCallback(
+    (cooldown: Cooldown) => {
+      const seconds = getRemainingSeconds(cooldown);
 
-    if (Number.isNaN(seconds) || seconds === 0) return 'Expired';
+      if (Number.isNaN(seconds) || seconds === 0) return 'Expired';
 
-    const hours = Math.floor(seconds / 3600);
-    const minutes = Math.floor((seconds % 3600) / 60);
-    const secs = seconds % 60;
+      const hours = Math.floor(seconds / 3600);
+      const minutes = Math.floor((seconds % 3600) / 60);
+      const secs = seconds % 60;
 
-    if (hours > 0) {
-      return `${String(hours).padStart(2, '0')}h ${String(minutes).padStart(2, '0')}m ${String(secs).padStart(2, '0')}s`;
-    } else if (minutes > 0) {
-      return `${String(minutes).padStart(2, '0')}m ${String(secs).padStart(2, '0')}s`;
-    } else {
-      return `${String(secs).padStart(2, '0')}s`;
-    }
-  }, [getRemainingSeconds]);
+      if (hours > 0) {
+        return `${String(hours).padStart(2, '0')}h ${String(minutes).padStart(2, '0')}m ${String(secs).padStart(2, '0')}s`;
+      } else if (minutes > 0) {
+        return `${String(minutes).padStart(2, '0')}m ${String(secs).padStart(2, '0')}s`;
+      } else {
+        return `${String(secs).padStart(2, '0')}s`;
+      }
+    },
+    [getRemainingSeconds],
+  );
 
-  const clearCooldown = useCallback((providerId: number) => {
-    clearCooldownMutation.mutate(providerId);
-  }, [clearCooldownMutation]);
+  const clearCooldown = useCallback(
+    (providerId: number) => {
+      clearCooldownMutation.mutate(providerId);
+    },
+    [clearCooldownMutation],
+  );
 
-  const setCooldown = useCallback((providerId: number, untilTime: string, clientType?: string) => {
-    setCooldownMutation.mutate({ providerId, untilTime, clientType });
-  }, [setCooldownMutation]);
+  const setCooldown = useCallback(
+    (providerId: number, untilTime: string, clientType?: string) => {
+      setCooldownMutation.mutate({ providerId, untilTime, clientType });
+    },
+    [setCooldownMutation],
+  );
 
   return (
     <CooldownsContext.Provider
@@ -196,7 +209,10 @@ export function useCooldownsContext() {
 }
 
 // Optional hook that doesn't throw when used outside provider
-export function useCooldownFromContext(providerId: number, clientType?: string): Cooldown | undefined {
+export function useCooldownFromContext(
+  providerId: number,
+  clientType?: string,
+): Cooldown | undefined {
   const context = useContext(CooldownsContext);
   return context?.getCooldownForProvider(providerId, clientType);
 }

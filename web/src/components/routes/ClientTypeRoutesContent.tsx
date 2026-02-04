@@ -334,8 +334,7 @@ function ClientTypeRoutesContentInner({
                     index={items.findIndex((i) => i.id === activeItem.id)}
                     clientType={clientType}
                     streamingCount={
-                      countsByProviderAndClient.get(`${activeItem.provider.id}:${clientType}`) ||
-                      0
+                      countsByProviderAndClient.get(`${activeItem.provider.id}:${clientType}`) || 0
                     }
                     stats={providerStats[activeItem.provider.id]}
                     isToggling={false}
@@ -380,7 +379,9 @@ function ClientTypeRoutesContentInner({
                       </div>
                       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
                         {typeProviders.map((provider) => {
-                          const isNative = (provider.supportedClientTypes || []).includes(clientType);
+                          const isNative = (provider.supportedClientTypes || []).includes(
+                            clientType,
+                          );
                           const providerColor = getProviderColor(provider.type as ProviderType);
                           return (
                             <Button

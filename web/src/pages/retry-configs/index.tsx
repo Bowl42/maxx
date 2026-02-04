@@ -110,7 +110,12 @@ export function RetryConfigsPage() {
                 {t('retryConfigs.discardChanges')}
               </Button>
             )}
-            <Button size="sm" onClick={handleSave} disabled={!hasChanges || isSaving} className="gap-2">
+            <Button
+              size="sm"
+              onClick={handleSave}
+              disabled={!hasChanges || isSaving}
+              className="gap-2"
+            >
               {isSaving ? (
                 <RefreshCw className="h-4 w-4 animate-spin" />
               ) : (

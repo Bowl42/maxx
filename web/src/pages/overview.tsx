@@ -19,13 +19,7 @@ import {
   Cpu,
   AlertTriangle,
 } from 'lucide-react';
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-  ActivityHeatmap,
-} from '@/components/ui';
+import { Card, CardContent, CardHeader, CardTitle, ActivityHeatmap } from '@/components/ui';
 import {
   ChartContainer,
   ChartTooltip,
@@ -49,12 +43,7 @@ import {
 import { useCooldowns } from '@/hooks/use-cooldowns';
 import { CooldownTimer } from '@/components/cooldown-timer';
 import { useStreamingRequests } from '@/hooks/use-streaming';
-import {
-  AreaChart,
-  Area,
-  XAxis,
-  YAxis,
-} from 'recharts';
+import { AreaChart, Area, XAxis, YAxis } from 'recharts';
 import { cn } from '@/lib/utils';
 
 // 格式化数字（K, M, B）
@@ -115,7 +104,7 @@ function TrendIndicator({ value, suffix = '%' }: { value: number; suffix?: strin
     <span
       className={cn(
         'flex items-center gap-1 text-xs',
-        isPositive ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'
+        isPositive ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400',
       )}
     >
       {isPositive ? <TrendingUp className="h-3 w-3" /> : <TrendingDown className="h-3 w-3" />}
@@ -158,13 +147,9 @@ function StatCard({
             <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
               {title}
             </p>
-            <p className="text-2xl font-bold text-foreground font-mono tracking-tight">
-              {value}
-            </p>
+            <p className="text-2xl font-bold text-foreground font-mono tracking-tight">{value}</p>
             <div className="flex items-center gap-2">
-              {subtitle && (
-                <span className="text-xs text-muted-foreground">{subtitle}</span>
-              )}
+              {subtitle && <span className="text-xs text-muted-foreground">{subtitle}</span>}
               {trend !== undefined && <TrendIndicator value={trend} />}
             </div>
           </div>
@@ -172,17 +157,19 @@ function StatCard({
             className={cn(
               'w-10 h-10 rounded-xl bg-muted flex items-center justify-center box-border border-2 border-transparent transition-shadow duration-300',
               showBadge && 'animate-pulse-soft',
-              iconClassName
+              iconClassName,
             )}
-            style={showBadge ? {
-              borderColor: badgeColor,
-              boxShadow: `0 0 10px ${badgeColor}60`,
-            } : undefined}
+            style={
+              showBadge
+                ? {
+                    borderColor: badgeColor,
+                    boxShadow: `0 0 10px ${badgeColor}60`,
+                  }
+                : undefined
+            }
           >
             {showBadge ? (
-              <span className="text-lg font-extrabold">
-                {badge > 99 ? '99+' : badge}
-              </span>
+              <span className="text-lg font-extrabold">{badge > 99 ? '99+' : badge}</span>
             ) : (
               <Icon className="h-5 w-5" />
             )}
@@ -205,7 +192,11 @@ export function OverviewPage() {
   // 数据 hooks
   const { data: summary } = useDashboardSummary();
   const { data: allTimeStats } = useAllTimeStats();
-  const { data: heatmapData, isLoading: heatmapLoading, timezone: heatmapTimezone } = useActivityHeatmap();
+  const {
+    data: heatmapData,
+    isLoading: heatmapLoading,
+    timezone: heatmapTimezone,
+  } = useActivityHeatmap();
   const { data: topModels, isLoading: modelsLoading } = useTopModels();
   const { data: trendData, isLoading: trendLoading } = use24HourTrend();
   const { data: firstUseInfo } = useFirstUseDate();
@@ -225,10 +216,7 @@ export function OverviewPage() {
   const providerDistribution = useMemo(() => {
     if (!providers || !providerStats) return [];
 
-    const totalRequests = Object.values(providerStats).reduce(
-      (acc, s) => acc + s.totalRequests,
-      0
-    );
+    const totalRequests = Object.values(providerStats).reduce((acc, s) => acc + s.totalRequests, 0);
 
     return providers
       .map((p) => {
@@ -279,12 +267,8 @@ export function OverviewPage() {
             <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-violet-500 to-indigo-600 flex items-center justify-center mx-auto mb-6 shadow-xl">
               <Zap size={36} className="text-white" />
             </div>
-            <h1 className="text-2xl font-bold text-foreground mb-4">
-              {t('dashboard.welcome')}
-            </h1>
-            <p className="text-muted-foreground mb-6">
-              {t('dashboard.welcomeDescription')}
-            </p>
+            <h1 className="text-2xl font-bold text-foreground mb-4">{t('dashboard.welcome')}</h1>
+            <p className="text-muted-foreground mb-6">{t('dashboard.welcomeDescription')}</p>
             <Link
               to="/providers"
               className="inline-flex items-center gap-2 bg-gradient-to-r from-violet-600 to-indigo-600 text-white px-6 py-2.5 rounded-lg hover:opacity-90 transition-opacity font-medium text-sm"
@@ -351,7 +335,7 @@ export function OverviewPage() {
                   ? 'text-emerald-600 dark:text-emerald-400'
                   : (summary?.todaySuccessRate || 0) >= 80
                     ? 'text-amber-600 dark:text-amber-400'
-                    : 'text-red-600 dark:text-red-400'
+                    : 'text-red-600 dark:text-red-400',
               )}
             />
           </div>
@@ -395,7 +379,9 @@ export function OverviewPage() {
                             formatter={(value, name) => {
                               const numValue = typeof value === 'number' ? value : 0;
                               return [
-                                name === 'requests' ? numValue.toLocaleString() : `$${numValue.toFixed(4)}`,
+                                name === 'requests'
+                                  ? numValue.toLocaleString()
+                                  : `$${numValue.toFixed(4)}`,
                                 name === 'requests' ? t('dashboard.requests') : t('dashboard.cost'),
                               ];
                             }}
@@ -485,7 +471,11 @@ export function OverviewPage() {
                     {t('common.loading')}
                   </div>
                 ) : (
-                  <ActivityHeatmap data={heatmapData || []} colorScheme="green" timezone={heatmapTimezone} />
+                  <ActivityHeatmap
+                    data={heatmapData || []}
+                    colorScheme="green"
+                    timezone={heatmapTimezone}
+                  />
                 )}
               </CardContent>
             </Card>
@@ -514,9 +504,7 @@ export function OverviewPage() {
                           <span className="text-sm font-bold text-muted-foreground flex-shrink-0">
                             {index + 1}
                           </span>
-                          <span className="text-sm font-medium truncate">
-                            {model.model}
-                          </span>
+                          <span className="text-sm font-medium truncate">{model.model}</span>
                         </div>
                         <div className="flex items-center gap-3 text-xs text-muted-foreground font-mono flex-shrink-0">
                           <span>{formatNumber(model.tokens)} tok</span>

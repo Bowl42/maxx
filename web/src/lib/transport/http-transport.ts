@@ -509,9 +509,7 @@ export class HttpTransport implements Transport {
   }
 
   async getCodexProviderUsage(providerId: number): Promise<CodexUsageResponse> {
-    const { data } = await axios.get<CodexUsageResponse>(
-      `/api/codex/provider/${providerId}/usage`,
-    );
+    const { data } = await axios.get<CodexUsageResponse>(`/api/codex/provider/${providerId}/usage`);
     return data;
   }
 
@@ -654,7 +652,10 @@ export class HttpTransport implements Transport {
     return data;
   }
 
-  async importBackup(backup: BackupFile, options?: BackupImportOptions): Promise<BackupImportResult> {
+  async importBackup(
+    backup: BackupFile,
+    options?: BackupImportOptions,
+  ): Promise<BackupImportResult> {
     const params = new URLSearchParams();
     if (options?.conflictStrategy) params.set('conflictStrategy', options.conflictStrategy);
     if (options?.dryRun) params.set('dryRun', 'true');

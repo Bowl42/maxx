@@ -97,44 +97,44 @@ export function useProxyRequestUpdates() {
             return true;
           };
 
-        queryClient.setQueryData<CursorPaginationResult<ProxyRequest>>(queryKey, (old) => {
-          if (!old || !old.items) return old;
-          const limit = typeof params?.limit === 'number' ? params.limit : undefined;
+          queryClient.setQueryData<CursorPaginationResult<ProxyRequest>>(queryKey, (old) => {
+            if (!old || !old.items) return old;
+            const limit = typeof params?.limit === 'number' ? params.limit : undefined;
 
-          const normalizePage = (items: ProxyRequest[]) => {
-            let nextItems = items;
-            let hasMore = old.hasMore;
+            const normalizePage = (items: ProxyRequest[]) => {
+              let nextItems = items;
+              let hasMore = old.hasMore;
 
-            if (typeof limit === 'number' && limit > 0 && nextItems.length > limit) {
-              nextItems = nextItems.slice(0, limit);
-              hasMore = true;
-            }
+              if (typeof limit === 'number' && limit > 0 && nextItems.length > limit) {
+                nextItems = nextItems.slice(0, limit);
+                hasMore = true;
+              }
 
-            const firstId = nextItems[0]?.id;
-            const lastId = nextItems[nextItems.length - 1]?.id;
+              const firstId = nextItems[0]?.id;
+              const lastId = nextItems[nextItems.length - 1]?.id;
 
-            return {
-              ...old,
-              items: nextItems,
-              hasMore,
-              firstId,
-              lastId,
+              return {
+                ...old,
+                items: nextItems,
+                hasMore,
+                firstId,
+                lastId,
+              };
             };
-          };
 
-          const index = old.items.findIndex((r) => r.id === updatedRequest.id);
-          if (index >= 0) {
-            // 已存在的请求：检查是否仍然匹配过滤条件
-            if (!matchesFilter(updatedRequest)) {
-              // 不再匹配过滤条件，从列表中移除
-              const newItems = old.items.filter((r) => r.id !== updatedRequest.id);
+            const index = old.items.findIndex((r) => r.id === updatedRequest.id);
+            if (index >= 0) {
+              // 已存在的请求：检查是否仍然匹配过滤条件
+              if (!matchesFilter(updatedRequest)) {
+                // 不再匹配过滤条件，从列表中移除
+                const newItems = old.items.filter((r) => r.id !== updatedRequest.id);
+                return normalizePage(newItems);
+              }
+              // 仍然匹配，更新
+              const newItems = [...old.items];
+              newItems[index] = updatedRequest;
               return normalizePage(newItems);
             }
-            // 仍然匹配，更新
-            const newItems = [...old.items];
-            newItems[index] = updatedRequest;
-            return normalizePage(newItems);
-          }
 
             // 新请求：检查是否匹配过滤条件
             if (!matchesFilter(updatedRequest)) {

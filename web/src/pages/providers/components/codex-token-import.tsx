@@ -209,7 +209,9 @@ export function CodexTokenImport() {
       }
     } catch (err) {
       setError(
-        err instanceof Error ? err.message : t('providers.codexTokenImport.errors.validationFailed'),
+        err instanceof Error
+          ? err.message
+          : t('providers.codexTokenImport.errors.validationFailed'),
       );
     } finally {
       setValidating(false);
@@ -392,7 +394,11 @@ export function CodexTokenImport() {
                   <div className="space-y-6">
                     <div className="text-center py-4 space-y-3">
                       {!popupClosed && (
-                        <Loader2 size={32} className="animate-spin mx-auto" style={{ color: CODEX_COLOR }} />
+                        <Loader2
+                          size={32}
+                          className="animate-spin mx-auto"
+                          style={{ color: CODEX_COLOR }}
+                        />
                       )}
                       <div>
                         <p className="text-sm font-medium text-foreground">

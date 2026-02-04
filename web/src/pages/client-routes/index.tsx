@@ -12,14 +12,7 @@ import { PageHeader } from '@/components/layout/page-header';
 import type { ClientType } from '@/lib/transport';
 import { ClientTypeRoutesContent } from '@/components/routes/ClientTypeRoutesContent';
 import { Input } from '@/components/ui/input';
-import {
-  Tabs,
-  TabsList,
-  TabsTrigger,
-  TabsContent,
-  Switch,
-  Button,
-} from '@/components/ui';
+import { Tabs, TabsList, TabsTrigger, TabsContent, Switch, Button } from '@/components/ui';
 import { useProjects, useUpdateProject, useRoutes, useProviders, routeKeys } from '@/hooks/queries';
 import { useTransport } from '@/lib/transport/context';
 import { useQueryClient } from '@tanstack/react-query';
@@ -42,9 +35,8 @@ export function ClientRoutesPage() {
 
   // Check if there are any Antigravity/Codex routes in the current scope (Global routes, projectID=0)
   const { hasAntigravityRoutes, hasCodexRoutes } = useMemo(() => {
-    const globalRoutes = allRoutes?.filter(
-      (r) => r.clientType === activeClientType && r.projectID === 0,
-    ) || [];
+    const globalRoutes =
+      allRoutes?.filter((r) => r.clientType === activeClientType && r.projectID === 0) || [];
 
     let hasAntigravity = false;
     let hasCodex = false;
@@ -125,7 +117,11 @@ export function ClientRoutesPage() {
       />
 
       {/* Tabs for Global / Projects */}
-      <Tabs value={selectedProjectId} onValueChange={setSelectedProjectId} className="flex-1 min-h-0 flex flex-col">
+      <Tabs
+        value={selectedProjectId}
+        onValueChange={setSelectedProjectId}
+        className="flex-1 min-h-0 flex flex-col"
+      >
         {/* Only show tab bar when there are projects */}
         {sortedProjects && sortedProjects.length > 0 && (
           <div className="px-6 py-3 border-b border-border bg-card">
@@ -210,10 +206,16 @@ export function ClientRoutesPage() {
 
         {/* Project Tab Contents */}
         {sortedProjects?.map((project) => {
-          const isCustomRoutesEnabled = (project.enabledCustomRoutes ?? []).includes(activeClientType);
+          const isCustomRoutesEnabled = (project.enabledCustomRoutes ?? []).includes(
+            activeClientType,
+          );
 
           return (
-            <TabsContent key={project.id} value={String(project.id)} className="flex-1 min-h-0 overflow-hidden m-0 flex flex-col">
+            <TabsContent
+              key={project.id}
+              value={String(project.id)}
+              className="flex-1 min-h-0 overflow-hidden m-0 flex flex-col"
+            >
               {/* Custom Routes Toggle Bar */}
               <div className="min-h-12 px-6 py-2 border-b border-border bg-card flex items-center justify-between gap-4 shrink-0">
                 <div className="flex flex-1 min-w-0 flex-wrap items-center gap-x-3 gap-y-1">

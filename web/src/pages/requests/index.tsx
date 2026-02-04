@@ -98,7 +98,10 @@ export function RequestsPage() {
     providerId: selectedProviderId,
     status: selectedStatus,
   });
-  const { data: totalCount, refetch: refetchCount } = useProxyRequestsCount(selectedProviderId, selectedStatus);
+  const { data: totalCount, refetch: refetchCount } = useProxyRequestsCount(
+    selectedProviderId,
+    selectedStatus,
+  );
   const { data: providers = [] } = useProviders();
   const { data: projects = [] } = useProjects();
   const { data: apiTokens = [] } = useAPITokens();
@@ -227,14 +230,9 @@ export function RequestsPage() {
     ? Math.max(0, Math.floor(scrollTop / rowHeight) - OVERSCAN)
     : 0;
   const endIndex = shouldVirtualize
-    ? Math.min(
-        totalRows,
-        Math.ceil((scrollTop + viewportHeight) / rowHeight) + OVERSCAN,
-      )
+    ? Math.min(totalRows, Math.ceil((scrollTop + viewportHeight) / rowHeight) + OVERSCAN)
     : totalRows;
-  const visibleRequests = shouldVirtualize
-    ? requests.slice(startIndex, endIndex)
-    : requests;
+  const visibleRequests = shouldVirtualize ? requests.slice(startIndex, endIndex) : requests;
   const paddingTop = shouldVirtualize ? startIndex * rowHeight : 0;
   const paddingBottom = shouldVirtualize ? (totalRows - endIndex) * rowHeight : 0;
 
@@ -285,10 +283,7 @@ export function RequestsPage() {
           />
         )}
         {/* Status Filter */}
-        <StatusFilter
-          selectedStatus={selectedStatus}
-          onSelect={handleStatusFilterChange}
-        />
+        <StatusFilter selectedStatus={selectedStatus} onSelect={handleStatusFilterChange} />
         <button
           onClick={handleRefresh}
           disabled={isLoading}
@@ -332,9 +327,13 @@ export function RequestsPage() {
                   {apiTokenAuthEnabled && (
                     <TableHead className="w-[100px] font-medium">{t('requests.token')}</TableHead>
                   )}
-                  <TableHead className="min-w-[100px] font-medium">{t('requests.provider')}</TableHead>
+                  <TableHead className="min-w-[100px] font-medium">
+                    {t('requests.provider')}
+                  </TableHead>
                   <TableHead className="w-[100px] font-medium">{t('common.status')}</TableHead>
-                  <TableHead className="w-[60px] text-center font-medium">{t('requests.code')}</TableHead>
+                  <TableHead className="w-[60px] text-center font-medium">
+                    {t('requests.code')}
+                  </TableHead>
                   <TableHead
                     className="w-[60px] text-center font-medium"
                     title={t('requests.ttft')}
@@ -442,9 +441,7 @@ export function RequestsPage() {
             <ChevronLeft size={18} />
           </button>
           <div className="flex items-center justify-center min-w-[48px] h-8 px-3 rounded-lg bg-muted/50 border border-border/50">
-            <span className="text-sm font-bold text-foreground tabular-nums">
-              {pageIndex + 1}
-            </span>
+            <span className="text-sm font-bold text-foreground tabular-nums">{pageIndex + 1}</span>
             <span className="text-sm text-muted-foreground mx-1">/</span>
             <span className="text-sm text-muted-foreground tabular-nums">
               {Math.ceil(total / PAGE_SIZE) || 1}
@@ -704,17 +701,15 @@ function LogRow({
         !isRecent && !isFailed && !isPending && !isPendingBinding && 'hover:bg-accent/50',
 
         // Failed state - Red background only (testing without border)
-        isFailed && cn(
-          index % 2 === 1 ? 'bg-red-500/25' : 'bg-red-500/20',
-          'hover:bg-red-500/40'
-        ),
+        isFailed && cn(index % 2 === 1 ? 'bg-red-500/25' : 'bg-red-500/20', 'hover:bg-red-500/40'),
 
         // Pending binding state - Amber background with left border
-        isPendingBinding && cn(
-          index % 2 === 1 ? 'bg-amber-500/15' : 'bg-amber-500/10',
-          'hover:bg-amber-500/25',
-          'border-l-2 border-l-amber-500'
-        ),
+        isPendingBinding &&
+          cn(
+            index % 2 === 1 ? 'bg-amber-500/15' : 'bg-amber-500/10',
+            'hover:bg-amber-500/25',
+            'border-l-2 border-l-amber-500',
+          ),
 
         // Active/Pending state - Blue left border + Marquee animation
         isPending && !isPendingBinding && 'animate-marquee-row',
@@ -728,7 +723,9 @@ function LogRow({
         {request.endTime && new Date(request.endTime).getTime() > 0 ? (
           <span className="text-foreground font-medium">{formatTime(request.endTime)}</span>
         ) : (
-          <span className="text-muted-foreground">{formatTime(request.startTime || request.createdAt)}</span>
+          <span className="text-muted-foreground">
+            {formatTime(request.startTime || request.createdAt)}
+          </span>
         )}
       </TableCell>
 
@@ -745,10 +742,7 @@ function LogRow({
       {/* Model */}
       <TableCell className="min-w-[250px] px-2 py-1">
         <div className="flex items-center gap-2">
-          <span
-            className="text-sm text-foreground font-medium"
-            title={request.requestModel}
-          >
+          <span className="text-sm text-foreground font-medium" title={request.requestModel}>
             {request.requestModel || '-'}
           </span>
           {request.responseModel && request.responseModel !== request.requestModel && (
@@ -785,10 +779,7 @@ function LogRow({
 
       {/* Provider */}
       <TableCell className="min-w-[100px] px-2 py-1">
-        <span
-          className="text-sm text-muted-foreground"
-          title={providerName}
-        >
+        <span className="text-sm text-muted-foreground" title={providerName}>
           {providerName || '-'}
         </span>
       </TableCell>
@@ -821,9 +812,7 @@ function LogRow({
       {/* TTFT (Time To First Token) */}
       <TableCell className="w-[60px] px-2 py-1 text-center">
         <span className="text-xs font-mono text-muted-foreground">
-          {request.ttft && request.ttft > 0
-            ? `${(request.ttft / 1_000_000_000).toFixed(2)}s`
-            : '-'}
+          {request.ttft && request.ttft > 0 ? `${(request.ttft / 1_000_000_000).toFixed(2)}s` : '-'}
         </span>
       </TableCell>
 
@@ -935,9 +924,7 @@ function ProviderFilter({
         <SelectValue>{displayText}</SelectValue>
       </SelectTrigger>
       <SelectContent>
-        <SelectItem value="all">
-          {t('requests.allProviders')}
-        </SelectItem>
+        <SelectItem value="all">{t('requests.allProviders')}</SelectItem>
         {PROVIDER_TYPE_ORDER.map((typeKey) => {
           const typeProviders = groupedProviders[typeKey];
           if (typeProviders.length === 0) return null;
@@ -1012,9 +999,7 @@ function StatusFilter({
         <SelectValue>{displayText}</SelectValue>
       </SelectTrigger>
       <SelectContent>
-        <SelectItem value="all">
-          {t('requests.allStatuses')}
-        </SelectItem>
+        <SelectItem value="all">{t('requests.allStatuses')}</SelectItem>
         {statuses.map((status) => (
           <SelectItem key={status} value={status}>
             {getStatusLabel(status)}

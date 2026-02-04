@@ -214,9 +214,7 @@ function ProviderSupportModels({
       </div>
 
       <div className="bg-card border border-border rounded-xl p-4">
-        <p className="text-xs text-muted-foreground mb-4">
-          {t('providers.supportModels.desc')}
-        </p>
+        <p className="text-xs text-muted-foreground mb-4">{t('providers.supportModels.desc')}</p>
 
         {supportModels.length > 0 && (
           <div className="flex flex-wrap gap-2 mb-4">
@@ -240,9 +238,7 @@ function ProviderSupportModels({
 
         {supportModels.length === 0 && (
           <div className="text-center py-6 mb-4">
-            <p className="text-muted-foreground text-sm">
-              {t('providers.supportModels.empty')}
-            </p>
+            <p className="text-muted-foreground text-sm">{t('providers.supportModels.empty')}</p>
           </div>
         )}
 
@@ -358,7 +354,8 @@ export function ProviderEditFlow({ provider, onClose }: ProviderEditFlowProps) {
             baseURL: formData.baseURL,
             apiKey: formData.apiKey || provider.config?.custom?.apiKey || '',
             clientBaseURL: Object.keys(clientBaseURL).length > 0 ? clientBaseURL : undefined,
-            clientMultiplier: Object.keys(clientMultiplier).length > 0 ? clientMultiplier : undefined,
+            clientMultiplier:
+              Object.keys(clientMultiplier).length > 0 ? clientMultiplier : undefined,
             cloak:
               formData.cloakMode !== 'auto' ||
               formData.cloakStrictMode ||

@@ -7,7 +7,13 @@
 import { useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { getTransport } from '@/lib/transport';
-import type { DashboardData, DashboardHeatmapPoint as APIDashboardHeatmapPoint, DashboardModelStats, DashboardTrendPoint, DashboardProviderStats as APIDashboardProviderStats } from '@/lib/transport';
+import type {
+  DashboardData,
+  DashboardHeatmapPoint as APIDashboardHeatmapPoint,
+  DashboardModelStats,
+  DashboardTrendPoint,
+  DashboardProviderStats as APIDashboardProviderStats,
+} from '@/lib/transport';
 
 // ===== 类型定义 =====
 
@@ -240,21 +246,26 @@ export function useDashboardProviderStats() {
     if (!dashboardData?.providerStats) return {};
 
     // 转换为与旧 API 兼容的格式
-    const result: Record<number, {
-      totalRequests: number;
-      successRate: number;
-      rpm?: number;
-      tpm?: number;
-    }> = {};
+    const result: Record<
+      number,
+      {
+        totalRequests: number;
+        successRate: number;
+        rpm?: number;
+        tpm?: number;
+      }
+    > = {};
 
-    (Object.entries(dashboardData.providerStats) as [string, APIDashboardProviderStats][]).forEach(([id, stats]) => {
-      result[Number(id)] = {
-        totalRequests: stats.requests,
-        successRate: stats.successRate,
-        rpm: stats.rpm,
-        tpm: stats.tpm,
-      };
-    });
+    (Object.entries(dashboardData.providerStats) as [string, APIDashboardProviderStats][]).forEach(
+      ([id, stats]) => {
+        result[Number(id)] = {
+          totalRequests: stats.requests,
+          successRate: stats.successRate,
+          rpm: stats.rpm,
+          tpm: stats.tpm,
+        };
+      },
+    );
 
     return result;
   }, [dashboardData]);

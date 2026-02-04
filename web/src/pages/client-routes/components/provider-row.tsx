@@ -305,9 +305,12 @@ export function ProviderRowContent({
             : 'bg-muted/40 border-dashed border-border opacity-70 grayscale-[0.5] hover:opacity-100 hover:grayscale-0',
       )}
       style={{
-        borderColor: !effectiveIsInCooldown && enabled && streamingCount > 0 ? `${color}40` : undefined,
+        borderColor:
+          !effectiveIsInCooldown && enabled && streamingCount > 0 ? `${color}40` : undefined,
         boxShadow:
-          !effectiveIsInCooldown && enabled && streamingCount > 0 ? `0 0 20px ${color}15` : undefined,
+          !effectiveIsInCooldown && enabled && streamingCount > 0
+            ? `0 0 20px ${color}15`
+            : undefined,
       }}
       {...dragHandleListeners}
     >
@@ -357,11 +360,7 @@ export function ProviderRowContent({
           <span
             className={cn(
               'text-xl font-black transition-all',
-              effectiveIsInCooldown
-                ? 'opacity-0'
-                : enabled
-                  ? 'scale-100'
-                  : 'opacity-30 grayscale',
+              effectiveIsInCooldown ? 'opacity-0' : enabled ? 'scale-100' : 'opacity-30 grayscale',
             )}
           >
             {provider.name.charAt(0).toUpperCase()}
