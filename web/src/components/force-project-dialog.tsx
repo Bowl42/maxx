@@ -115,7 +115,13 @@ interface ProjectSelectorProps {
   disabled?: boolean;
 }
 
-function ProjectSelector({ projects, isLoading, selectedProjectId, onSelect, disabled }: ProjectSelectorProps) {
+function ProjectSelector({
+  projects,
+  isLoading,
+  selectedProjectId,
+  onSelect,
+  disabled,
+}: ProjectSelectorProps) {
   const { t } = useTranslation();
 
   if (isLoading) {

@@ -271,7 +271,9 @@ export function KiroTokenImport() {
                     <div className="text-sm text-muted-foreground">
                       {t('providers.kiroTokenImport.readyToConnectAs')}{' '}
                       <span className="font-medium text-foreground">
-                        {validationResult.email || email || t('providers.kiroTokenImport.defaultAccountName')}
+                        {validationResult.email ||
+                          email ||
+                          t('providers.kiroTokenImport.defaultAccountName')}
                       </span>
                     </div>
 
@@ -294,8 +296,8 @@ export function KiroTokenImport() {
                       {validationResult.usageLimit !== undefined && (
                         <div className="flex items-center gap-1.5 px-2 py-1 rounded bg-card border border-border/50">
                           <span className="text-xs text-muted-foreground">
-                            {t('providers.kiroTokenImport.usage')}: {validationResult.currentUsage ?? 0} /{' '}
-                            {validationResult.usageLimit}
+                            {t('providers.kiroTokenImport.usage')}:{' '}
+                            {validationResult.currentUsage ?? 0} / {validationResult.usageLimit}
                           </span>
                         </div>
                       )}

@@ -72,34 +72,40 @@ export function useCooldowns() {
 
   // Helper to get cooldown for a specific provider (excludes expired cooldowns)
   // Use useCallback with refreshKey to ensure new reference when cooldowns expire
-  const getCooldownForProvider = useCallback((providerId: number, clientType?: string) => {
-    return cooldowns.find((cd: Cooldown) => {
-      // Check if cooldown matches provider and client type
-      const matchesProvider = cd.providerID === providerId;
-      const matchesClientType =
-        cd.clientType === '' ||
-        cd.clientType === 'all' ||
-        (clientType && cd.clientType === clientType);
+  const getCooldownForProvider = useCallback(
+    (providerId: number, clientType?: string) => {
+      return cooldowns.find((cd: Cooldown) => {
+        // Check if cooldown matches provider and client type
+        const matchesProvider = cd.providerID === providerId;
+        const matchesClientType =
+          cd.clientType === '' ||
+          cd.clientType === 'all' ||
+          (clientType && cd.clientType === clientType);
 
-      if (!matchesProvider || !matchesClientType) {
-        return false;
-      }
+        if (!matchesProvider || !matchesClientType) {
+          return false;
+        }
 
-      // Check if cooldown is still active (not expired)
-      if (!cd.until) {
-        return false;
-      }
-      const until = new Date(cd.until).getTime();
-      const now = Date.now();
-      return until > now;
-    });
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [cooldowns, refreshKey]);
+        // Check if cooldown is still active (not expired)
+        if (!cd.until) {
+          return false;
+        }
+        const until = new Date(cd.until).getTime();
+        const now = Date.now();
+        return until > now;
+      });
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [cooldowns, refreshKey],
+  );
 
   // Helper to check if provider is in cooldown
-  const isProviderInCooldown = useCallback((providerId: number, clientType?: string) => {
-    return !!getCooldownForProvider(providerId, clientType);
-  }, [getCooldownForProvider]);
+  const isProviderInCooldown = useCallback(
+    (providerId: number, clientType?: string) => {
+      return !!getCooldownForProvider(providerId, clientType);
+    },
+    [getCooldownForProvider],
+  );
 
   // Helper to get remaining time as seconds
   const getRemainingSeconds = useCallback((cooldown: Cooldown) => {
@@ -112,28 +118,34 @@ export function useCooldowns() {
   }, []);
 
   // Helper to format remaining time
-  const formatRemaining = useCallback((cooldown: Cooldown) => {
-    const seconds = getRemainingSeconds(cooldown);
+  const formatRemaining = useCallback(
+    (cooldown: Cooldown) => {
+      const seconds = getRemainingSeconds(cooldown);
 
-    if (Number.isNaN(seconds) || seconds === 0) return 'Expired';
+      if (Number.isNaN(seconds) || seconds === 0) return 'Expired';
 
-    const hours = Math.floor(seconds / 3600);
-    const minutes = Math.floor((seconds % 3600) / 60);
-    const secs = seconds % 60;
+      const hours = Math.floor(seconds / 3600);
+      const minutes = Math.floor((seconds % 3600) / 60);
+      const secs = seconds % 60;
 
-    if (hours > 0) {
-      return `${String(hours).padStart(2, '0')}h ${String(minutes).padStart(2, '0')}m ${String(secs).padStart(2, '0')}s`;
-    } else if (minutes > 0) {
-      return `${String(minutes).padStart(2, '0')}m ${String(secs).padStart(2, '0')}s`;
-    } else {
-      return `${String(secs).padStart(2, '0')}s`;
-    }
-  }, [getRemainingSeconds]);
+      if (hours > 0) {
+        return `${String(hours).padStart(2, '0')}h ${String(minutes).padStart(2, '0')}m ${String(secs).padStart(2, '0')}s`;
+      } else if (minutes > 0) {
+        return `${String(minutes).padStart(2, '0')}m ${String(secs).padStart(2, '0')}s`;
+      } else {
+        return `${String(secs).padStart(2, '0')}s`;
+      }
+    },
+    [getRemainingSeconds],
+  );
 
   // Helper to clear cooldown
-  const clearCooldown = useCallback((providerId: number) => {
-    clearCooldownMutation.mutate(providerId);
-  }, [clearCooldownMutation]);
+  const clearCooldown = useCallback(
+    (providerId: number) => {
+      clearCooldownMutation.mutate(providerId);
+    },
+    [clearCooldownMutation],
+  );
 
   return {
     cooldowns,

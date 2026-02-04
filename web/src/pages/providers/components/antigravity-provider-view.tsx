@@ -381,7 +381,11 @@ export function AntigravityProviderView({
                       className="p-1.5 rounded-lg hover:bg-accent text-muted-foreground hover:text-foreground transition-colors"
                       title={t('common.copy')}
                     >
-                      {tokenCopied ? <Check size={16} className="text-green-500" /> : <Copy size={16} />}
+                      {tokenCopied ? (
+                        <Check size={16} className="text-green-500" />
+                      ) : (
+                        <Copy size={16} />
+                      )}
                     </button>
                   </div>
                 </div>
@@ -392,7 +396,9 @@ export function AntigravityProviderView({
           {/* Quota Section */}
           <div>
             <div className="flex items-center justify-between mb-4 border-b border-border pb-2">
-              <h4 className="text-lg font-semibold text-foreground">{t('providers.modelQuotas')}</h4>
+              <h4 className="text-lg font-semibold text-foreground">
+                {t('providers.modelQuotas')}
+              </h4>
               <button
                 onClick={() => fetchQuota(true)}
                 disabled={loading}
@@ -416,9 +422,7 @@ export function AntigravityProviderView({
                 </div>
                 <div>
                   <h5 className="font-semibold text-error">{t('providers.accessForbidden')}</h5>
-                  <p className="text-sm text-error/80">
-                    {t('providers.accountRestricted')}
-                  </p>
+                  <p className="text-sm text-error/80">{t('providers.accountRestricted')}</p>
                 </div>
               </div>
             ) : quota?.models && quota.models.length > 0 ? (
@@ -447,7 +451,9 @@ export function AntigravityProviderView({
 
             {quota?.lastUpdated && (
               <p className="text-xs text-muted-foreground mt-4 text-right">
-                {t('providers.lastUpdated', { time: new Date(quota.lastUpdated * 1000).toLocaleString() })}
+                {t('providers.lastUpdated', {
+                  time: new Date(quota.lastUpdated * 1000).toLocaleString(),
+                })}
               </p>
             )}
           </div>

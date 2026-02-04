@@ -114,7 +114,9 @@ export function NavProxyStatus() {
             size={14}
             className={cn(
               'text-muted-foreground/50 transition-all duration-200',
-              copied ? 'scale-0 opacity-0' : 'scale-100 opacity-100 group-hover/proxy:text-muted-foreground',
+              copied
+                ? 'scale-0 opacity-0'
+                : 'scale-100 opacity-100 group-hover/proxy:text-muted-foreground',
             )}
           />
           <Check

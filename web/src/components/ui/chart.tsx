@@ -2,7 +2,10 @@ import * as React from 'react';
 import * as RechartsPrimitive from 'recharts';
 import type { TooltipContentProps } from 'recharts';
 import type { NameType, ValueType } from 'recharts/types/component/DefaultTooltipContent';
-import type { LegendPayload, Props as DefaultLegendContentProps } from 'recharts/types/component/DefaultLegendContent';
+import type {
+  LegendPayload,
+  Props as DefaultLegendContentProps,
+} from 'recharts/types/component/DefaultLegendContent';
 
 import { cn } from '@/lib/utils';
 

@@ -16,8 +16,7 @@ interface ProviderCardProps {
 export function AntigravityProviderCard({ provider, onClick, streamingCount }: ProviderCardProps) {
   const { t } = useTranslation();
   const email = provider.config?.antigravity?.email || t('provider.unknown');
-  const { getCooldownForProvider, clearCooldown, isClearingCooldown } =
-    useCooldowns();
+  const { getCooldownForProvider, clearCooldown, isClearingCooldown } = useCooldowns();
   const cooldown = getCooldownForProvider(provider.id);
 
   const handleClearCooldown = (e: React.MouseEvent) => {
@@ -109,8 +108,7 @@ export function AntigravityProviderCard({ provider, onClick, streamingCount }: P
 
 export function CustomProviderCard({ provider, onClick, streamingCount }: ProviderCardProps) {
   const { t } = useTranslation();
-  const { getCooldownForProvider, clearCooldown, isClearingCooldown } =
-    useCooldowns();
+  const { getCooldownForProvider, clearCooldown, isClearingCooldown } = useCooldowns();
   const cooldown = getCooldownForProvider(provider.id);
 
   const getDisplayUrl = () => {

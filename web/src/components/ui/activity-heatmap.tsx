@@ -47,11 +47,7 @@ const colorSchemes = {
   },
 };
 
-function getColorLevel(
-  count: number,
-  maxCount: number,
-  scheme: keyof typeof colorSchemes
-): string {
+function getColorLevel(count: number, maxCount: number, scheme: keyof typeof colorSchemes): string {
   const colors = colorSchemes[scheme];
   if (count === 0) return colors.empty;
 
@@ -129,7 +125,7 @@ export function ActivityHeatmap({
     // 这样无论数据从何时开始，都能填满显示区域
     const weeksToShow = maxWeeks || 53;
     const startDate = new Date(today);
-    startDate.setDate(startDate.getDate() - (weeksToShow * 7));
+    startDate.setDate(startDate.getDate() - weeksToShow * 7);
 
     // 调整到周日开始
     const adjustedStart = new Date(startDate);
@@ -169,11 +165,7 @@ export function ActivityHeatmap({
   }, [dataMap, maxWeeks, timezone]);
 
   if (data.length === 0) {
-    return (
-      <div className={cn('text-sm text-muted-foreground', className)}>
-        暂无活动数据
-      </div>
-    );
+    return <div className={cn('text-sm text-muted-foreground', className)}>暂无活动数据</div>;
   }
 
   return (
@@ -195,18 +187,16 @@ export function ActivityHeatmap({
                     <div
                       className={cn(
                         'w-3 h-3 rounded-sm cursor-default transition-colors',
-                        getColorLevel(day.count, maxCount, colorScheme)
+                        getColorLevel(day.count, maxCount, colorScheme),
                       )}
                     />
                   </TooltipTrigger>
                   <TooltipContent side="top" className="text-xs">
                     <p className="font-medium">{formatDate(day.date)}</p>
-                    <p className="text-muted-foreground">
-                      {day.count.toLocaleString()} 请求
-                    </p>
+                    <p className="text-muted-foreground">{day.count.toLocaleString()} 请求</p>
                   </TooltipContent>
                 </Tooltip>
-              )
+              ),
             )}
           </div>
         ))}
@@ -221,7 +211,7 @@ export function ActivityHeatmap({
               key={level}
               className={cn(
                 'w-3 h-3 rounded-sm',
-                colorSchemes[colorScheme][level as keyof (typeof colorSchemes)['green']]
+                colorSchemes[colorScheme][level as keyof (typeof colorSchemes)['green']],
               )}
             />
           ))}

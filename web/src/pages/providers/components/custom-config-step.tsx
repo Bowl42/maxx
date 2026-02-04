@@ -61,7 +61,8 @@ export function CustomConfigStep() {
             baseURL: formData.baseURL,
             apiKey: formData.apiKey,
             clientBaseURL: Object.keys(clientBaseURL).length > 0 ? clientBaseURL : undefined,
-            clientMultiplier: Object.keys(clientMultiplier).length > 0 ? clientMultiplier : undefined,
+            clientMultiplier:
+              Object.keys(clientMultiplier).length > 0 ? clientMultiplier : undefined,
             cloak:
               formData.cloakMode !== 'auto' ||
               formData.cloakStrictMode ||

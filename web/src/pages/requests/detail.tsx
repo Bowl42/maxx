@@ -52,10 +52,12 @@ export function RequestDetailPage() {
   const forceProjectBinding = settings?.force_project_binding === 'true';
 
   // Check if request needs project binding
-  const needsProjectBinding = request && (
-    request.status === 'REJECTED' ||
-    (request.status === 'PENDING' && forceProjectBinding && (!request.projectID || request.projectID === 0))
-  );
+  const needsProjectBinding =
+    request &&
+    (request.status === 'REJECTED' ||
+      (request.status === 'PENDING' &&
+        forceProjectBinding &&
+        (!request.projectID || request.projectID === 0)));
 
   // Recalculate cost mutation
   const recalculateMutation = useMutation({
@@ -70,24 +72,27 @@ export function RequestDetailPage() {
   }, [recalculateMutation]);
 
   // Handle project binding - directly bind when project is selected
-  const handleBindProject = useCallback(async (projectId: number) => {
-    if (!request || projectId === 0) return;
+  const handleBindProject = useCallback(
+    async (projectId: number) => {
+      if (!request || projectId === 0) return;
 
-    setSelectedProjectId(projectId);
-    try {
-      await updateSessionProject.mutateAsync({
-        sessionID: request.sessionID,
-        projectID: projectId,
-      });
-      setBindSuccess(true);
-      // Also refresh the request data
-      queryClient.invalidateQueries({ queryKey: requestKeys.detail(Number(id)) });
-      setTimeout(() => setBindSuccess(false), 3000);
-    } catch (error) {
-      console.error('Failed to bind project:', error);
-      setSelectedProjectId(0);
-    }
-  }, [request, updateSessionProject, queryClient, id]);
+      setSelectedProjectId(projectId);
+      try {
+        await updateSessionProject.mutateAsync({
+          sessionID: request.sessionID,
+          projectID: projectId,
+        });
+        setBindSuccess(true);
+        // Also refresh the request data
+        queryClient.invalidateQueries({ queryKey: requestKeys.detail(Number(id)) });
+        setTimeout(() => setBindSuccess(false), 3000);
+      } catch (error) {
+        console.error('Failed to bind project:', error);
+        setSelectedProjectId(0);
+      }
+    },
+    [request, updateSessionProject, queryClient, id],
+  );
 
   useProxyRequestUpdates();
 
@@ -165,9 +170,7 @@ export function RequestDetailPage() {
           <AlertCircle className="h-12 w-12 text-red-400" />
         </div>
         <h3 className="text-lg font-semibold text-foreground">{t('requests.requestNotFound')}</h3>
-        <p className="text-sm text-muted-foreground">
-          {t('requests.requestNotFoundDesc')}
-        </p>
+        <p className="text-sm text-muted-foreground">{t('requests.requestNotFoundDesc')}</p>
       </div>
     );
   }
@@ -187,9 +190,7 @@ export function RequestDetailPage() {
         <div className="shrink-0 bg-red-400/10 border-b border-red-400/20 px-6 py-3 flex items-start gap-3">
           <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-red-400" />
           <div className="flex-1">
-            <h4 className="text-sm font-medium text-red-400 mb-1">
-              {t('requests.requestFailed')}
-            </h4>
+            <h4 className="text-sm font-medium text-red-400 mb-1">{t('requests.requestFailed')}</h4>
             <pre className="whitespace-pre-wrap wrap-break-words font-mono text-xs text-red-400/90 max-h-24 overflow-auto">
               {request.error}
             </pre>
@@ -216,7 +217,8 @@ export function RequestDetailPage() {
                     className={cn(
                       'flex items-center gap-2 px-4 py-2 rounded-xl border-2 text-sm font-bold transition-all',
                       'hover:scale-[1.02] active:scale-[0.98]',
-                      updateSessionProject.isPending && 'opacity-50 cursor-not-allowed hover:scale-100',
+                      updateSessionProject.isPending &&
+                        'opacity-50 cursor-not-allowed hover:scale-100',
                       selectedProjectId === project.id && updateSessionProject.isPending
                         ? 'border-amber-500 bg-amber-500 text-white'
                         : bindSuccess && selectedProjectId === project.id

@@ -2,7 +2,13 @@ import { Activity, Mail, Globe } from 'lucide-react';
 import { ClientIcon } from '@/components/icons/client-icons';
 import { StreamingBadge } from '@/components/ui/streaming-badge';
 import { MarqueeBackground } from '@/components/ui/marquee-background';
-import type { Provider, ProviderStats, AntigravityQuotaData, KiroQuotaData, CodexQuotaData } from '@/lib/transport';
+import type {
+  Provider,
+  ProviderStats,
+  AntigravityQuotaData,
+  KiroQuotaData,
+  CodexQuotaData,
+} from '@/lib/transport';
 import { getProviderTypeConfig } from '../types';
 import { cn } from '@/lib/utils';
 import { useAntigravityQuotaFromContext } from '@/contexts/antigravity-quotas-context';
@@ -235,14 +241,24 @@ export function ProviderRow({ provider, stats, streamingCount, onClick }: Provid
       {/* Streaming Badge - 右上角 */}
       {streamingCount > 0 && (
         <div className="absolute top-0 right-0 z-20">
-          <StreamingBadge count={streamingCount} color={color} variant="corner" className="rounded-tr-xl rounded-bl-lg" />
+          <StreamingBadge
+            count={streamingCount}
+            color={color}
+            variant="corner"
+            className="rounded-tr-xl rounded-bl-lg"
+          />
         </div>
       )}
 
       {/* Supported Clients - 左侧一排重叠居中 */}
       <div className="relative z-10 flex shrink-0 items-center justify-center w-[80px]">
         {provider.supportedClientTypes?.length > 0 ? (
-          <div className="relative flex items-center h-7" style={{ width: `${28 + (Math.min(provider.supportedClientTypes.length, 4) - 1) * 18}px` }}>
+          <div
+            className="relative flex items-center h-7"
+            style={{
+              width: `${28 + (Math.min(provider.supportedClientTypes.length, 4) - 1) * 18}px`,
+            }}
+          >
             {provider.supportedClientTypes.slice(0, 4).map((ct, index) => (
               <div
                 key={ct}
@@ -517,13 +533,13 @@ export function ProviderRow({ provider, stats, streamingCount, onClick }: Provid
             </div>
           </>
         ) : (
-            <div className="px-6 py-2 flex items-center gap-2 text-muted-foreground/30">
-              <Activity size={12} />
-              <span className="text-[10px] font-bold uppercase tracking-widest">
-                {t('common.noActivity')}
-              </span>
-            </div>
-          )}
+          <div className="px-6 py-2 flex items-center gap-2 text-muted-foreground/30">
+            <Activity size={12} />
+            <span className="text-[10px] font-bold uppercase tracking-widest">
+              {t('common.noActivity')}
+            </span>
+          </div>
+        )}
       </div>
     </div>
   );

@@ -127,9 +127,7 @@ export function ModelMappingEditor({
       </div>
 
       {entries.length === 0 && (
-        <p className="text-xs text-muted-foreground">
-          {t('modelMapping.emptyHint')}
-        </p>
+        <p className="text-xs text-muted-foreground">{t('modelMapping.emptyHint')}</p>
       )}
     </div>
   );

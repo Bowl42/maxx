@@ -186,7 +186,7 @@ export const THEME_REGISTRY: Record<Theme, ThemeMetadata> = {
   tiffany: {
     id: 'tiffany',
     name: 'Tiffany',
-    description: 'Elegant robin\'s egg blue',
+    description: "Elegant robin's egg blue",
     baseMode: 'light',
     category: 'luxury',
     brandInspiration: 'Tiffany & Co.',
@@ -248,14 +248,14 @@ export function getThemeBaseMode(theme: Theme): 'light' | 'dark' {
  * Get all luxury themes
  */
 export function getLuxuryThemes(): ThemeMetadata[] {
-  return Object.values(THEME_REGISTRY).filter(t => t.category === 'luxury');
+  return Object.values(THEME_REGISTRY).filter((t) => t.category === 'luxury');
 }
 
 /**
  * Get all default themes
  */
 export function getDefaultThemes(): ThemeMetadata[] {
-  return Object.values(THEME_REGISTRY).filter(t => t.category === 'default');
+  return Object.values(THEME_REGISTRY).filter((t) => t.category === 'default');
 }
 
 /**

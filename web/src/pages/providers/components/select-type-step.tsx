@@ -153,7 +153,10 @@ export function SelectTypeStep() {
                         {t('addProvider.codex.name', 'Codex')}
                       </h3>
                       <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed line-clamp-2">
-                        {t('addProvider.codex.description', 'OpenAI Codex with OAuth authentication')}
+                        {t(
+                          'addProvider.codex.description',
+                          'OpenAI Codex with OAuth authentication',
+                        )}
                       </p>
                     </div>
 

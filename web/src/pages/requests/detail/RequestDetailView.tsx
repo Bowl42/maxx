@@ -145,8 +145,8 @@ export function RequestDetailView({
 
               {request.requestInfo.body && (
                 <div className="flex flex-col min-h-0 gap-3 flex-1">
-                <div className="flex items-center justify-between shrink-0">
-                  <h5 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-2">
+                  <div className="flex items-center justify-between shrink-0">
+                    <h5 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-2">
                       <Database size={14} /> {t('requests.body')}
                     </h5>
                     <CopyButton
@@ -229,8 +229,8 @@ export function RequestDetailView({
 
               {request.responseInfo.body && (
                 <div className="flex flex-col min-h-0 gap-3 flex-1">
-                <div className="flex items-center justify-between shrink-0">
-                  <h5 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-2">
+                  <div className="flex items-center justify-between shrink-0">
+                    <h5 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-2">
                       <Database size={14} /> {t('requests.body')}
                     </h5>
                     <CopyButton
@@ -356,11 +356,11 @@ export function RequestDetailView({
           </Card>
 
           <Card className="bg-card border-border">
-          <CardHeader className="pb-2 border-b border-border/50">
-            <CardTitle className="text-sm font-medium flex items-center gap-2">
+            <CardHeader className="pb-2 border-b border-border/50">
+              <CardTitle className="text-sm font-medium flex items-center gap-2">
                 <Zap size={16} className="text-warning" /> {t('requests.usageCache')}
-            </CardTitle>
-          </CardHeader>
+              </CardTitle>
+            </CardHeader>
             <CardContent className="pt-4">
               <dl className="space-y-4">
                 <div className="flex justify-between items-center border-b border-border/30 pb-2">
@@ -379,7 +379,11 @@ export function RequestDetailView({
                     <span>{request.inputTokenCount.toLocaleString()}</span>
                     {costBreakdown?.items.find((i) => i.label === 'Input') && (
                       <span className="text-xs text-muted-foreground">
-                        × {formatPricePerM(costBreakdown.items.find((i) => i.label === 'Input')!.pricePerM)} ={' '}
+                        ×{' '}
+                        {formatPricePerM(
+                          costBreakdown.items.find((i) => i.label === 'Input')!.pricePerM,
+                        )}{' '}
+                        ={' '}
                         <span className="text-blue-400">
                           {formatCost(costBreakdown.items.find((i) => i.label === 'Input')!.cost)}
                         </span>
@@ -395,7 +399,11 @@ export function RequestDetailView({
                     <span>{request.outputTokenCount.toLocaleString()}</span>
                     {costBreakdown?.items.find((i) => i.label === 'Output') && (
                       <span className="text-xs text-muted-foreground">
-                        × {formatPricePerM(costBreakdown.items.find((i) => i.label === 'Output')!.pricePerM)} ={' '}
+                        ×{' '}
+                        {formatPricePerM(
+                          costBreakdown.items.find((i) => i.label === 'Output')!.pricePerM,
+                        )}{' '}
+                        ={' '}
                         <span className="text-blue-400">
                           {formatCost(costBreakdown.items.find((i) => i.label === 'Output')!.cost)}
                         </span>
@@ -411,9 +419,15 @@ export function RequestDetailView({
                     <span>{request.cacheReadCount.toLocaleString()}</span>
                     {costBreakdown?.items.find((i) => i.label === 'Cache Read') && (
                       <span className="text-xs text-muted-foreground">
-                        × {formatPricePerM(costBreakdown.items.find((i) => i.label === 'Cache Read')!.pricePerM)} ={' '}
+                        ×{' '}
+                        {formatPricePerM(
+                          costBreakdown.items.find((i) => i.label === 'Cache Read')!.pricePerM,
+                        )}{' '}
+                        ={' '}
                         <span className="text-blue-400">
-                          {formatCost(costBreakdown.items.find((i) => i.label === 'Cache Read')!.cost)}
+                          {formatCost(
+                            costBreakdown.items.find((i) => i.label === 'Cache Read')!.cost,
+                          )}
                         </span>
                       </span>
                     )}
@@ -426,9 +440,15 @@ export function RequestDetailView({
                   <dd className="text-sm text-amber-400 font-mono font-medium flex items-center gap-2">
                     <span>{request.cacheWriteCount.toLocaleString()}</span>
                     {(() => {
-                      const cache5m = costBreakdown?.items.find((i) => i.label === 'Cache Write (5m)');
-                      const cache1h = costBreakdown?.items.find((i) => i.label === 'Cache Write (1h)');
-                      const cacheWrite = costBreakdown?.items.find((i) => i.label === 'Cache Write');
+                      const cache5m = costBreakdown?.items.find(
+                        (i) => i.label === 'Cache Write (5m)',
+                      );
+                      const cache1h = costBreakdown?.items.find(
+                        (i) => i.label === 'Cache Write (1h)',
+                      );
+                      const cacheWrite = costBreakdown?.items.find(
+                        (i) => i.label === 'Cache Write',
+                      );
                       const item = cache5m || cache1h || cacheWrite;
                       if (!item) return null;
                       return (
@@ -449,8 +469,12 @@ export function RequestDetailView({
                     </dt>
                     <dd className="text-xs text-muted-foreground font-mono">
                       {(() => {
-                        const cache5m = costBreakdown?.items.find((i) => i.label === 'Cache Write (5m)');
-                        const cache1h = costBreakdown?.items.find((i) => i.label === 'Cache Write (1h)');
+                        const cache5m = costBreakdown?.items.find(
+                          (i) => i.label === 'Cache Write (5m)',
+                        );
+                        const cache1h = costBreakdown?.items.find(
+                          (i) => i.label === 'Cache Write (1h)',
+                        );
                         const parts: string[] = [];
                         if (cache5m) parts.push(`5m: ${formatCost(cache5m.cost)}`);
                         if (cache1h) parts.push(`1h: ${formatCost(cache1h.cost)}`);
@@ -475,7 +499,9 @@ export function RequestDetailView({
                   <dt className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
                     {t('requests.multiplier')}
                   </dt>
-                  <dd className={`text-sm font-mono font-medium ${request.multiplier > 0 && request.multiplier !== 10000 ? 'text-yellow-400' : 'text-foreground'}`}>
+                  <dd
+                    className={`text-sm font-mono font-medium ${request.multiplier > 0 && request.multiplier !== 10000 ? 'text-yellow-400' : 'text-foreground'}`}
+                  >
                     ×{((request.multiplier > 0 ? request.multiplier : 10000) / 10000).toFixed(2)}
                   </dd>
                 </div>
@@ -485,22 +511,25 @@ export function RequestDetailView({
                   </dt>
                   <dd className="text-sm font-mono font-medium flex items-center gap-2">
                     <span className="text-blue-400">{formatCost(request.cost)}</span>
-                    {costBreakdown && (() => {
-                      // Calculate expected cost with multiplier applied
-                      const multiplier = request.multiplier > 0 ? request.multiplier : 10000;
-                      const expectedCost = Math.floor(costBreakdown.totalCost * multiplier / 10000);
-                      if (expectedCost !== request.cost) {
-                        return (
-                          <span
-                            className="text-xs text-amber-400"
-                            title={t('requests.costMismatchTitle')}
-                          >
-                            {t('requests.calculatedCost', { cost: formatCost(expectedCost) })}
-                          </span>
+                    {costBreakdown &&
+                      (() => {
+                        // Calculate expected cost with multiplier applied
+                        const multiplier = request.multiplier > 0 ? request.multiplier : 10000;
+                        const expectedCost = Math.floor(
+                          (costBreakdown.totalCost * multiplier) / 10000,
                         );
-                      }
-                      return null;
-                    })()}
+                        if (expectedCost !== request.cost) {
+                          return (
+                            <span
+                              className="text-xs text-amber-400"
+                              title={t('requests.costMismatchTitle')}
+                            >
+                              {t('requests.calculatedCost', { cost: formatCost(expectedCost) })}
+                            </span>
+                          );
+                        }
+                        return null;
+                      })()}
                   </dd>
                 </div>
               </dl>
