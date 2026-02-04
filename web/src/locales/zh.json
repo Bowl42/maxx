@@ -200,6 +200,8 @@
     "providerFallback": "提供商 #{{id}}",
     "headers": "请求头",
     "body": "请求体",
+    "responseHeaders": "响应头",
+    "responseBody": "响应体",
     "responseStatus": "响应状态",
     "attemptInfo": "尝试信息",
     "requestInfo": "请求信息",

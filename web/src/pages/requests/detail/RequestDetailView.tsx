@@ -208,7 +208,7 @@ export function RequestDetailView({
               <div className="flex flex-col min-h-0 gap-3 flex-1">
                 <div className="flex items-center justify-between shrink-0">
                   <h5 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-2">
-                    <Code size={14} /> {t('requests.headers')}
+                    <Code size={14} /> {t('requests.responseHeaders')}
                   </h5>
                   <CopyButton
                     content={formatJSON(request.responseInfo.headers)}
@@ -231,7 +231,7 @@ export function RequestDetailView({
                 <div className="flex flex-col min-h-0 gap-3 flex-1">
                   <div className="flex items-center justify-between shrink-0">
                     <h5 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-2">
-                      <Database size={14} /> {t('requests.body')}
+                      <Database size={14} /> {t('requests.responseBody')}
                     </h5>
                     <CopyButton
                       content={(() => {
