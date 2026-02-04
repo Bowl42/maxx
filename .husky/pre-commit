@@ -4,7 +4,7 @@ cd web
 
 # TypeScript 类型检查 (全量)
 echo "🔍 运行 TypeScript 类型检查..."
-pnpm tsc --noEmit
+pnpm tsc --build --force
 
 if [ $? -ne 0 ]; then
   echo "❌ TypeScript 类型检查失败，提交被阻止"

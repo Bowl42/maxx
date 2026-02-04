@@ -14,12 +14,11 @@
     "prepare": "husky"
   },
   "lint-staged": {
-    "*.{ts,tsx}": [
+    "src/**/*.{ts,tsx}": [
       "eslint --fix",
-      "prettier --write",
-      "bash -c 'tsc --noEmit'"
+      "prettier --write"
     ],
-    "*.{js,jsx,json,css,md}": [
+    "src/**/*.{js,jsx,json,css,md}": [
       "prettier --write"
     ]
   },
