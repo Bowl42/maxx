@@ -2,7 +2,6 @@ package cliproxyapi_antigravity
 
 import (
 	"bytes"
-	"context"
 	"encoding/json"
 	"fmt"
 	"log"
@@ -11,8 +10,8 @@ import (
 	"time"
 
 	"github.com/awsl-project/maxx/internal/adapter/provider"
-	ctxutil "github.com/awsl-project/maxx/internal/context"
 	"github.com/awsl-project/maxx/internal/domain"
+	"github.com/awsl-project/maxx/internal/flow"
 	"github.com/awsl-project/maxx/internal/usage"
 	"github.com/router-for-me/CLIProxyAPI/v6/sdk/cliproxy/auth"
 	"github.com/router-for-me/CLIProxyAPI/v6/sdk/cliproxy/executor"
@@ -56,12 +55,14 @@ func (a *CLIProxyAPIAntigravityAdapter) SupportedClientTypes() []domain.ClientTy
 	return []domain.ClientType{domain.ClientTypeClaude, domain.ClientTypeGemini}
 }
 
-func (a *CLIProxyAPIAntigravityAdapter) Execute(ctx context.Context, w http.ResponseWriter, req *http.Request, p *domain.Provider) error {
-	clientType := ctxutil.GetClientType(ctx)
-	requestBody := ctxutil.GetRequestBody(ctx)
-	stream := ctxutil.GetIsStream(ctx)
-	requestModel := ctxutil.GetRequestModel(ctx)
-	model := ctxutil.GetMappedModel(ctx) // 全局映射后的模型名（已包含 ProviderType 条件）
+func (a *CLIProxyAPIAntigravityAdapter) Execute(c *flow.Ctx, p *domain.Provider) error {
+	w := c.Writer
+
+	clientType := flow.GetClientType(c)
+	requestBody := flow.GetRequestBody(c)
+	stream := flow.GetIsStream(c)
+	requestModel := flow.GetRequestModel(c)
+	model := flow.GetMappedModel(c) // 全局映射后的模型名（已包含 ProviderType 条件）
 
 	log.Printf("[CLIProxyAPI-Antigravity] requestModel=%s, mappedModel=%s, clientType=%s", requestModel, model, clientType)
 
@@ -72,7 +73,7 @@ func (a *CLIProxyAPIAntigravityAdapter) Execute(ctx context.Context, w http.Resp
 	}
 
 	// 发送事件
-	if eventChan := ctxutil.GetEventChan(ctx); eventChan != nil {
+	if eventChan := flow.GetEventChan(c); eventChan != nil {
 		eventChan.SendRequestInfo(&domain.RequestInfo{
 			Method: "POST",
 			URL:    fmt.Sprintf("cliproxyapi://antigravity/%s", model),
@@ -105,9 +106,9 @@ func (a *CLIProxyAPIAntigravityAdapter) Execute(ctx context.Context, w http.Resp
 	}
 
 	if stream {
-		return a.executeStream(ctx, w, execReq, execOpts)
+		return a.executeStream(c, w, execReq, execOpts)
 	}
-	return a.executeNonStream(ctx, w, execReq, execOpts)
+	return a.executeNonStream(c, w, execReq, execOpts)
 }
 
 // updateModelInBody 替换 body 中的 model 字段
@@ -120,14 +121,14 @@ func updateModelInBody(body []byte, model string) ([]byte, error) {
 	return json.Marshal(req)
 }
 
-func (a *CLIProxyAPIAntigravityAdapter) executeNonStream(ctx context.Context, w http.ResponseWriter, execReq executor.Request, execOpts executor.Options) error {
-	resp, err := a.executor.Execute(ctx, a.authObj, execReq, execOpts)
+func (a *CLIProxyAPIAntigravityAdapter) executeNonStream(c *flow.Ctx, w http.ResponseWriter, execReq executor.Request, execOpts executor.Options) error {
+	resp, err := a.executor.Execute(c.Request.Context(), a.authObj, execReq, execOpts)
 	if err != nil {
 		log.Printf("[CLIProxyAPI-Antigravity] executeNonStream error: model=%s, err=%v", execReq.Model, err)
 		return domain.NewProxyErrorWithMessage(err, true, fmt.Sprintf("executor request failed: %v", err))
 	}
 
-	if eventChan := ctxutil.GetEventChan(ctx); eventChan != nil {
+	if eventChan := flow.GetEventChan(c); eventChan != nil {
 		// Send response info
 		eventChan.SendResponseInfo(&domain.ResponseInfo{
 			Status: http.StatusOK,
@@ -159,15 +160,15 @@ func (a *CLIProxyAPIAntigravityAdapter) executeNonStream(ctx context.Context, w 
 	return nil
 }
 
-func (a *CLIProxyAPIAntigravityAdapter) executeStream(ctx context.Context, w http.ResponseWriter, execReq executor.Request, execOpts executor.Options) error {
+func (a *CLIProxyAPIAntigravityAdapter) executeStream(c *flow.Ctx, w http.ResponseWriter, execReq executor.Request, execOpts executor.Options) error {
 	flusher, ok := w.(http.Flusher)
 	if !ok {
-		return a.executeNonStream(ctx, w, execReq, execOpts)
+		return a.executeNonStream(c, w, execReq, execOpts)
 	}
 
 	startTime := time.Now()
 
-	stream, err := a.executor.ExecuteStream(ctx, a.authObj, execReq, execOpts)
+	stream, err := a.executor.ExecuteStream(c.Request.Context(), a.authObj, execReq, execOpts)
 	if err != nil {
 		log.Printf("[CLIProxyAPI-Antigravity] executeStream error: model=%s, err=%v", execReq.Model, err)
 		return domain.NewProxyErrorWithMessage(err, true, fmt.Sprintf("executor stream request failed: %v", err))
@@ -179,7 +180,7 @@ func (a *CLIProxyAPIAntigravityAdapter) executeStream(ctx context.Context, w htt
 	w.Header().Set("Connection", "keep-alive")
 	w.WriteHeader(http.StatusOK)
 
-	eventChan := ctxutil.GetEventChan(ctx)
+	eventChan := flow.GetEventChan(c)
 
 	// Collect SSE content for token extraction
 	var sseBuffer bytes.Buffer

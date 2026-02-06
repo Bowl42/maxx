@@ -16,7 +16,6 @@ import (
 
 	"github.com/awsl-project/maxx/internal/adapter/provider"
 	cliproxyapi "github.com/awsl-project/maxx/internal/adapter/provider/cliproxyapi_antigravity"
-	ctxutil "github.com/awsl-project/maxx/internal/context"
 	"github.com/awsl-project/maxx/internal/converter"
 	"github.com/awsl-project/maxx/internal/domain"
 	"github.com/awsl-project/maxx/internal/flow"

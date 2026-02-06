@@ -15,7 +15,6 @@ import (
 
 	"github.com/awsl-project/maxx/internal/adapter/provider"
 	cliproxyapi "github.com/awsl-project/maxx/internal/adapter/provider/cliproxyapi_codex"
-	ctxutil "github.com/awsl-project/maxx/internal/context"
 	"github.com/awsl-project/maxx/internal/domain"
 	"github.com/awsl-project/maxx/internal/flow"
 	"github.com/awsl-project/maxx/internal/usage"
