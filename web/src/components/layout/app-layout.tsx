@@ -14,7 +14,7 @@ export function AppLayout() {
 
   return (
     <>
-      <SidebarProvider className="h-svh! min-h-0! overflow-hidden">
+      <SidebarProvider className="h-svh! min-h-0! overflow-hidden min-w-[900px]">
         <AppSidebar />
         <SidebarInset className="flex flex-col">
           <div className="@container/main flex-1 min-h-0 overflow-hidden">
