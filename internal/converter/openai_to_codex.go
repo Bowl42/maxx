@@ -285,7 +285,7 @@ func (c *openaiToCodexResponse) TransformWithState(body []byte, state *Transform
 				if rc := msg.Get("reasoning_content"); rc.Exists() && rc.String() != "" {
 					choiceIdx := int(choice.Get("index").Int())
 					reasoning := `{"id":"","type":"reasoning","encrypted_content":"","summary":[]}`
-					reasoning, _ = sjson.Set(reasoning, "id", fmt.Sprintf("rs_%s_%d", strings.TrimPrefix(respID, "resp_"), choiceIdx))
+					reasoning, _ = sjson.Set(reasoning, "id", fmt.Sprintf("rs_%s_%d", respID, choiceIdx))
 					reasoning, _ = sjson.Set(reasoning, "summary.0.type", "summary_text")
 					reasoning, _ = sjson.Set(reasoning, "summary.0.text", rc.String())
 					outputsWrapper, _ = sjson.SetRaw(outputsWrapper, "arr.-1", reasoning)
@@ -604,7 +604,8 @@ func convertOpenAIChatCompletionsChunkToResponses(rawJSON []byte, state *Transfo
 				if rc := delta.Get("reasoning_content"); rc.Exists() && rc.String() != "" {
 					if st.ReasoningID == "" {
 						st.ReasoningID = fmt.Sprintf("rs_%s_%d", st.ResponseID, idx)
-						st.ReasoningIndex = st.msgOutIdx(idx)
+						st.ReasoningIndex = st.NextOutputIndex
+					st.NextOutputIndex++
 						item := `{"type":"response.output_item.added","sequence_number":0,"output_index":0,"item":{"id":"","type":"reasoning","status":"in_progress","summary":[]}}`
 						item, _ = sjson.Set(item, "sequence_number", nextSeq())
 						item, _ = sjson.Set(item, "output_index", st.ReasoningIndex)
