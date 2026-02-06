@@ -55,7 +55,8 @@
     "noActivity": "暂无活动",
     "clear": "清除",
     "unknown": "未知",
-    "back": "返回"
+    "back": "返回",
+    "useCLIProxyAPI": "使用 CLIProxyAPI"
   },
   "clientTypes": {
     "claude": "Claude",

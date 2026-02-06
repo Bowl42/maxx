@@ -55,7 +55,8 @@
     "noActivity": "No Activity",
     "clear": "Clear",
     "unknown": "Unknown",
-    "back": "Back"
+    "back": "Back",
+    "useCLIProxyAPI": "Use CLIProxyAPI"
   },
   "clientTypes": {
     "claude": "Claude",
