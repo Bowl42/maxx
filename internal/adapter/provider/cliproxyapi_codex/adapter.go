@@ -167,17 +167,17 @@ func (a *CLIProxyAPICodexAdapter) executeStream(c *flow.Ctx, w http.ResponseWrit
 			streamErr = chunk.Err
 			break
 		}
-		if len(chunk.Payload) > 0 {
-			// Payload from executor already includes SSE delimiters (\n\n)
-			sseBuffer.Write(chunk.Payload)
-			_, _ = w.Write(chunk.Payload)
-			flusher.Flush()
+		// Write every chunk including empty lines (SSE event separators)
+		sseBuffer.Write(chunk.Payload)
+		sseBuffer.WriteByte('\n')
+		_, _ = w.Write(chunk.Payload)
+		_, _ = w.Write([]byte("\n"))
+		flusher.Flush()
 
-			// Report TTFT on first non-empty chunk
-			if !firstChunkSent && eventChan != nil {
-				eventChan.SendFirstToken(time.Now().UnixMilli())
-				firstChunkSent = true
-			}
+		// Report TTFT on first non-empty chunk
+		if !firstChunkSent && len(chunk.Payload) > 0 && eventChan != nil {
+			eventChan.SendFirstToken(time.Now().UnixMilli())
+			firstChunkSent = true
 		}
 	}
 
