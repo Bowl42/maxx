@@ -13,7 +13,7 @@ func shortenNameIfNeeded(name string) string {
 	}
 	if strings.HasPrefix(name, "mcp__") {
 		idx := strings.LastIndex(name, "__")
-		if idx > 0 {
+		if idx > 3 {
 			candidate := "mcp__" + name[idx+2:]
 			if len(candidate) > maxToolNameLen {
 				return candidate[:maxToolNameLen]
@@ -29,20 +29,7 @@ func buildShortNameMap(names []string) map[string]string {
 	result := make(map[string]string, len(names))
 
 	baseCandidate := func(n string) string {
-		if len(n) <= maxToolNameLen {
-			return n
-		}
-		if strings.HasPrefix(n, "mcp__") {
-			idx := strings.LastIndex(n, "__")
-			if idx > 0 {
-				cand := "mcp__" + n[idx+2:]
-				if len(cand) > maxToolNameLen {
-					cand = cand[:maxToolNameLen]
-				}
-				return cand
-			}
-		}
-		return n[:maxToolNameLen]
+		return shortenNameIfNeeded(n)
 	}
 
 	makeUnique := func(cand string) string {

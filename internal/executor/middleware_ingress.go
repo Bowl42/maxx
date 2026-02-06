@@ -2,6 +2,7 @@ package executor
 
 import (
 	"context"
+	"errors"
 	"log"
 	"net/http"
 	"time"
@@ -92,17 +93,19 @@ func (e *Executor) ingress(c *flow.Ctx) {
 		requestHeaders := state.requestHeaders
 		requestBody := state.requestBody
 		headers := flattenHeaders(requestHeaders)
-		if c.Request != nil && c.Request.Host != "" {
-			if headers == nil {
-				headers = make(map[string]string)
+		if c.Request != nil {
+			if c.Request.Host != "" {
+				if headers == nil {
+					headers = make(map[string]string)
+				}
+				headers["Host"] = c.Request.Host
 			}
-			headers["Host"] = c.Request.Host
-		}
-		proxyReq.RequestInfo = &domain.RequestInfo{
-			Method:  c.Request.Method,
-			URL:     requestURI,
-			Headers: headers,
-			Body:    string(requestBody),
+			proxyReq.RequestInfo = &domain.RequestInfo{
+				Method:  c.Request.Method,
+				URL:     requestURI,
+				Headers: headers,
+				Body:    string(requestBody),
+			}
 		}
 	}
 
@@ -130,7 +133,7 @@ func (e *Executor) ingress(c *flow.Ctx) {
 		if err := e.projectWaiter.WaitForProject(ctx, session); err != nil {
 			status := "REJECTED"
 			errorMsg := "project binding timeout: " + err.Error()
-			if err == context.Canceled {
+			if errors.Is(err, context.Canceled) {
 				status = "CANCELLED"
 				errorMsg = "client cancelled: " + err.Error()
 				if e.broadcaster != nil {

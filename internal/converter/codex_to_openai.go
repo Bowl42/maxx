@@ -3,7 +3,6 @@ package converter
 import (
 	"bytes"
 	"encoding/json"
-	"strings"
 	"time"
 
 	"github.com/awsl-project/maxx/internal/domain"
@@ -26,6 +25,7 @@ type openaiStreamState struct {
 	Index       int
 	CreatedAt   int64
 	Model       string
+	FinishSent  bool
 }
 
 type openaiToolCallState struct {
@@ -139,7 +139,7 @@ func (c *codexToOpenAIResponse) TransformWithState(body []byte, state *Transform
 	} else if root.Get("output").Exists() {
 		response = root
 	} else {
-		return nil, nil
+		return body, nil
 	}
 
 	template := `{"id":"","object":"chat.completion","created":123456,"model":"model","choices":[{"index":0,"message":{"role":"assistant","content":null,"reasoning_content":null,"tool_calls":null},"finish_reason":null,"native_finish_reason":null}]}`
@@ -245,7 +245,10 @@ func (c *codexToOpenAIResponse) TransformChunk(chunk []byte, state *TransformSta
 	var output []byte
 	for _, event := range events {
 		if event.Event == "done" {
-			output = append(output, buildOpenAIStreamDone(state.MessageID, st.HasToolCall)...)
+			if !st.FinishSent {
+				output = append(output, buildOpenAIStreamDone(state.MessageID, st.HasToolCall)...)
+				st.FinishSent = true
+			}
 			output = append(output, FormatDone()...)
 			continue
 		}
@@ -322,15 +325,18 @@ func (c *codexToOpenAIResponse) TransformChunk(chunk []byte, state *TransformSta
 			}
 
 		case "response.completed":
-			chunk := newOpenAIStreamTemplate(state.MessageID, st)
-			finishReason := "stop"
-			if st.HasToolCall {
-				finishReason = "tool_calls"
+			if !st.FinishSent {
+				chunk := newOpenAIStreamTemplate(state.MessageID, st)
+				finishReason := "stop"
+				if st.HasToolCall {
+					finishReason = "tool_calls"
+				}
+				chunk, _ = sjson.Set(chunk, "choices.0.finish_reason", finishReason)
+				chunk, _ = sjson.Set(chunk, "choices.0.native_finish_reason", finishReason)
+				chunk = applyOpenAIUsageFromResponse(chunk, root.Get("response.usage"))
+				output = append(output, FormatSSE("", []byte(chunk))...)
+				st.FinishSent = true
 			}
-			chunk, _ = sjson.Set(chunk, "choices.0.finish_reason", finishReason)
-			chunk, _ = sjson.Set(chunk, "choices.0.native_finish_reason", finishReason)
-			chunk = applyOpenAIUsageFromResponse(chunk, root.Get("response.usage"))
-			output = append(output, FormatSSE("", []byte(chunk))...)
 		}
 	}
 
@@ -371,35 +377,6 @@ func buildOpenAIStreamDone(id string, hasToolCalls bool) []byte {
 		}},
 	}
 	return FormatSSE("", openaiChunk)
-}
-
-func extractCodexOutputText(content interface{}) string {
-	switch v := content.(type) {
-	case string:
-		return v
-	case []interface{}:
-		var b strings.Builder
-		for _, item := range v {
-			if m, ok := item.(map[string]interface{}); ok {
-				if t, ok := m["text"].(string); ok {
-					b.WriteString(t)
-					continue
-				}
-				if t, ok := m["content"].(string); ok {
-					b.WriteString(t)
-				}
-			}
-		}
-		return b.String()
-	case map[string]interface{}:
-		if t, ok := v["text"].(string); ok {
-			return t
-		}
-		if t, ok := v["content"].(string); ok {
-			return t
-		}
-	}
-	return ""
 }
 
 func newOpenAIStreamTemplate(id string, st *openaiStreamState) string {

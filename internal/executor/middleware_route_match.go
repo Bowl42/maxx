@@ -1,6 +1,8 @@
 package executor
 
 import (
+	"fmt"
+	"log"
 	"time"
 
 	"github.com/awsl-project/maxx/internal/domain"
@@ -29,11 +31,13 @@ func (e *Executor) routeMatch(c *flow.Ctx) {
 		proxyReq.Error = "no routes available"
 		proxyReq.EndTime = time.Now()
 		proxyReq.Duration = proxyReq.EndTime.Sub(proxyReq.StartTime)
-		_ = e.proxyRequestRepo.Update(proxyReq)
+		if err := e.proxyRequestRepo.Update(proxyReq); err != nil {
+			log.Printf("[Executor] failed to update proxy request: %v", err)
+		}
 		if e.broadcaster != nil {
 			e.broadcaster.BroadcastProxyRequest(proxyReq)
 		}
-		err = domain.NewProxyErrorWithMessage(domain.ErrNoRoutes, false, "no routes available")
+		err = domain.NewProxyErrorWithMessage(domain.ErrNoRoutes, false, fmt.Sprintf("route match failed: %v", err))
 		state.lastErr = err
 		c.Err = err
 		c.Abort()
@@ -45,7 +49,9 @@ func (e *Executor) routeMatch(c *flow.Ctx) {
 		proxyReq.Error = "no routes configured"
 		proxyReq.EndTime = time.Now()
 		proxyReq.Duration = proxyReq.EndTime.Sub(proxyReq.StartTime)
-		_ = e.proxyRequestRepo.Update(proxyReq)
+		if err := e.proxyRequestRepo.Update(proxyReq); err != nil {
+			log.Printf("[Executor] failed to update proxy request: %v", err)
+		}
 		if e.broadcaster != nil {
 			e.broadcaster.BroadcastProxyRequest(proxyReq)
 		}
@@ -57,7 +63,9 @@ func (e *Executor) routeMatch(c *flow.Ctx) {
 	}
 
 	proxyReq.Status = "IN_PROGRESS"
-	_ = e.proxyRequestRepo.Update(proxyReq)
+	if err := e.proxyRequestRepo.Update(proxyReq); err != nil {
+		log.Printf("[Executor] failed to update proxy request: %v", err)
+	}
 	if e.broadcaster != nil {
 		e.broadcaster.BroadcastProxyRequest(proxyReq)
 	}

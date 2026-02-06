@@ -33,10 +33,11 @@ type TokenCache struct {
 }
 
 type AntigravityAdapter struct {
-	provider   *domain.Provider
-	tokenCache *TokenCache
-	tokenMu    sync.RWMutex
-	httpClient *http.Client
+	provider      *domain.Provider
+	tokenCache    *TokenCache
+	tokenMu       sync.RWMutex
+	projectIDOnce sync.Once
+	httpClient    *http.Client
 }
 
 func NewAdapter(p *domain.Provider) (provider.ProviderAdapter, error) {
@@ -165,13 +166,18 @@ func (a *AntigravityAdapter) Execute(c *flow.Ctx, provider *domain.Provider) err
 		}
 
 		// Resolve project ID (CLIProxyAPI behavior)
-		projectID := strings.TrimSpace(config.ProjectID)
-		if projectID == "" {
-			if pid, _, err := FetchProjectInfo(ctx, accessToken, config.Email); err == nil && strings.TrimSpace(pid) != "" {
-				projectID = pid
-				config.ProjectID = pid
+		a.projectIDOnce.Do(func() {
+			if strings.TrimSpace(config.ProjectID) != "" {
+				return
 			}
-		}
+			if pid, _, err := FetchProjectInfo(ctx, accessToken, config.Email); err == nil {
+				pid = strings.TrimSpace(pid)
+				if pid != "" {
+					config.ProjectID = pid
+				}
+			}
+		})
+		projectID := strings.TrimSpace(config.ProjectID)
 
 		var upstreamBody []byte
 		if openAIWrapped {
@@ -233,7 +239,6 @@ func (a *AntigravityAdapter) Execute(c *flow.Ctx, provider *domain.Provider) err
 					proxyErr.IsNetworkError = true // Mark as network error (connection timeout, DNS failure, etc.)
 					return proxyErr
 				}
-				defer resp.Body.Close()
 
 				// Check for 401 (token expired) and retry once
 				if resp.StatusCode == http.StatusUnauthorized {
@@ -251,7 +256,10 @@ func (a *AntigravityAdapter) Execute(c *flow.Ctx, provider *domain.Provider) err
 					}
 
 					// Retry request with only required headers
-					upstreamReq, _ = http.NewRequestWithContext(ctx, "POST", upstreamURL, bytes.NewReader(upstreamBody))
+					upstreamReq, reqErr = http.NewRequestWithContext(ctx, "POST", upstreamURL, bytes.NewReader(upstreamBody))
+					if reqErr != nil {
+						return domain.NewProxyErrorWithMessage(reqErr, false, "failed to create upstream request after token refresh")
+					}
 					upstreamReq.Header.Set("Content-Type", "application/json")
 					upstreamReq.Header.Set("Authorization", "Bearer "+accessToken)
 					upstreamReq.Header.Set("User-Agent", AntigravityUserAgent)
@@ -265,12 +273,12 @@ func (a *AntigravityAdapter) Execute(c *flow.Ctx, provider *domain.Provider) err
 						proxyErr.IsNetworkError = true // Mark as network error
 						return proxyErr
 					}
-					defer resp.Body.Close()
 				}
 
 				// Check for error response
 				if resp.StatusCode >= 400 {
 					body, _ := io.ReadAll(resp.Body)
+					resp.Body.Close()
 					// Send error response info via EventChannel
 					if eventChan := flow.GetEventChan(c); eventChan != nil {
 						eventChan.SendResponseInfo(&domain.ResponseInfo{
@@ -358,12 +366,10 @@ func (a *AntigravityAdapter) Execute(c *flow.Ctx, provider *domain.Provider) err
 
 					// Retry fallback handling (CLIProxyAPI behavior)
 					if resp.StatusCode == http.StatusTooManyRequests && hasNextEndpoint(idx, len(baseURLs)) {
-						resp.Body.Close()
 						continue
 					}
 					if antigravityShouldRetryNoCapacity(resp.StatusCode, body) {
 						if hasNextEndpoint(idx, len(baseURLs)) {
-							resp.Body.Close()
 							continue
 						}
 						if attempt+1 < antigravityRetryAttempts {
@@ -380,12 +386,18 @@ func (a *AntigravityAdapter) Execute(c *flow.Ctx, provider *domain.Provider) err
 
 				// Handle response
 				if actualStream && !clientWantsStream {
-					return a.handleCollectedStreamResponse(c, resp, clientType, requestModel)
+					err := a.handleCollectedStreamResponse(c, resp, clientType, requestModel)
+					resp.Body.Close()
+					return err
 				}
 				if actualStream {
-					return a.handleStreamResponse(c, resp, clientType)
+					err := a.handleStreamResponse(c, resp, clientType)
+					resp.Body.Close()
+					return err
 				}
-				return a.handleNonStreamResponse(c, resp, clientType)
+				nErr := a.handleNonStreamResponse(c, resp, clientType)
+				resp.Body.Close()
+				return nErr
 			}
 		}
 

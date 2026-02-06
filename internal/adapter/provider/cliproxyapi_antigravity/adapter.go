@@ -2,6 +2,7 @@ package cliproxyapi_antigravity
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"log"
@@ -122,7 +123,12 @@ func updateModelInBody(body []byte, model string) ([]byte, error) {
 }
 
 func (a *CLIProxyAPIAntigravityAdapter) executeNonStream(c *flow.Ctx, w http.ResponseWriter, execReq executor.Request, execOpts executor.Options) error {
-	resp, err := a.executor.Execute(c.Request.Context(), a.authObj, execReq, execOpts)
+	ctx := context.Background()
+	if c.Request != nil {
+		ctx = c.Request.Context()
+	}
+
+	resp, err := a.executor.Execute(ctx, a.authObj, execReq, execOpts)
 	if err != nil {
 		log.Printf("[CLIProxyAPI-Antigravity] executeNonStream error: model=%s, err=%v", execReq.Model, err)
 		return domain.NewProxyErrorWithMessage(err, true, fmt.Sprintf("executor request failed: %v", err))
@@ -168,7 +174,12 @@ func (a *CLIProxyAPIAntigravityAdapter) executeStream(c *flow.Ctx, w http.Respon
 
 	startTime := time.Now()
 
-	stream, err := a.executor.ExecuteStream(c.Request.Context(), a.authObj, execReq, execOpts)
+	ctx := context.Background()
+	if c.Request != nil {
+		ctx = c.Request.Context()
+	}
+
+	stream, err := a.executor.ExecuteStream(ctx, a.authObj, execReq, execOpts)
 	if err != nil {
 		log.Printf("[CLIProxyAPI-Antigravity] executeStream error: model=%s, err=%v", execReq.Model, err)
 		return domain.NewProxyErrorWithMessage(err, true, fmt.Sprintf("executor stream request failed: %v", err))

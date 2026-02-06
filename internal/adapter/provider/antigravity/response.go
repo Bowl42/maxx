@@ -189,6 +189,7 @@ func convertStreamToNonStream(stream []byte) []byte {
 
 	for _, line := range bytes.Split(stream, []byte("\n")) {
 		trimmed := bytes.TrimSpace(line)
+		trimmed = bytes.TrimPrefix(trimmed, []byte("data: "))
 		if len(trimmed) == 0 || !gjson.ValidBytes(trimmed) {
 			continue
 		}

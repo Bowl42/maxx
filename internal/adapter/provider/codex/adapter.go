@@ -25,6 +25,20 @@ import (
 
 func init() {
 	provider.RegisterAdapterFactory("codex", NewAdapter)
+	go func() {
+		ticker := time.NewTicker(5 * time.Minute)
+		defer ticker.Stop()
+		for range ticker.C {
+			codexCacheMu.Lock()
+			now := time.Now()
+			for k, v := range codexCaches {
+				if now.After(v.Expire) {
+					delete(codexCaches, k)
+				}
+			}
+			codexCacheMu.Unlock()
+		}
+	}()
 }
 
 // TokenCache caches access tokens
@@ -172,7 +186,10 @@ func (a *CodexAdapter) Execute(c *flow.Ctx, provider *domain.Provider) error {
 		}
 
 		// Retry request
-		upstreamReq, _ = http.NewRequestWithContext(ctx, "POST", upstreamURL, bytes.NewReader(requestBody))
+		upstreamReq, reqErr := http.NewRequestWithContext(ctx, "POST", upstreamURL, bytes.NewReader(requestBody))
+		if reqErr != nil {
+			return domain.NewProxyErrorWithMessage(reqErr, false, fmt.Sprintf("failed to create retry request: %v", reqErr))
+		}
 		a.applyCodexHeaders(upstreamReq, request, accessToken, config.AccountID, upstreamStream, cacheID)
 
 		resp, err = a.httpClient.Do(upstreamReq)

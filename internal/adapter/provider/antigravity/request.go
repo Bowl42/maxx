@@ -309,6 +309,9 @@ func applyAntigravityRequestTuning(payload []byte, modelName string) []byte {
 	paths := make([]string, 0)
 	Walk(gjson.ParseBytes(payload), "", "parametersJsonSchema", &paths)
 	for _, p := range paths {
+		if !strings.HasSuffix(p, "parametersJsonSchema") {
+			continue
+		}
 		if renamed, err := RenameKey(strJSON, p, p[:len(p)-len("parametersJsonSchema")]+"parameters"); err == nil {
 			strJSON = renamed
 		}

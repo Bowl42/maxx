@@ -735,12 +735,13 @@ func TestOpenAIToClaudeResponseStopReason(t *testing.T) {
 }
 
 func TestCodexToOpenAIResponseInvalidJSON(t *testing.T) {
-	out, err := (&codexToOpenAIResponse{}).Transform([]byte("{"))
+	input := []byte("{")
+	out, err := (&codexToOpenAIResponse{}).Transform(input)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	if out != nil {
-		t.Fatalf("expected empty output")
+	if string(out) != string(input) {
+		t.Fatalf("expected passthrough of original body, got: %s", out)
 	}
 }
 

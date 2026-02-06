@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"sort"
 	"strings"
 	"sync/atomic"
 	"time"
@@ -397,8 +398,9 @@ func convertOpenAIChatCompletionsChunkToResponses(rawJSON []byte, state *Transfo
 	if state == nil {
 		return nil
 	}
-	if state.Custom == nil {
-		state.Custom = &openaiToResponsesState{
+	st, ok := state.Custom.(*openaiToResponsesState)
+	if !ok || st == nil {
+		st = &openaiToResponsesState{
 			FuncArgsBuf:     make(map[int]*strings.Builder),
 			FuncNames:       make(map[int]string),
 			FuncCallIDs:     make(map[int]string),
@@ -410,8 +412,8 @@ func convertOpenAIChatCompletionsChunkToResponses(rawJSON []byte, state *Transfo
 			FuncItemDone:    make(map[int]bool),
 			Reasonings:      make([]openaiToResponsesStateReasoning, 0),
 		}
+		state.Custom = st
 	}
-	st := state.Custom.(*openaiToResponsesState)
 
 	root := gjson.ParseBytes(rawJSON)
 	obj := root.Get("object")
@@ -515,7 +517,7 @@ func convertOpenAIChatCompletionsChunkToResponses(rawJSON []byte, state *Transfo
 		outputItemDone, _ = sjson.Set(outputItemDone, "sequence_number", nextSeq())
 		outputItemDone, _ = sjson.Set(outputItemDone, "item.id", st.ReasoningID)
 		outputItemDone, _ = sjson.Set(outputItemDone, "output_index", st.ReasoningIndex)
-		outputItemDone, _ = sjson.Set(outputItemDone, "item.summary.text", text)
+		outputItemDone, _ = sjson.Set(outputItemDone, "item.summary.0.text", text)
 		out = append(out, FormatSSE("response.output_item.done", []byte(outputItemDone)))
 
 		st.Reasonings = append(st.Reasonings, openaiToResponsesStateReasoning{ReasoningID: st.ReasoningID, ReasoningData: text})
@@ -669,18 +671,7 @@ func convertOpenAIChatCompletionsChunkToResponses(rawJSON []byte, state *Transfo
 
 			if fr := choice.Get("finish_reason"); fr.Exists() && fr.String() != "" {
 				if len(st.MsgItemAdded) > 0 {
-					idxs := make([]int, 0, len(st.MsgItemAdded))
-					for i := range st.MsgItemAdded {
-						idxs = append(idxs, i)
-					}
-					for i := 0; i < len(idxs); i++ {
-						for j := i + 1; j < len(idxs); j++ {
-							if idxs[j] < idxs[i] {
-								idxs[i], idxs[j] = idxs[j], idxs[i]
-							}
-						}
-					}
-					for _, i := range idxs {
+					for _, i := range sortedKeys(st.MsgItemAdded) {
 						if st.MsgItemAdded[i] && !st.MsgItemDone[i] {
 							fullText := ""
 							if b := st.MsgTextBuf[i]; b != nil {
@@ -719,18 +710,7 @@ func convertOpenAIChatCompletionsChunkToResponses(rawJSON []byte, state *Transfo
 				}
 
 				if len(st.FuncCallIDs) > 0 {
-					idxs := make([]int, 0, len(st.FuncCallIDs))
-					for i := range st.FuncCallIDs {
-						idxs = append(idxs, i)
-					}
-					for i := 0; i < len(idxs); i++ {
-						for j := i + 1; j < len(idxs); j++ {
-							if idxs[j] < idxs[i] {
-								idxs[i], idxs[j] = idxs[j], idxs[i]
-							}
-						}
-					}
-					for _, i := range idxs {
+					for _, i := range sortedKeys(st.FuncCallIDs) {
 						callID := st.FuncCallIDs[i]
 						if callID == "" || st.FuncItemDone[i] {
 							continue
@@ -773,18 +753,7 @@ func convertOpenAIChatCompletionsChunkToResponses(rawJSON []byte, state *Transfo
 					}
 				}
 				if len(st.MsgItemAdded) > 0 {
-					midxs := make([]int, 0, len(st.MsgItemAdded))
-					for i := range st.MsgItemAdded {
-						midxs = append(midxs, i)
-					}
-					for i := 0; i < len(midxs); i++ {
-						for j := i + 1; j < len(midxs); j++ {
-							if midxs[j] < midxs[i] {
-								midxs[i], midxs[j] = midxs[j], midxs[i]
-							}
-						}
-					}
-					for _, i := range midxs {
+					for _, i := range sortedKeys(st.MsgItemAdded) {
 						txt := ""
 						if b := st.MsgTextBuf[i]; b != nil {
 							txt = b.String()
@@ -796,18 +765,7 @@ func convertOpenAIChatCompletionsChunkToResponses(rawJSON []byte, state *Transfo
 					}
 				}
 				if len(st.FuncArgsBuf) > 0 {
-					idxs := make([]int, 0, len(st.FuncArgsBuf))
-					for i := range st.FuncArgsBuf {
-						idxs = append(idxs, i)
-					}
-					for i := 0; i < len(idxs); i++ {
-						for j := i + 1; j < len(idxs); j++ {
-							if idxs[j] < idxs[i] {
-								idxs[i], idxs[j] = idxs[j], idxs[i]
-							}
-						}
-					}
-					for _, i := range idxs {
+					for _, i := range sortedKeys(st.FuncArgsBuf) {
 						args := ""
 						if b := st.FuncArgsBuf[i]; b != nil {
 							args = b.String()
@@ -848,6 +806,15 @@ func convertOpenAIChatCompletionsChunkToResponses(rawJSON []byte, state *Transfo
 	}
 
 	return out
+}
+
+func sortedKeys[T any](m map[int]T) []int {
+	keys := make([]int, 0, len(m))
+	for k := range m {
+		keys = append(keys, k)
+	}
+	sort.Ints(keys)
+	return keys
 }
 
 func applyRequestEchoToResponse(responseJSON string, prefix string, requestRaw []byte) string {

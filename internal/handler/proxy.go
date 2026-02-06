@@ -69,7 +69,10 @@ func (h *ProxyHandler) SetRequestTracker(tracker RequestTracker) {
 // ServeHTTP handles proxy requests
 func (h *ProxyHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	ctx := flow.NewCtx(w, r)
-	h.engine.HandleWith(ctx, append(h.extra, h.dispatch)...)
+	handlers := make([]flow.HandlerFunc, len(h.extra)+1)
+	copy(handlers, h.extra)
+	handlers[len(h.extra)] = h.dispatch
+	h.engine.HandleWith(ctx, handlers...)
 }
 
 func (h *ProxyHandler) ingress(c *flow.Ctx) {

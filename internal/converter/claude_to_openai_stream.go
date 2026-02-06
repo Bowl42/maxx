@@ -74,6 +74,9 @@ func (c *claudeToOpenAIResponse) TransformChunk(chunk []byte, state *TransformSt
 				switch claudeEvent.Delta.Type {
 				case "text_delta":
 					streamMeta, _ := state.Custom.(*claudeOpenAIStreamMeta)
+					if streamMeta == nil {
+						continue
+					}
 					chunk := OpenAIStreamChunk{
 						ID:      state.MessageID,
 						Object:  "chat.completion.chunk",
@@ -88,6 +91,9 @@ func (c *claudeToOpenAIResponse) TransformChunk(chunk []byte, state *TransformSt
 				case "thinking_delta":
 					if claudeEvent.Delta.Thinking != "" {
 						streamMeta, _ := state.Custom.(*claudeOpenAIStreamMeta)
+						if streamMeta == nil {
+							continue
+						}
 						chunk := OpenAIStreamChunk{
 							ID:      state.MessageID,
 							Object:  "chat.completion.chunk",
@@ -104,6 +110,9 @@ func (c *claudeToOpenAIResponse) TransformChunk(chunk []byte, state *TransformSt
 					if tc, ok := state.ToolCalls[state.CurrentIndex]; ok {
 						tc.Arguments += claudeEvent.Delta.PartialJSON
 						streamMeta, _ := state.Custom.(*claudeOpenAIStreamMeta)
+						if streamMeta == nil {
+							continue
+						}
 						chunk := OpenAIStreamChunk{
 							ID:      state.MessageID,
 							Object:  "chat.completion.chunk",

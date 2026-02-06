@@ -2,6 +2,7 @@ package cliproxyapi_codex
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"log"
@@ -91,7 +92,12 @@ func (a *CLIProxyAPICodexAdapter) Execute(c *flow.Ctx, p *domain.Provider) error
 }
 
 func (a *CLIProxyAPICodexAdapter) executeNonStream(c *flow.Ctx, w http.ResponseWriter, execReq executor.Request, execOpts executor.Options) error {
-	resp, err := a.executor.Execute(c.Request.Context(), a.authObj, execReq, execOpts)
+	ctx := context.Background()
+	if c.Request != nil {
+		ctx = c.Request.Context()
+	}
+
+	resp, err := a.executor.Execute(ctx, a.authObj, execReq, execOpts)
 	if err != nil {
 		return domain.NewProxyErrorWithMessage(err, true, fmt.Sprintf("executor request failed: %v", err))
 	}
@@ -134,7 +140,12 @@ func (a *CLIProxyAPICodexAdapter) executeStream(c *flow.Ctx, w http.ResponseWrit
 
 	startTime := time.Now()
 
-	stream, err := a.executor.ExecuteStream(c.Request.Context(), a.authObj, execReq, execOpts)
+	ctx := context.Background()
+	if c.Request != nil {
+		ctx = c.Request.Context()
+	}
+
+	stream, err := a.executor.ExecuteStream(ctx, a.authObj, execReq, execOpts)
 	if err != nil {
 		return domain.NewProxyErrorWithMessage(err, true, fmt.Sprintf("executor stream request failed: %v", err))
 	}
