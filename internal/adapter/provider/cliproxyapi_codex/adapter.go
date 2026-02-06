@@ -138,8 +138,6 @@ func (a *CLIProxyAPICodexAdapter) executeStream(c *flow.Ctx, w http.ResponseWrit
 		return a.executeNonStream(c, w, execReq, execOpts)
 	}
 
-	startTime := time.Now()
-
 	ctx := context.Background()
 	if c.Request != nil {
 		ctx = c.Request.Context()
@@ -177,7 +175,7 @@ func (a *CLIProxyAPICodexAdapter) executeStream(c *flow.Ctx, w http.ResponseWrit
 
 			// Report TTFT on first non-empty chunk
 			if !firstChunkSent && eventChan != nil {
-				eventChan.SendFirstToken(time.Since(startTime).Milliseconds())
+				eventChan.SendFirstToken(time.Now().UnixMilli())
 				firstChunkSent = true
 			}
 		}

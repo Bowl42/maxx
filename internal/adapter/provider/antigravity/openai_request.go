@@ -169,8 +169,8 @@ func ConvertOpenAIRequestToAntigravity(modelName string, inputRawJSON []byte, _ 
 							p++
 						case "image_url":
 							imageURL := item.Get("image_url.url").String()
-							if len(imageURL) > 5 {
-								pieces := strings.SplitN(imageURL[5:], ";", 2)
+							if strings.HasPrefix(imageURL, "data:") {
+								pieces := strings.SplitN(imageURL[len("data:"):], ";", 2)
 								if len(pieces) == 2 && len(pieces[1]) > 7 {
 									mimeType := pieces[0]
 									data := pieces[1][7:]
@@ -219,8 +219,8 @@ func ConvertOpenAIRequestToAntigravity(modelName string, inputRawJSON []byte, _ 
 							p++
 						case "image_url":
 							imageURL := item.Get("image_url.url").String()
-							if len(imageURL) > 5 { // expect data:...
-								pieces := strings.SplitN(imageURL[5:], ";", 2)
+							if strings.HasPrefix(imageURL, "data:") { // expect data:...
+								pieces := strings.SplitN(imageURL[len("data:"):], ";", 2)
 								if len(pieces) == 2 && len(pieces[1]) > 7 {
 									mimeType := pieces[0]
 									data := pieces[1][7:]

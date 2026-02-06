@@ -624,47 +624,54 @@ func convertOpenAIChatCompletionsChunkToResponses(rawJSON []byte, state *Transfo
 						st.MsgItemDone[idx] = true
 					}
 
-					newCallID := tcs.Get("0.id").String()
-					nameChunk := tcs.Get("0.function.name").String()
-					if nameChunk != "" {
-						st.FuncNames[idx] = nameChunk
-					}
-					existingCallID := st.FuncCallIDs[idx]
-					effectiveCallID := existingCallID
-					shouldEmitItem := false
-					if existingCallID == "" && newCallID != "" {
-						effectiveCallID = newCallID
-						st.FuncCallIDs[idx] = newCallID
-						shouldEmitItem = true
-					}
-
-					if shouldEmitItem && effectiveCallID != "" {
-						o := `{"type":"response.output_item.added","sequence_number":0,"output_index":0,"item":{"id":"","type":"function_call","status":"in_progress","arguments":"","call_id":"","name":""}}`
-						o, _ = sjson.Set(o, "sequence_number", nextSeq())
-						o, _ = sjson.Set(o, "output_index", idx)
-						o, _ = sjson.Set(o, "item.id", fmt.Sprintf("fc_%s", effectiveCallID))
-						o, _ = sjson.Set(o, "item.call_id", effectiveCallID)
-						o, _ = sjson.Set(o, "item.name", st.FuncNames[idx])
-						out = append(out, FormatSSE("response.output_item.added", []byte(o)))
-					}
-
-					if st.FuncArgsBuf[idx] == nil {
-						st.FuncArgsBuf[idx] = &strings.Builder{}
-					}
-					if args := tcs.Get("0.function.arguments"); args.Exists() && args.String() != "" {
-						refCallID := st.FuncCallIDs[idx]
-						if refCallID == "" {
-							refCallID = newCallID
+					for tcIndex, tc := range tcs.Array() {
+						callIndex := tcIndex
+						if v := tc.Get("index"); v.Exists() {
+							callIndex = int(v.Int())
 						}
-						if refCallID != "" {
-							ad := `{"type":"response.function_call_arguments.delta","sequence_number":0,"item_id":"","output_index":0,"delta":""}`
-							ad, _ = sjson.Set(ad, "sequence_number", nextSeq())
-							ad, _ = sjson.Set(ad, "item_id", fmt.Sprintf("fc_%s", refCallID))
-							ad, _ = sjson.Set(ad, "output_index", idx)
-							ad, _ = sjson.Set(ad, "delta", args.String())
-							out = append(out, FormatSSE("response.function_call_arguments.delta", []byte(ad)))
+
+						newCallID := tc.Get("id").String()
+						nameChunk := tc.Get("function.name").String()
+						if nameChunk != "" {
+							st.FuncNames[callIndex] = nameChunk
 						}
-						st.FuncArgsBuf[idx].WriteString(args.String())
+						existingCallID := st.FuncCallIDs[callIndex]
+						effectiveCallID := existingCallID
+						shouldEmitItem := false
+						if existingCallID == "" && newCallID != "" {
+							effectiveCallID = newCallID
+							st.FuncCallIDs[callIndex] = newCallID
+							shouldEmitItem = true
+						}
+
+						if shouldEmitItem && effectiveCallID != "" {
+							o := `{"type":"response.output_item.added","sequence_number":0,"output_index":0,"item":{"id":"","type":"function_call","status":"in_progress","arguments":"","call_id":"","name":""}}`
+							o, _ = sjson.Set(o, "sequence_number", nextSeq())
+							o, _ = sjson.Set(o, "output_index", callIndex)
+							o, _ = sjson.Set(o, "item.id", fmt.Sprintf("fc_%s", effectiveCallID))
+							o, _ = sjson.Set(o, "item.call_id", effectiveCallID)
+							o, _ = sjson.Set(o, "item.name", st.FuncNames[callIndex])
+							out = append(out, FormatSSE("response.output_item.added", []byte(o)))
+						}
+
+						if st.FuncArgsBuf[callIndex] == nil {
+							st.FuncArgsBuf[callIndex] = &strings.Builder{}
+						}
+						if args := tc.Get("function.arguments"); args.Exists() && args.String() != "" {
+							refCallID := st.FuncCallIDs[callIndex]
+							if refCallID == "" {
+								refCallID = newCallID
+							}
+							if refCallID != "" {
+								ad := `{"type":"response.function_call_arguments.delta","sequence_number":0,"item_id":"","output_index":0,"delta":""}`
+								ad, _ = sjson.Set(ad, "sequence_number", nextSeq())
+								ad, _ = sjson.Set(ad, "item_id", fmt.Sprintf("fc_%s", refCallID))
+								ad, _ = sjson.Set(ad, "output_index", callIndex)
+								ad, _ = sjson.Set(ad, "delta", args.String())
+								out = append(out, FormatSSE("response.function_call_arguments.delta", []byte(ad)))
+							}
+							st.FuncArgsBuf[callIndex].WriteString(args.String())
+						}
 					}
 				}
 			}
