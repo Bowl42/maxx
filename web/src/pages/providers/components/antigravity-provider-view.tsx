@@ -286,10 +286,10 @@ export function AntigravityProviderView({
   }, [provider.config?.antigravity?.useCLIProxyAPI]);
 
   const handleToggleCLIProxyAPI = async (checked: boolean) => {
-    const prev = useCLIProxyAPI;
-    setUseCLIProxyAPI(checked);
     const antigravityConfig = provider.config?.antigravity;
     if (!antigravityConfig) return;
+    const prev = useCLIProxyAPI;
+    setUseCLIProxyAPI(checked);
     try {
       await updateProvider.mutateAsync({
         id: provider.id,

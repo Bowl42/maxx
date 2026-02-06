@@ -3,9 +3,12 @@ package cliproxyapi_codex
 import (
 	"bytes"
 	"context"
+	"encoding/json"
 	"fmt"
 	"log"
 	"net/http"
+	"strings"
+	"time"
 
 	"github.com/awsl-project/maxx/internal/adapter/provider"
 	ctxutil "github.com/awsl-project/maxx/internal/context"
@@ -92,8 +95,14 @@ func (a *CLIProxyAPICodexAdapter) executeNonStream(ctx context.Context, w http.R
 		return domain.NewProxyErrorWithMessage(err, true, fmt.Sprintf("executor request failed: %v", err))
 	}
 
-	// Extract and send token usage metrics
 	if eventChan := ctxutil.GetEventChan(ctx); eventChan != nil {
+		// Send response info
+		eventChan.SendResponseInfo(&domain.ResponseInfo{
+			Status: http.StatusOK,
+			Body:   string(resp.Payload),
+		})
+
+		// Extract and send token usage metrics
 		if metrics := usage.ExtractFromResponse(string(resp.Payload)); metrics != nil {
 			// Adjust for Codex: input_tokens includes cached_tokens
 			metrics = usage.AdjustForClientType(metrics, domain.ClientTypeCodex)
@@ -101,6 +110,11 @@ func (a *CLIProxyAPICodexAdapter) executeNonStream(ctx context.Context, w http.R
 				InputTokens:  metrics.InputTokens,
 				OutputTokens: metrics.OutputTokens,
 			})
+		}
+
+		// Extract and send response model
+		if model := extractModelFromResponse(resp.Payload); model != "" {
+			eventChan.SendResponseModel(model)
 		}
 	}
 
@@ -117,6 +131,8 @@ func (a *CLIProxyAPICodexAdapter) executeStream(ctx context.Context, w http.Resp
 		return a.executeNonStream(ctx, w, execReq, execOpts)
 	}
 
+	startTime := time.Now()
+
 	stream, err := a.executor.ExecuteStream(ctx, a.authObj, execReq, execOpts)
 	if err != nil {
 		return domain.NewProxyErrorWithMessage(err, true, fmt.Sprintf("executor stream request failed: %v", err))
@@ -128,27 +144,42 @@ func (a *CLIProxyAPICodexAdapter) executeStream(ctx context.Context, w http.Resp
 	w.Header().Set("Connection", "keep-alive")
 	w.WriteHeader(http.StatusOK)
 
+	eventChan := ctxutil.GetEventChan(ctx)
+
 	// Collect SSE content for token extraction
 	var sseBuffer bytes.Buffer
+	var streamErr error
+	firstChunkSent := false
 
 	for chunk := range stream {
 		if chunk.Err != nil {
 			log.Printf("[CLIProxyAPI-Codex] stream chunk error: %v", chunk.Err)
+			streamErr = chunk.Err
 			break
 		}
 		if len(chunk.Payload) > 0 {
-			// Collect for token extraction
+			// Payload from executor already includes SSE delimiters (\n\n)
 			sseBuffer.Write(chunk.Payload)
-			sseBuffer.WriteByte('\n')
-
 			_, _ = w.Write(chunk.Payload)
-			_, _ = w.Write([]byte("\n"))
 			flusher.Flush()
+
+			// Report TTFT on first non-empty chunk
+			if !firstChunkSent && eventChan != nil {
+				eventChan.SendFirstToken(time.Since(startTime).Milliseconds())
+				firstChunkSent = true
+			}
 		}
 	}
 
-	// Extract and send token usage metrics from collected SSE content
-	if eventChan := ctxutil.GetEventChan(ctx); eventChan != nil {
+	// Send final events
+	if eventChan != nil && sseBuffer.Len() > 0 {
+		// Send response info
+		eventChan.SendResponseInfo(&domain.ResponseInfo{
+			Status: http.StatusOK,
+			Body:   sseBuffer.String(),
+		})
+
+		// Extract and send token usage metrics
 		if metrics := usage.ExtractFromStreamContent(sseBuffer.String()); metrics != nil {
 			// Adjust for Codex: input_tokens includes cached_tokens
 			metrics = usage.AdjustForClientType(metrics, domain.ClientTypeCodex)
@@ -157,7 +188,49 @@ func (a *CLIProxyAPICodexAdapter) executeStream(ctx context.Context, w http.Resp
 				OutputTokens: metrics.OutputTokens,
 			})
 		}
+
+		// Extract and send response model
+		if model := extractModelFromSSE(sseBuffer.String()); model != "" {
+			eventChan.SendResponseModel(model)
+		}
+	}
+
+	// If error occurred before any data was sent, return error to caller
+	if streamErr != nil && sseBuffer.Len() == 0 {
+		return domain.NewProxyErrorWithMessage(streamErr, true, fmt.Sprintf("stream chunk error: %v", streamErr))
 	}
 
 	return nil
+}
+
+// extractModelFromResponse extracts the model field from a JSON response body.
+func extractModelFromResponse(body []byte) string {
+	var resp struct {
+		Model string `json:"model"`
+	}
+	if err := json.Unmarshal(body, &resp); err == nil && resp.Model != "" {
+		return resp.Model
+	}
+	return ""
+}
+
+// extractModelFromSSE extracts the last model field from accumulated SSE content.
+func extractModelFromSSE(sseContent string) string {
+	var lastModel string
+	for line := range strings.SplitSeq(sseContent, "\n") {
+		if !strings.HasPrefix(line, "data: ") {
+			continue
+		}
+		data := strings.TrimPrefix(line, "data: ")
+		if data == "[DONE]" {
+			continue
+		}
+		var chunk struct {
+			Model string `json:"model"`
+		}
+		if err := json.Unmarshal([]byte(data), &chunk); err == nil && chunk.Model != "" {
+			lastModel = chunk.Model
+		}
+	}
+	return lastModel
 }

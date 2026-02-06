@@ -360,9 +360,9 @@ export function CodexProviderView({ provider, onDelete, onClose }: CodexProvider
   }, [config?.useCLIProxyAPI]);
 
   const handleToggleCLIProxyAPI = async (checked: boolean) => {
+    if (!config) return;
     const prev = useCLIProxyAPI;
     setUseCLIProxyAPI(checked);
-    if (!config) return;
     try {
       await updateProvider.mutateAsync({
         id: provider.id,

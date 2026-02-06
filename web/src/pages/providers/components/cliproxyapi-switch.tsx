@@ -22,9 +22,10 @@ export function CLIProxyAPISwitch({ checked, onChange, disabled }: CLIProxyAPISw
         type="button"
         role="switch"
         aria-checked={checked}
+        aria-label={t('common.useCLIProxyAPI', 'Use CLIProxyAPI')}
         disabled={disabled}
         onClick={() => onChange(!checked)}
-        className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+        className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-primary ${
           disabled ? 'opacity-50 cursor-not-allowed' : ''
         } ${checked ? 'bg-primary' : 'bg-secondary'}`}
       >
