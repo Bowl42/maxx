@@ -123,11 +123,11 @@ export function RequestsPage() {
   const hasMore = data?.hasMore ?? false;
 
   // Create provider ID to name mapping
-  const providerMap = new Map(providers.map((p) => [p.id, p.name]));
+  const providerMap = useMemo(() => new Map(providers.map((p) => [p.id, p.name])), [providers]);
   // Create project ID to name mapping
-  const projectMap = new Map(projects.map((p) => [p.id, p.name]));
+  const projectMap = useMemo(() => new Map(projects.map((p) => [p.id, p.name])), [projects]);
   // Create API Token ID to name mapping
-  const tokenMap = new Map(apiTokens.map((t) => [t.id, t.name]));
+  const tokenMap = useMemo(() => new Map(apiTokens.map((t) => [t.id, t.name])), [apiTokens]);
 
   // 使用 totalCount
   const total = typeof totalCount === 'number' ? totalCount : 0;
@@ -319,7 +319,7 @@ export function RequestsPage() {
               <TableHeader className="bg-card/80 backdrop-blur-md sticky top-0 z-10 shadow-sm border-b border-border">
                 <TableRow className="hover:bg-transparent border-none text-sm">
                   <TableHead className="w-[180px] font-medium">{t('requests.time')}</TableHead>
-                  <TableHead className="w-[120px] font-medium">{t('requests.client')}</TableHead>
+                  <TableHead className="w-[120px] pr-4 font-medium">{t('requests.client')}</TableHead>
                   <TableHead className="min-w-[250px] font-medium">{t('requests.model')}</TableHead>
                   {hasProjects && (
                     <TableHead className="w-[100px] font-medium">{t('requests.project')}</TableHead>
@@ -730,7 +730,7 @@ function LogRow({
       </TableCell>
 
       {/* Client */}
-      <TableCell className="w-[120px] px-2 py-1">
+      <TableCell className="w-[120px] px-2 pr-4 py-1">
         <div className="flex items-center gap-1.5">
           <ClientIcon type={request.clientType} size={16} className="shrink-0" />
           <span className="text-sm text-foreground capitalize font-medium">
