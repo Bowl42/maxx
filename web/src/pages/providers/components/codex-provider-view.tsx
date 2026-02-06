@@ -535,7 +535,7 @@ export function CodexProviderView({ provider, onDelete, onClose }: CodexProvider
                 </div>
                 <div>
                   <div className="text-xs text-muted-foreground uppercase tracking-wider font-semibold mb-1.5">
-                    CLIProxyAPI
+                    {t('providers.cliProxyAPI')}
                   </div>
                   <CLIProxyAPISwitch
                     checked={useCLIProxyAPI}
