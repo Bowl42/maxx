@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import {
   Code2,
   Mail,
@@ -29,6 +29,7 @@ import type {
 } from '@/lib/transport';
 import { getTransport } from '@/lib/transport';
 import {
+  useUpdateProvider,
   useModelMappings,
   useCreateModelMapping,
   useUpdateModelMapping,
@@ -38,6 +39,7 @@ import { Button } from '@/components/ui';
 import { ModelInput } from '@/components/ui/model-input';
 import { CODEX_COLOR } from '../types';
 import { useCodexBatchQuotas } from '@/hooks/queries';
+import { CLIProxyAPISwitch } from './cliproxyapi-switch';
 
 interface CodexProviderViewProps {
   provider: Provider;
@@ -347,6 +349,38 @@ export function CodexProviderView({ provider, onDelete, onClose }: CodexProvider
   const [tokenCopied, setTokenCopied] = useState(false);
 
   const config = provider.config?.codex;
+  const updateProvider = useUpdateProvider();
+
+  const [useCLIProxyAPI, setUseCLIProxyAPI] = useState(
+    () => config?.useCLIProxyAPI ?? false,
+  );
+
+  useEffect(() => {
+    setUseCLIProxyAPI(config?.useCLIProxyAPI ?? false);
+  }, [config?.useCLIProxyAPI]);
+
+  const handleToggleCLIProxyAPI = async (checked: boolean) => {
+    const prev = useCLIProxyAPI;
+    setUseCLIProxyAPI(checked);
+    if (!config) return;
+    try {
+      await updateProvider.mutateAsync({
+        id: provider.id,
+        data: {
+          ...provider,
+          config: {
+            ...provider.config,
+            codex: {
+              ...config,
+              useCLIProxyAPI: checked,
+            },
+          },
+        },
+      });
+    } catch {
+      setUseCLIProxyAPI(prev);
+    }
+  };
 
   const handleCopyToken = async () => {
     const token = config?.refreshToken;
@@ -477,25 +511,37 @@ export function CodexProviderView({ provider, onDelete, onClose }: CodexProvider
             </div>
 
             {config?.refreshToken && (
-              <div className="mt-6 pt-6 border-t border-border/50">
-                <div className="text-xs text-muted-foreground uppercase tracking-wider font-semibold mb-1.5">
-                  {t('providers.refreshToken')}
-                </div>
-                <div className="flex items-center gap-2">
-                  <div className="font-mono text-sm text-foreground bg-card px-2 py-1 rounded border border-border/50 flex-1 truncate">
-                    {config.refreshToken.slice(0, 30)}...
+              <div className="mt-6 pt-6 border-t border-border/50 grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <div className="text-xs text-muted-foreground uppercase tracking-wider font-semibold mb-1.5">
+                    {t('providers.refreshToken')}
                   </div>
-                  <button
-                    onClick={handleCopyToken}
-                    className="p-1.5 rounded-lg hover:bg-accent text-muted-foreground hover:text-foreground transition-colors"
-                    title={t('common.copy')}
-                  >
-                    {tokenCopied ? (
-                      <Check size={16} className="text-green-500" />
-                    ) : (
-                      <Copy size={16} />
-                    )}
-                  </button>
+                  <div className="flex items-center gap-2">
+                    <div className="font-mono text-sm text-foreground bg-card px-2 py-1 rounded border border-border/50 flex-1 truncate">
+                      {config.refreshToken.slice(0, 30)}...
+                    </div>
+                    <button
+                      onClick={handleCopyToken}
+                      className="p-1.5 rounded-lg hover:bg-accent text-muted-foreground hover:text-foreground transition-colors"
+                      title={t('common.copy')}
+                    >
+                      {tokenCopied ? (
+                        <Check size={16} className="text-green-500" />
+                      ) : (
+                        <Copy size={16} />
+                      )}
+                    </button>
+                  </div>
+                </div>
+                <div>
+                  <div className="text-xs text-muted-foreground uppercase tracking-wider font-semibold mb-1.5">
+                    CLIProxyAPI
+                  </div>
+                  <CLIProxyAPISwitch
+                    checked={useCLIProxyAPI}
+                    onChange={handleToggleCLIProxyAPI}
+                    disabled={updateProvider.isPending}
+                  />
                 </div>
               </div>
             )}

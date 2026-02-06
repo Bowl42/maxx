@@ -28,6 +28,7 @@ export interface ProviderConfigAntigravity {
   projectID: string;
   endpoint: string;
   modelMapping?: Record<string, string>;
+  useCLIProxyAPI?: boolean;
 }
 
 export interface ProviderConfigKiro {
@@ -53,6 +54,7 @@ export interface ProviderConfigCodex {
   subscriptionStart?: string;
   subscriptionEnd?: string;
   modelMapping?: Record<string, string>;
+  useCLIProxyAPI?: boolean;
 }
 
 export interface ProviderConfig {

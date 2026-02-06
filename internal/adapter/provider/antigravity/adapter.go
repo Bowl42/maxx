@@ -15,6 +15,7 @@ import (
 	"time"
 
 	"github.com/awsl-project/maxx/internal/adapter/provider"
+	cliproxyapi "github.com/awsl-project/maxx/internal/adapter/provider/cliproxyapi_antigravity"
 	ctxutil "github.com/awsl-project/maxx/internal/context"
 	"github.com/awsl-project/maxx/internal/domain"
 	"github.com/awsl-project/maxx/internal/usage"
@@ -41,6 +42,27 @@ func NewAdapter(p *domain.Provider) (provider.ProviderAdapter, error) {
 	if p.Config == nil || p.Config.Antigravity == nil {
 		return nil, fmt.Errorf("provider %s missing antigravity config", p.Name)
 	}
+
+	// If UseCLIProxyAPI is enabled, directly return CLIProxyAPI adapter
+	if p.Config.Antigravity.UseCLIProxyAPI {
+		cliproxyapiProvider := &domain.Provider{
+			ID:                   p.ID,
+			Name:                 p.Name,
+			Type:                 "cliproxyapi-antigravity",
+			SupportedClientTypes: p.SupportedClientTypes,
+			Config: &domain.ProviderConfig{
+				CLIProxyAPIAntigravity: &domain.ProviderConfigCLIProxyAPIAntigravity{
+					Email:        p.Config.Antigravity.Email,
+					RefreshToken: p.Config.Antigravity.RefreshToken,
+					ProjectID:    p.Config.Antigravity.ProjectID,
+					ModelMapping: p.Config.Antigravity.ModelMapping,
+					HaikuTarget:  p.Config.Antigravity.HaikuTarget,
+				},
+			},
+		}
+		return cliproxyapi.NewAdapter(cliproxyapiProvider)
+	}
+
 	return &AntigravityAdapter{
 		provider:   p,
 		tokenCache: &TokenCache{},
