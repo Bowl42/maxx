@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"github.com/awsl-project/maxx/internal/adapter/provider"
+	cliproxyapi "github.com/awsl-project/maxx/internal/adapter/provider/cliproxyapi_codex"
 	ctxutil "github.com/awsl-project/maxx/internal/context"
 	"github.com/awsl-project/maxx/internal/domain"
 	"github.com/awsl-project/maxx/internal/usage"
@@ -50,6 +51,26 @@ func NewAdapter(p *domain.Provider) (provider.ProviderAdapter, error) {
 		return nil, fmt.Errorf("provider %s missing codex config", p.Name)
 	}
 
+	config := p.Config.Codex
+
+	// If UseCLIProxyAPI is enabled, directly return CLIProxyAPI adapter
+	if config.UseCLIProxyAPI {
+		cliproxyapiProvider := &domain.Provider{
+			ID:                   p.ID,
+			Name:                 p.Name,
+			Type:                 "cliproxyapi-codex",
+			SupportedClientTypes: p.SupportedClientTypes,
+			Config: &domain.ProviderConfig{
+				CLIProxyAPICodex: &domain.ProviderConfigCLIProxyAPICodex{
+					Email:        config.Email,
+					RefreshToken: config.RefreshToken,
+					ModelMapping: config.ModelMapping,
+				},
+			},
+		}
+		return cliproxyapi.NewAdapter(cliproxyapiProvider)
+	}
+
 	adapter := &CodexAdapter{
 		provider:   p,
 		tokenCache: &TokenCache{},
@@ -57,7 +78,6 @@ func NewAdapter(p *domain.Provider) (provider.ProviderAdapter, error) {
 	}
 
 	// Initialize token cache from persisted config if available
-	config := p.Config.Codex
 	if config.AccessToken != "" && config.ExpiresAt != "" {
 		expiresAt, err := time.Parse(time.RFC3339, config.ExpiresAt)
 		if err == nil && time.Now().Before(expiresAt) {

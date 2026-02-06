@@ -55,7 +55,8 @@
     "noActivity": "No Activity",
     "clear": "Clear",
     "unknown": "Unknown",
-    "back": "Back"
+    "back": "Back",
+    "useCLIProxyAPI": "Use CLIProxyAPI"
   },
   "clientTypes": {
     "claude": "Claude",
@@ -271,6 +272,7 @@
     "enabled": "Enabled",
     "noClientsConfigured": "No clients configured",
     "refreshToken": "Refresh Token",
+    "cliProxyAPI": "CLIProxyAPI",
     "supportModels": {
       "title": "Supported Models",
       "desc": "Configure which models this provider supports. If empty, all models are supported. Supports wildcards like claude-* or gemini-*.",

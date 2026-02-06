@@ -28,6 +28,7 @@ import { cn } from '@/lib/utils';
 import { useProviderNavigation } from '../hooks/use-provider-navigation';
 import { useCreateProvider } from '@/hooks/queries';
 import { useTranslation } from 'react-i18next';
+import { CLIProxyAPISwitch } from './cliproxyapi-switch';
 
 type ImportMode = 'oauth' | 'token';
 type OAuthStatus = 'idle' | 'waiting' | 'success' | 'error';
@@ -43,6 +44,9 @@ export function CodexTokenImport() {
   const [creating, setCreating] = useState(false);
   const [validationResult, setValidationResult] = useState<CodexTokenValidationResult | null>(null);
   const [error, setError] = useState<string | null>(null);
+
+  // CLIProxyAPI 开关
+  const [useCLIProxyAPI, setUseCLIProxyAPI] = useState(false);
 
   // OAuth state
   const [oauthStatus, setOAuthStatus] = useState<OAuthStatus>('idle');
@@ -245,6 +249,7 @@ export function CodexTokenImport() {
             planType: oauthResult.planType,
             subscriptionStart: oauthResult.subscriptionStart,
             subscriptionEnd: oauthResult.subscriptionEnd,
+            useCLIProxyAPI,
           },
         },
       };
@@ -287,6 +292,7 @@ export function CodexTokenImport() {
             planType: validationResult.planType,
             subscriptionStart: validationResult.subscriptionStart,
             subscriptionEnd: validationResult.subscriptionEnd,
+            useCLIProxyAPI,
           },
         },
       };
@@ -325,6 +331,9 @@ export function CodexTokenImport() {
               {t('providers.codexTokenImport.connectDescription')}
             </p>
           </div>
+
+          {/* CLIProxyAPI Switch */}
+          <CLIProxyAPISwitch checked={useCLIProxyAPI} onChange={setUseCLIProxyAPI} />
 
           {/* Mode Tabs */}
           <div className="flex gap-2 p-1 bg-muted rounded-lg">

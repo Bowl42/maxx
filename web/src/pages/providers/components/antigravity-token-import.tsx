@@ -25,6 +25,7 @@ import { cn } from '@/lib/utils';
 import { useProviderNavigation } from '../hooks/use-provider-navigation';
 import { useCreateProvider } from '@/hooks/queries';
 import { useTranslation } from 'react-i18next';
+import { CLIProxyAPISwitch } from './cliproxyapi-switch';
 
 type ImportMode = 'oauth' | 'token';
 type OAuthStatus = 'idle' | 'waiting' | 'success' | 'error';
@@ -42,6 +43,9 @@ export function AntigravityTokenImport() {
     null,
   );
   const [error, setError] = useState<string | null>(null);
+
+  // CLIProxyAPI 开关
+  const [useCLIProxyAPI, setUseCLIProxyAPI] = useState(false);
 
   // OAuth state
   const [oauthStatus, setOAuthStatus] = useState<OAuthStatus>('idle');
@@ -178,6 +182,7 @@ export function AntigravityTokenImport() {
             endpoint: validationResult.projectID
               ? `https://us-central1-aiplatform.googleapis.com/v1/projects/${validationResult.projectID}/locations/us-central1`
               : '',
+            useCLIProxyAPI,
           },
         },
       };
@@ -216,6 +221,7 @@ export function AntigravityTokenImport() {
             endpoint: oauthResult.projectID
               ? `https://us-central1-aiplatform.googleapis.com/v1/projects/${oauthResult.projectID}/locations/us-central1`
               : '',
+            useCLIProxyAPI,
           },
         },
       };
@@ -252,6 +258,9 @@ export function AntigravityTokenImport() {
               {t('providers.antigravityTokenImport.chooseMethodDesc')}
             </p>
           </div>
+
+          {/* CLIProxyAPI Switch */}
+          <CLIProxyAPISwitch checked={useCLIProxyAPI} onChange={setUseCLIProxyAPI} />
 
           {/* Mode Selector */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

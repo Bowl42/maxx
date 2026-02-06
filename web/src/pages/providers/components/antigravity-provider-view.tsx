@@ -24,6 +24,7 @@ import type {
 } from '@/lib/transport';
 import { getTransport } from '@/lib/transport';
 import {
+  useUpdateProvider,
   useModelMappings,
   useCreateModelMapping,
   useUpdateModelMapping,
@@ -32,6 +33,7 @@ import {
 import { Button } from '@/components/ui';
 import { ModelInput } from '@/components/ui/model-input';
 import { ANTIGRAVITY_COLOR } from '../types';
+import { CLIProxyAPISwitch } from './cliproxyapi-switch';
 
 interface AntigravityProviderViewProps {
   provider: Provider;
@@ -273,6 +275,39 @@ export function AntigravityProviderView({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [tokenCopied, setTokenCopied] = useState(false);
+  const updateProvider = useUpdateProvider();
+
+  const [useCLIProxyAPI, setUseCLIProxyAPI] = useState(
+    () => provider.config?.antigravity?.useCLIProxyAPI ?? false,
+  );
+
+  useEffect(() => {
+    setUseCLIProxyAPI(provider.config?.antigravity?.useCLIProxyAPI ?? false);
+  }, [provider.config?.antigravity?.useCLIProxyAPI]);
+
+  const handleToggleCLIProxyAPI = async (checked: boolean) => {
+    const antigravityConfig = provider.config?.antigravity;
+    if (!antigravityConfig) return;
+    const prev = useCLIProxyAPI;
+    setUseCLIProxyAPI(checked);
+    try {
+      await updateProvider.mutateAsync({
+        id: provider.id,
+        data: {
+          ...provider,
+          config: {
+            ...provider.config,
+            antigravity: {
+              ...antigravityConfig,
+              useCLIProxyAPI: checked,
+            },
+          },
+        },
+      });
+    } catch {
+      setUseCLIProxyAPI(prev);
+    }
+  };
 
   const handleCopyToken = async () => {
     const token = provider.config?.antigravity?.refreshToken;
@@ -390,6 +425,16 @@ export function AntigravityProviderView({
                   </div>
                 </div>
               )}
+              <div>
+                <div className="text-xs text-muted-foreground uppercase tracking-wider font-semibold mb-1.5">
+                  {t('providers.cliProxyAPI')}
+                </div>
+                <CLIProxyAPISwitch
+                  checked={useCLIProxyAPI}
+                  onChange={handleToggleCLIProxyAPI}
+                  disabled={updateProvider.isPending}
+                />
+              </div>
             </div>
           </div>
 

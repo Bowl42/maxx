@@ -62,6 +62,9 @@ type ProviderConfigAntigravity struct {
 	// Haiku 模型映射目标 (默认 "gemini-2.5-flash-lite" 省钱，可选 "claude-sonnet-4-5" 更强)
 	// 空值使用默认 gemini-2.5-flash-lite
 	HaikuTarget string `json:"haikuTarget,omitempty"`
+
+	// 使用 CLIProxyAPI 转发
+	UseCLIProxyAPI bool `json:"useCLIProxyAPI,omitempty"`
 }
 
 type ProviderConfigKiro struct {
@@ -119,13 +122,51 @@ type ProviderConfigCodex struct {
 
 	// Model 映射: RequestModel → MappedModel
 	ModelMapping map[string]string `json:"modelMapping,omitempty"`
+
+	// 使用 CLIProxyAPI 转发
+	UseCLIProxyAPI bool `json:"useCLIProxyAPI,omitempty"`
+}
+
+// ProviderConfigCLIProxyAPIAntigravity CLIProxyAPI Antigravity 内部配置
+// 用于 useCLIProxyAPI=true 时传递给 CLIProxyAPI adapter
+type ProviderConfigCLIProxyAPIAntigravity struct {
+	// 邮箱（用于标识帐号）
+	Email string `json:"email"`
+
+	// Google OAuth refresh_token
+	RefreshToken string `json:"refreshToken"`
+
+	// Google Cloud Project ID
+	ProjectID string `json:"projectID,omitempty"`
+
+	// Model 映射: RequestModel → MappedModel
+	ModelMapping map[string]string `json:"modelMapping,omitempty"`
+
+	// Haiku 模型映射目标 (默认 "gemini-2.5-flash-lite" 省钱)
+	HaikuTarget string `json:"haikuTarget,omitempty"`
+}
+
+// ProviderConfigCLIProxyAPICodex CLIProxyAPI Codex 内部配置
+// 用于 useCLIProxyAPI=true 时传递给 CLIProxyAPI adapter
+type ProviderConfigCLIProxyAPICodex struct {
+	// 邮箱（用于标识帐号）
+	Email string `json:"email"`
+
+	// OpenAI OAuth refresh_token
+	RefreshToken string `json:"refreshToken"`
+
+	// Model 映射: RequestModel → MappedModel
+	ModelMapping map[string]string `json:"modelMapping,omitempty"`
 }
 
 type ProviderConfig struct {
-	Custom      *ProviderConfigCustom      `json:"custom,omitempty"`
-	Antigravity *ProviderConfigAntigravity `json:"antigravity,omitempty"`
-	Kiro        *ProviderConfigKiro        `json:"kiro,omitempty"`
-	Codex       *ProviderConfigCodex       `json:"codex,omitempty"`
+	Custom                 *ProviderConfigCustom                 `json:"custom,omitempty"`
+	Antigravity            *ProviderConfigAntigravity            `json:"antigravity,omitempty"`
+	Kiro                   *ProviderConfigKiro                   `json:"kiro,omitempty"`
+	Codex                  *ProviderConfigCodex                  `json:"codex,omitempty"`
+	// 内部运行时字段，仅用于 NewAdapter 委托，不序列化
+	CLIProxyAPIAntigravity *ProviderConfigCLIProxyAPIAntigravity `json:"-"`
+	CLIProxyAPICodex       *ProviderConfigCLIProxyAPICodex       `json:"-"`
 }
 
 // Provider 供应商

@@ -55,7 +55,8 @@
     "noActivity": "暂无活动",
     "clear": "清除",
     "unknown": "未知",
-    "back": "返回"
+    "back": "返回",
+    "useCLIProxyAPI": "使用 CLIProxyAPI"
   },
   "clientTypes": {
     "claude": "Claude",
@@ -271,6 +272,7 @@
     "enabled": "已启用",
     "noClientsConfigured": "未配置客户端",
     "refreshToken": "刷新令牌",
+    "cliProxyAPI": "CLIProxyAPI",
     "supportModels": {
       "title": "支持的模型",
       "desc": "配置此提供商支持的模型。如果为空，则支持所有模型。支持通配符，如 claude-* 或 gemini-*。",
