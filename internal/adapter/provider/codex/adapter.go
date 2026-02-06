@@ -672,7 +672,8 @@ func extractModelFromSSE(sseContent string) string {
 }
 
 func isSSEPayload(body []byte) bool {
-	return bytes.HasPrefix(bytes.TrimSpace(body), []byte("data:"))
+	trimmed := bytes.TrimSpace(body)
+	return bytes.HasPrefix(trimmed, []byte("data:")) || bytes.HasPrefix(trimmed, []byte("event:"))
 }
 
 func extractCodexCompletedResponse(body []byte) []byte {
