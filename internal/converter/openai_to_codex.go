@@ -325,7 +325,9 @@ func (c *openaiToCodexResponse) TransformWithState(body []byte, state *Transform
 				resp, _ = sjson.Set(resp, "usage.input_tokens_details.cached_tokens", d.Int())
 			}
 			resp, _ = sjson.Set(resp, "usage.output_tokens", usage.Get("completion_tokens").Int())
-			if d := usage.Get("output_tokens_details.reasoning_tokens"); d.Exists() {
+			if d := usage.Get("completion_tokens_details.reasoning_tokens"); d.Exists() {
+				resp, _ = sjson.Set(resp, "usage.output_tokens_details.reasoning_tokens", d.Int())
+			} else if d := usage.Get("output_tokens_details.reasoning_tokens"); d.Exists() {
 				resp, _ = sjson.Set(resp, "usage.output_tokens_details.reasoning_tokens", d.Int())
 			}
 			resp, _ = sjson.Set(resp, "usage.total_tokens", usage.Get("total_tokens").Int())
@@ -341,6 +343,9 @@ func (c *openaiToCodexResponse) TransformWithState(body []byte, state *Transform
 }
 
 func (c *openaiToCodexResponse) TransformChunk(chunk []byte, state *TransformState) ([]byte, error) {
+	if state == nil {
+		return nil, fmt.Errorf("TransformChunk requires non-nil state")
+	}
 	events, remaining := ParseSSE(state.Buffer + string(chunk))
 	state.Buffer = remaining
 

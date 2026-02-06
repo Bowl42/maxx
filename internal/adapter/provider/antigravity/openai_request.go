@@ -309,6 +309,7 @@ func ConvertOpenAIRequestToAntigravity(modelName string, inputRawJSON []byte, _ 
 						renamed, errRename := RenameKey(fnRaw, "parameters", "parametersJsonSchema")
 						if errRename != nil {
 							log.Printf("failed to rename parameters for tool '%s': %v", fn.Get("name").String(), errRename)
+							fnRaw, _ = sjson.Delete(fnRaw, "parameters")
 							var errSet error
 							fnRaw, errSet = sjson.Set(fnRaw, "parametersJsonSchema.type", "object")
 							if errSet != nil {
