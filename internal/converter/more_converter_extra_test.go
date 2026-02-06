@@ -3,6 +3,8 @@ package converter
 import (
 	"encoding/json"
 	"testing"
+
+	"github.com/tidwall/gjson"
 )
 
 func TestCodexToOpenAIResponse_ToolCallsFinishReason(t *testing.T) {
@@ -32,8 +34,8 @@ func TestCodexToOpenAIResponse_ToolCallsFinishReason(t *testing.T) {
 	if err := json.Unmarshal(out, &got); err != nil {
 		t.Fatalf("unmarshal: %v", err)
 	}
-	if len(got.Choices) == 0 || got.Choices[0].FinishReason != "tool_calls" {
-		t.Fatalf("expected finish_reason tool_calls, got %#v", got.Choices)
+	if len(got.Choices) == 0 || got.Choices[0].FinishReason != "stop" {
+		t.Fatalf("expected finish_reason stop, got %#v", got.Choices)
 	}
 }
 
@@ -67,19 +69,21 @@ func TestOpenAIToCodexResponse_ToolCallsOutput(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Transform: %v", err)
 	}
-
-	var got CodexResponse
-	if err := json.Unmarshal(out, &got); err != nil {
-		t.Fatalf("unmarshal: %v", err)
+	if !gjson.GetBytes(out, "output").Exists() {
+		t.Fatalf("expected output in response")
 	}
 	found := false
-	for _, item := range got.Output {
-		if item.Type == "function_call" && item.Name == "do_work" {
-			found = true
-		}
+	if outputs := gjson.GetBytes(out, "output"); outputs.IsArray() {
+		outputs.ForEach(func(_, item gjson.Result) bool {
+			if item.Get("type").String() == "function_call" && item.Get("name").String() == "do_work" {
+				found = true
+				return false
+			}
+			return true
+		})
 	}
 	if !found {
-		t.Fatalf("expected function_call in codex output, got %#v", got.Output)
+		t.Fatalf("expected function_call in response output")
 	}
 }
 

@@ -1,10 +1,14 @@
 package antigravity
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"net/http"
 	"strings"
+
+	"github.com/tidwall/gjson"
+	"github.com/tidwall/sjson"
 )
 
 // Response headers to exclude when copying
@@ -112,6 +116,190 @@ func isRetryableStatusCode(code int) bool {
 	default:
 		return false
 	}
+}
+
+// convertStreamToNonStream collects Gemini SSE stream into a single response payload.
+// Ported from CLIProxyAPI Antigravity convertStreamToNonStream.
+func convertStreamToNonStream(stream []byte) []byte {
+	responseTemplate := ""
+	var traceID string
+	var finishReason string
+	var modelVersion string
+	var responseID string
+	var role string
+	var usageRaw string
+	parts := make([]map[string]interface{}, 0)
+	var pendingKind string
+	var pendingText strings.Builder
+	var pendingThoughtSig string
+
+	flushPending := func() {
+		if pendingKind == "" {
+			return
+		}
+		text := pendingText.String()
+		switch pendingKind {
+		case "text":
+			if strings.TrimSpace(text) == "" {
+				pendingKind = ""
+				pendingText.Reset()
+				pendingThoughtSig = ""
+				return
+			}
+			parts = append(parts, map[string]interface{}{"text": text})
+		case "thought":
+			if strings.TrimSpace(text) == "" && pendingThoughtSig == "" {
+				pendingKind = ""
+				pendingText.Reset()
+				pendingThoughtSig = ""
+				return
+			}
+			part := map[string]interface{}{"thought": true}
+			part["text"] = text
+			if pendingThoughtSig != "" {
+				part["thoughtSignature"] = pendingThoughtSig
+			}
+			parts = append(parts, part)
+		}
+		pendingKind = ""
+		pendingText.Reset()
+		pendingThoughtSig = ""
+	}
+
+	normalizePart := func(partResult gjson.Result) map[string]interface{} {
+		var m map[string]interface{}
+		_ = json.Unmarshal([]byte(partResult.Raw), &m)
+		if m == nil {
+			m = map[string]interface{}{}
+		}
+		sig := partResult.Get("thoughtSignature").String()
+		if sig == "" {
+			sig = partResult.Get("thought_signature").String()
+		}
+		if sig != "" {
+			m["thoughtSignature"] = sig
+			delete(m, "thought_signature")
+		}
+		if inlineData, ok := m["inline_data"]; ok {
+			m["inlineData"] = inlineData
+			delete(m, "inline_data")
+		}
+		return m
+	}
+
+	for _, line := range bytes.Split(stream, []byte("\n")) {
+		trimmed := bytes.TrimSpace(line)
+		if len(trimmed) == 0 || !gjson.ValidBytes(trimmed) {
+			continue
+		}
+
+		root := gjson.ParseBytes(trimmed)
+		responseNode := root.Get("response")
+		if !responseNode.Exists() {
+			if root.Get("candidates").Exists() {
+				responseNode = root
+			} else {
+				continue
+			}
+		}
+		responseTemplate = responseNode.Raw
+
+		if traceResult := root.Get("traceId"); traceResult.Exists() && traceResult.String() != "" {
+			traceID = traceResult.String()
+		}
+
+		if roleResult := responseNode.Get("candidates.0.content.role"); roleResult.Exists() {
+			role = roleResult.String()
+		}
+
+		if finishResult := responseNode.Get("candidates.0.finishReason"); finishResult.Exists() && finishResult.String() != "" {
+			finishReason = finishResult.String()
+		}
+
+		if modelResult := responseNode.Get("modelVersion"); modelResult.Exists() && modelResult.String() != "" {
+			modelVersion = modelResult.String()
+		}
+		if responseIDResult := responseNode.Get("responseId"); responseIDResult.Exists() && responseIDResult.String() != "" {
+			responseID = responseIDResult.String()
+		}
+		if usageResult := responseNode.Get("usageMetadata"); usageResult.Exists() {
+			usageRaw = usageResult.Raw
+		} else if usageMetadataResult := root.Get("usageMetadata"); usageMetadataResult.Exists() {
+			usageRaw = usageMetadataResult.Raw
+		}
+
+		if partsResult := responseNode.Get("candidates.0.content.parts"); partsResult.IsArray() {
+			for _, part := range partsResult.Array() {
+				hasFunctionCall := part.Get("functionCall").Exists()
+				hasInlineData := part.Get("inlineData").Exists() || part.Get("inline_data").Exists()
+				sig := part.Get("thoughtSignature").String()
+				if sig == "" {
+					sig = part.Get("thought_signature").String()
+				}
+				text := part.Get("text").String()
+				thought := part.Get("thought").Bool()
+
+				if hasFunctionCall || hasInlineData {
+					flushPending()
+					parts = append(parts, normalizePart(part))
+					continue
+				}
+
+				if thought || part.Get("text").Exists() {
+					kind := "text"
+					if thought {
+						kind = "thought"
+					}
+					if pendingKind != "" && pendingKind != kind {
+						flushPending()
+					}
+					pendingKind = kind
+					pendingText.WriteString(text)
+					if kind == "thought" && sig != "" {
+						pendingThoughtSig = sig
+					}
+					continue
+				}
+
+				flushPending()
+				parts = append(parts, normalizePart(part))
+			}
+		}
+	}
+	flushPending()
+
+	if responseTemplate == "" {
+		responseTemplate = `{"candidates":[{"content":{"role":"model","parts":[]}}]}`
+	}
+
+	partsJSON, _ := json.Marshal(parts)
+	responseTemplate, _ = sjson.SetRaw(responseTemplate, "candidates.0.content.parts", string(partsJSON))
+	if role != "" {
+		responseTemplate, _ = sjson.Set(responseTemplate, "candidates.0.content.role", role)
+	}
+	if finishReason != "" {
+		responseTemplate, _ = sjson.Set(responseTemplate, "candidates.0.finishReason", finishReason)
+	}
+	if modelVersion != "" {
+		responseTemplate, _ = sjson.Set(responseTemplate, "modelVersion", modelVersion)
+	}
+	if responseID != "" {
+		responseTemplate, _ = sjson.Set(responseTemplate, "responseId", responseID)
+	}
+	if usageRaw != "" {
+		responseTemplate, _ = sjson.SetRaw(responseTemplate, "usageMetadata", usageRaw)
+	} else if !gjson.Get(responseTemplate, "usageMetadata").Exists() {
+		responseTemplate, _ = sjson.Set(responseTemplate, "usageMetadata.promptTokenCount", 0)
+		responseTemplate, _ = sjson.Set(responseTemplate, "usageMetadata.candidatesTokenCount", 0)
+		responseTemplate, _ = sjson.Set(responseTemplate, "usageMetadata.totalTokenCount", 0)
+	}
+
+	output := `{"response":{},"traceId":""}`
+	output, _ = sjson.SetRaw(output, "response", responseTemplate)
+	if traceID != "" {
+		output, _ = sjson.Set(output, "traceId", traceID)
+	}
+	return []byte(output)
 }
 
 // convertGeminiToClaudeResponse converts a non-streaming Gemini response to Claude format

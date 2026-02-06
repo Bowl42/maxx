@@ -9,13 +9,15 @@ import (
 
 // TransformState holds state for streaming response conversion
 type TransformState struct {
-	MessageID        string
-	CurrentIndex     int
-	CurrentBlockType string // "text", "thinking", "tool_use"
-	ToolCalls        map[int]*ToolCallState
-	Buffer           string // SSE line buffer
-	Usage            *Usage
-	StopReason       string
+	MessageID           string
+	CurrentIndex        int
+	CurrentBlockType    string // "text", "thinking", "tool_use"
+	ToolCalls           map[int]*ToolCallState
+	Buffer              string // SSE line buffer
+	Usage               *Usage
+	StopReason          string
+	Custom              interface{}
+	OriginalRequestBody []byte
 }
 
 // ToolCallState tracks tool call conversion state
@@ -45,6 +47,10 @@ type ResponseTransformer interface {
 	Transform(body []byte) ([]byte, error)
 	// TransformChunk converts a streaming SSE chunk
 	TransformChunk(chunk []byte, state *TransformState) ([]byte, error)
+}
+
+type ResponseTransformerWithState interface {
+	TransformWithState(body []byte, state *TransformState) ([]byte, error)
 }
 
 // Registry holds all format converters
@@ -127,6 +133,26 @@ func (r *Registry) TransformResponse(from, to domain.ClientType, body []byte) ([
 	transformer := fromMap[to]
 	if transformer == nil {
 		return nil, fmt.Errorf("no response transformer from %s to %s", from, to)
+	}
+	return transformer.Transform(body)
+}
+
+// TransformResponseWithState converts a non-streaming response with state
+func (r *Registry) TransformResponseWithState(from, to domain.ClientType, body []byte, state *TransformState) ([]byte, error) {
+	if from == to {
+		return body, nil
+	}
+
+	fromMap := r.responses[from]
+	if fromMap == nil {
+		return nil, fmt.Errorf("no response transformer from %s", from)
+	}
+	transformer := fromMap[to]
+	if transformer == nil {
+		return nil, fmt.Errorf("no response transformer from %s to %s", from, to)
+	}
+	if withState, ok := transformer.(ResponseTransformerWithState); ok {
+		return withState.TransformWithState(body, state)
 	}
 	return transformer.Transform(body)
 }

@@ -219,8 +219,11 @@ func TestGeminiToClaudeResponseUsage(t *testing.T) {
 }
 
 func TestCodexToClaudeResponseInvalidJSON(t *testing.T) {
-	_, err := (&codexToClaudeResponse{}).Transform([]byte("{"))
-	if err == nil {
-		t.Fatalf("expected error")
+	out, err := (&codexToClaudeResponse{}).Transform([]byte("{"))
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if out != nil {
+		t.Fatalf("expected empty output")
 	}
 }

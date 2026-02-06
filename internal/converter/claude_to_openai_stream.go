@@ -3,7 +3,13 @@ package converter
 import (
 	"encoding/json"
 	"time"
+
+	"github.com/tidwall/gjson"
 )
+
+type claudeOpenAIStreamMeta struct {
+	Model string
+}
 
 func (c *claudeToOpenAIResponse) TransformChunk(chunk []byte, state *TransformState) ([]byte, error) {
 	events, remaining := ParseSSE(state.Buffer + string(chunk))
@@ -23,6 +29,16 @@ func (c *claudeToOpenAIResponse) TransformChunk(chunk []byte, state *TransformSt
 
 		switch claudeEvent.Type {
 		case "message_start":
+			streamMeta, _ := state.Custom.(*claudeOpenAIStreamMeta)
+			if streamMeta == nil {
+				streamMeta = &claudeOpenAIStreamMeta{}
+				state.Custom = streamMeta
+			}
+			if streamMeta.Model == "" && len(state.OriginalRequestBody) > 0 {
+				if reqModel := gjson.GetBytes(state.OriginalRequestBody, "model"); reqModel.Exists() && reqModel.String() != "" {
+					streamMeta.Model = reqModel.String()
+				}
+			}
 			if claudeEvent.Message != nil {
 				state.MessageID = claudeEvent.Message.ID
 			}
@@ -30,6 +46,7 @@ func (c *claudeToOpenAIResponse) TransformChunk(chunk []byte, state *TransformSt
 				ID:      state.MessageID,
 				Object:  "chat.completion.chunk",
 				Created: time.Now().Unix(),
+				Model:   streamMeta.Model,
 				Choices: []OpenAIChoice{{
 					Index: 0,
 					Delta: &OpenAIMessage{Role: "assistant", Content: ""},
@@ -56,25 +73,29 @@ func (c *claudeToOpenAIResponse) TransformChunk(chunk []byte, state *TransformSt
 			if claudeEvent.Delta != nil {
 				switch claudeEvent.Delta.Type {
 				case "text_delta":
+					streamMeta, _ := state.Custom.(*claudeOpenAIStreamMeta)
 					chunk := OpenAIStreamChunk{
 						ID:      state.MessageID,
 						Object:  "chat.completion.chunk",
 						Created: time.Now().Unix(),
+						Model:   streamMeta.Model,
 						Choices: []OpenAIChoice{{
 							Index: 0,
-							Delta: &OpenAIMessage{Content: claudeEvent.Delta.Text},
+							Delta: &OpenAIMessage{Role: "assistant", Content: claudeEvent.Delta.Text},
 						}},
 					}
 					output = append(output, FormatSSE("", chunk)...)
 				case "thinking_delta":
 					if claudeEvent.Delta.Thinking != "" {
+						streamMeta, _ := state.Custom.(*claudeOpenAIStreamMeta)
 						chunk := OpenAIStreamChunk{
 							ID:      state.MessageID,
 							Object:  "chat.completion.chunk",
 							Created: time.Now().Unix(),
+							Model:   streamMeta.Model,
 							Choices: []OpenAIChoice{{
 								Index: 0,
-								Delta: &OpenAIMessage{ReasoningContent: claudeEvent.Delta.Thinking},
+								Delta: &OpenAIMessage{Role: "assistant", ReasoningContent: claudeEvent.Delta.Thinking},
 							}},
 						}
 						output = append(output, FormatSSE("", chunk)...)
@@ -82,13 +103,16 @@ func (c *claudeToOpenAIResponse) TransformChunk(chunk []byte, state *TransformSt
 				case "input_json_delta":
 					if tc, ok := state.ToolCalls[state.CurrentIndex]; ok {
 						tc.Arguments += claudeEvent.Delta.PartialJSON
+						streamMeta, _ := state.Custom.(*claudeOpenAIStreamMeta)
 						chunk := OpenAIStreamChunk{
 							ID:      state.MessageID,
 							Object:  "chat.completion.chunk",
 							Created: time.Now().Unix(),
+							Model:   streamMeta.Model,
 							Choices: []OpenAIChoice{{
 								Index: 0,
 								Delta: &OpenAIMessage{
+									Role: "assistant",
 									ToolCalls: []OpenAIToolCall{{
 										Index:    state.CurrentIndex,
 										ID:       tc.ID,
@@ -124,13 +148,19 @@ func (c *claudeToOpenAIResponse) TransformChunk(chunk []byte, state *TransformSt
 			case "tool_use":
 				finishReason = "tool_calls"
 			}
+			streamMeta, _ := state.Custom.(*claudeOpenAIStreamMeta)
+			if streamMeta == nil {
+				streamMeta = &claudeOpenAIStreamMeta{}
+				state.Custom = streamMeta
+			}
 			chunk := OpenAIStreamChunk{
 				ID:      state.MessageID,
 				Object:  "chat.completion.chunk",
 				Created: time.Now().Unix(),
+				Model:   streamMeta.Model,
 				Choices: []OpenAIChoice{{
 					Index:        0,
-					Delta:        &OpenAIMessage{},
+					Delta:        &OpenAIMessage{Role: "assistant", Content: ""},
 					FinishReason: finishReason,
 				}},
 			}

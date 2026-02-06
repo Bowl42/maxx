@@ -14,8 +14,8 @@ import (
 	"time"
 
 	"github.com/awsl-project/maxx/internal/adapter/provider"
-	ctxutil "github.com/awsl-project/maxx/internal/context"
 	"github.com/awsl-project/maxx/internal/domain"
+	"github.com/awsl-project/maxx/internal/flow"
 	"github.com/awsl-project/maxx/internal/usage"
 )
 
@@ -40,10 +40,15 @@ func (a *CustomAdapter) SupportedClientTypes() []domain.ClientType {
 	return a.provider.SupportedClientTypes
 }
 
-func (a *CustomAdapter) Execute(ctx context.Context, w http.ResponseWriter, req *http.Request, provider *domain.Provider) error {
-	clientType := ctxutil.GetClientType(ctx)
-	mappedModel := ctxutil.GetMappedModel(ctx)
-	requestBody := ctxutil.GetRequestBody(ctx)
+func (a *CustomAdapter) Execute(c *flow.Ctx, provider *domain.Provider) error {
+	clientType := flow.GetClientType(c)
+	mappedModel := flow.GetMappedModel(c)
+	requestBody := flow.GetRequestBody(c)
+	request := c.Request
+	ctx := context.Background()
+	if request != nil {
+		ctx = request.Context()
+	}
 
 	// Determine if streaming
 	stream := isStreamRequest(requestBody)
@@ -54,7 +59,7 @@ func (a *CustomAdapter) Execute(ctx context.Context, w http.ResponseWriter, req 
 
 	// Build upstream URL
 	baseURL := a.getBaseURL(clientType)
-	requestURI := ctxutil.GetRequestURI(ctx)
+	requestURI := flow.GetRequestURI(c)
 
 	// Apply model mapping if configured
 	var err error
@@ -90,8 +95,8 @@ func (a *CustomAdapter) Execute(ctx context.Context, w http.ResponseWriter, req 
 		// Claude: Following CLIProxyAPI pattern
 		// 1. Process body first (get extraBetas, inject cloaking/cache_control)
 		clientUA := ""
-		if req != nil {
-			clientUA = req.Header.Get("User-Agent")
+		if request != nil {
+			clientUA = request.Header.Get("User-Agent")
 		}
 		var extraBetas []string
 		requestBody, extraBetas = processClaudeRequestBody(requestBody, clientUA, a.provider.Config.Custom.Cloak)
@@ -101,33 +106,32 @@ func (a *CustomAdapter) Execute(ctx context.Context, w http.ResponseWriter, req 
 		}
 
 		// 2. Set headers (streaming only if requested)
-		applyClaudeHeaders(upstreamReq, req, a.provider.Config.Custom.APIKey, extraBetas, stream)
+		applyClaudeHeaders(upstreamReq, request, a.provider.Config.Custom.APIKey, extraBetas, stream)
 
 		// 3. Update request body and ContentLength (IMPORTANT: body was modified)
 		upstreamReq.Body = io.NopCloser(bytes.NewReader(requestBody))
 		upstreamReq.ContentLength = int64(len(requestBody))
 	case domain.ClientTypeCodex:
 		// Codex: Use Codex CLI-style headers with passthrough support
-		applyCodexHeaders(upstreamReq, req, a.provider.Config.Custom.APIKey)
+		applyCodexHeaders(upstreamReq, request, a.provider.Config.Custom.APIKey)
 	case domain.ClientTypeGemini:
 		// Gemini: Use Gemini-style headers with passthrough support
-		applyGeminiHeaders(upstreamReq, req, a.provider.Config.Custom.APIKey)
+		applyGeminiHeaders(upstreamReq, request, a.provider.Config.Custom.APIKey)
 	default:
 		// Other types: Preserve original header forwarding logic
-		originalHeaders := ctxutil.GetRequestHeaders(ctx)
+		originalHeaders := flow.GetRequestHeaders(c)
 		upstreamReq.Header = originalHeaders
 
 		// Override auth headers with provider's credentials
 		if a.provider.Config.Custom.APIKey != "" {
-			// Check if this is a format conversion scenario
-			originalClientType := ctxutil.GetOriginalClientType(ctx)
+			originalClientType := flow.GetOriginalClientType(c)
 			isConversion := originalClientType != "" && originalClientType != clientType
 			setAuthHeader(upstreamReq, clientType, a.provider.Config.Custom.APIKey, isConversion)
 		}
 	}
 
 	// Send request info via EventChannel
-	if eventChan := ctxutil.GetEventChan(ctx); eventChan != nil {
+	if eventChan := flow.GetEventChan(c); eventChan != nil {
 		eventChan.SendRequestInfo(&domain.RequestInfo{
 			Method:  upstreamReq.Method,
 			URL:     upstreamURL,
@@ -159,7 +163,7 @@ func (a *CustomAdapter) Execute(ctx context.Context, w http.ResponseWriter, req 
 
 		body, _ := io.ReadAll(reader)
 		// Send error response info via EventChannel
-		if eventChan := ctxutil.GetEventChan(ctx); eventChan != nil {
+		if eventChan := flow.GetEventChan(c); eventChan != nil {
 			eventChan.SendResponseInfo(&domain.ResponseInfo{
 				Status:  resp.StatusCode,
 				Headers: flattenHeaders(resp.Header),
@@ -192,9 +196,9 @@ func (a *CustomAdapter) Execute(ctx context.Context, w http.ResponseWriter, req 
 	// Note: Response format conversion is handled by Executor's ConvertingResponseWriter
 	// Adapters simply pass through the upstream response
 	if stream {
-		return a.handleStreamResponse(ctx, w, resp, clientType, isOAuthToken)
+		return a.handleStreamResponse(c, resp, clientType, isOAuthToken)
 	}
-	return a.handleNonStreamResponse(ctx, w, resp, clientType, isOAuthToken)
+	return a.handleNonStreamResponse(c, resp, clientType, isOAuthToken)
 }
 
 func (a *CustomAdapter) supportsClientType(ct domain.ClientType) bool {
@@ -214,7 +218,7 @@ func (a *CustomAdapter) getBaseURL(clientType domain.ClientType) string {
 	return config.BaseURL
 }
 
-func (a *CustomAdapter) handleNonStreamResponse(ctx context.Context, w http.ResponseWriter, resp *http.Response, clientType domain.ClientType, isOAuthToken bool) error {
+func (a *CustomAdapter) handleNonStreamResponse(c *flow.Ctx, resp *http.Response, clientType domain.ClientType, isOAuthToken bool) error {
 	// Decompress response body if needed
 	reader, err := decompressResponse(resp)
 	if err != nil {
@@ -239,45 +243,50 @@ func (a *CustomAdapter) handleNonStreamResponse(ctx context.Context, w http.Resp
 		body = stripClaudeToolPrefixFromResponse(body, claudeToolPrefix)
 	}
 
-	eventChan := ctxutil.GetEventChan(ctx)
+	eventChan := flow.GetEventChan(c)
 
-	// Send response info via EventChannel
-	eventChan.SendResponseInfo(&domain.ResponseInfo{
-		Status:  resp.StatusCode,
-		Headers: flattenHeaders(resp.Header),
-		Body:    string(body),
-	})
+	if eventChan != nil {
+		eventChan.SendResponseInfo(&domain.ResponseInfo{
+			Status:  resp.StatusCode,
+			Headers: flattenHeaders(resp.Header),
+			Body:    string(body),
+		})
+	}
 
 	// Extract and send token usage metrics
 	if metrics := usage.ExtractFromResponse(string(body)); metrics != nil {
 		// Adjust for client-specific quirks (e.g., Codex input_tokens includes cached tokens)
 		metrics = usage.AdjustForClientType(metrics, clientType)
-		eventChan.SendMetrics(&domain.AdapterMetrics{
-			InputTokens:          metrics.InputTokens,
-			OutputTokens:         metrics.OutputTokens,
-			CacheReadCount:       metrics.CacheReadCount,
-			CacheCreationCount:   metrics.CacheCreationCount,
-			Cache5mCreationCount: metrics.Cache5mCreationCount,
-			Cache1hCreationCount: metrics.Cache1hCreationCount,
-		})
+		if eventChan != nil {
+			eventChan.SendMetrics(&domain.AdapterMetrics{
+				InputTokens:          metrics.InputTokens,
+				OutputTokens:         metrics.OutputTokens,
+				CacheReadCount:       metrics.CacheReadCount,
+				CacheCreationCount:   metrics.CacheCreationCount,
+				Cache5mCreationCount: metrics.Cache5mCreationCount,
+				Cache1hCreationCount: metrics.Cache1hCreationCount,
+			})
+		}
 	}
 
 	// Extract and send responseModel
 	if responseModel := extractResponseModel(body, clientType); responseModel != "" {
-		eventChan.SendResponseModel(responseModel)
+		if eventChan != nil {
+			eventChan.SendResponseModel(responseModel)
+		}
 	}
 
 	// Note: Response format conversion is handled by Executor's ConvertingResponseWriter
 	// Adapter simply passes through the upstream response body
 
 	// Copy upstream headers (except those we override)
-	copyResponseHeaders(w.Header(), resp.Header)
-	w.WriteHeader(resp.StatusCode)
-	_, _ = w.Write(body)
+	copyResponseHeaders(c.Writer.Header(), resp.Header)
+	c.Writer.WriteHeader(resp.StatusCode)
+	_, _ = c.Writer.Write(body)
 	return nil
 }
 
-func (a *CustomAdapter) handleStreamResponse(ctx context.Context, w http.ResponseWriter, resp *http.Response, clientType domain.ClientType, isOAuthToken bool) error {
+func (a *CustomAdapter) handleStreamResponse(c *flow.Ctx, resp *http.Response, clientType domain.ClientType, isOAuthToken bool) error {
 	// Decompress response body if needed
 	reader, err := decompressResponse(resp)
 	if err != nil {
@@ -285,7 +294,7 @@ func (a *CustomAdapter) handleStreamResponse(ctx context.Context, w http.Respons
 	}
 	defer reader.Close()
 
-	eventChan := ctxutil.GetEventChan(ctx)
+	eventChan := flow.GetEventChan(c)
 
 	// Send initial response info (for streaming, we only capture status and headers)
 	eventChan.SendResponseInfo(&domain.ResponseInfo{
@@ -295,24 +304,24 @@ func (a *CustomAdapter) handleStreamResponse(ctx context.Context, w http.Respons
 	})
 
 	// Copy upstream headers (except those we override)
-	copyResponseHeaders(w.Header(), resp.Header)
+	copyResponseHeaders(c.Writer.Header(), resp.Header)
 
 	// Set streaming headers only if not already set by upstream
 	// These are required for SSE (Server-Sent Events) to work correctly
-	if w.Header().Get("Content-Type") == "" {
-		w.Header().Set("Content-Type", "text/event-stream")
+	if c.Writer.Header().Get("Content-Type") == "" {
+		c.Writer.Header().Set("Content-Type", "text/event-stream")
 	}
-	if w.Header().Get("Cache-Control") == "" {
-		w.Header().Set("Cache-Control", "no-cache")
+	if c.Writer.Header().Get("Cache-Control") == "" {
+		c.Writer.Header().Set("Cache-Control", "no-cache")
 	}
-	if w.Header().Get("Connection") == "" {
-		w.Header().Set("Connection", "keep-alive")
+	if c.Writer.Header().Get("Connection") == "" {
+		c.Writer.Header().Set("Connection", "keep-alive")
 	}
-	if w.Header().Get("X-Accel-Buffering") == "" {
-		w.Header().Set("X-Accel-Buffering", "no")
+	if c.Writer.Header().Get("X-Accel-Buffering") == "" {
+		c.Writer.Header().Set("X-Accel-Buffering", "no")
 	}
 
-	flusher, ok := w.(http.Flusher)
+	flusher, ok := c.Writer.(http.Flusher)
 	if !ok {
 		return domain.NewProxyErrorWithMessage(domain.ErrUpstreamError, false, "streaming not supported")
 	}
@@ -323,6 +332,10 @@ func (a *CustomAdapter) handleStreamResponse(ctx context.Context, w http.Respons
 	// Collect all SSE events for response body and token extraction
 	var sseBuffer strings.Builder
 	var sseError error // Track any SSE error event
+	ctx := context.Background()
+	if c.Request != nil {
+		ctx = c.Request.Context()
+	}
 
 	// Helper to send final events via EventChannel
 	sendFinalEvents := func() {
@@ -447,7 +460,7 @@ func (a *CustomAdapter) handleStreamResponse(ctx context.Context, w http.Respons
 				// Note: Response format conversion is handled by Executor's ConvertingResponseWriter
 				// Adapter simply passes through the upstream SSE data
 				if len(processedLine) > 0 {
-					_, writeErr := w.Write([]byte(processedLine))
+					_, writeErr := c.Writer.Write([]byte(processedLine))
 					if writeErr != nil {
 						// Client disconnected
 						sendFinalEvents()
@@ -456,7 +469,7 @@ func (a *CustomAdapter) handleStreamResponse(ctx context.Context, w http.Respons
 					flusher.Flush()
 
 					// Track TTFT: send first token time on first successful write
-					if !firstChunkSent {
+					if !firstChunkSent && eventChan != nil {
 						firstChunkSent = true
 						eventChan.SendFirstToken(time.Now().UnixMilli())
 					}

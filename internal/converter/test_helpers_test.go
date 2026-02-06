@@ -10,8 +10,18 @@ func codexInputHasRoleText(input interface{}, role string, text string) bool {
 		if !ok || m["type"] != "message" || m["role"] != role {
 			continue
 		}
-		if content, ok := m["content"].(string); ok && content == text {
-			return true
+		switch content := m["content"].(type) {
+		case string:
+			if content == text {
+				return true
+			}
+		case []interface{}:
+			for _, part := range content {
+				pm, ok := part.(map[string]interface{})
+				if ok && pm["text"] == text {
+					return true
+				}
+			}
 		}
 	}
 	return false

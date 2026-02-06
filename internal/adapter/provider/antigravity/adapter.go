@@ -17,7 +17,9 @@ import (
 	"github.com/awsl-project/maxx/internal/adapter/provider"
 	cliproxyapi "github.com/awsl-project/maxx/internal/adapter/provider/cliproxyapi_antigravity"
 	ctxutil "github.com/awsl-project/maxx/internal/context"
+	"github.com/awsl-project/maxx/internal/converter"
 	"github.com/awsl-project/maxx/internal/domain"
+	"github.com/awsl-project/maxx/internal/flow"
 	"github.com/awsl-project/maxx/internal/usage"
 )
 
@@ -71,17 +73,21 @@ func NewAdapter(p *domain.Provider) (provider.ProviderAdapter, error) {
 }
 
 func (a *AntigravityAdapter) SupportedClientTypes() []domain.ClientType {
-	// Antigravity natively supports Claude and Gemini by converting to Gemini/v1internal API
-	// OpenAI requests will be converted to Claude format by Executor before reaching this adapter
-	return []domain.ClientType{domain.ClientTypeClaude, domain.ClientTypeGemini}
+	// Antigravity natively supports Claude and Gemini (via Gemini/v1internal API).
+	// Prefer Gemini when choosing a target format.
+	return []domain.ClientType{domain.ClientTypeGemini, domain.ClientTypeClaude}
 }
 
-func (a *AntigravityAdapter) Execute(ctx context.Context, w http.ResponseWriter, req *http.Request, provider *domain.Provider) error {
-	clientType := ctxutil.GetClientType(ctx)
-	baseCtx := ctx
-	requestModel := ctxutil.GetRequestModel(ctx) // Original model from request (e.g., "claude-3-5-sonnet-20241022-online")
-	mappedModel := ctxutil.GetMappedModel(ctx)   // Mapped model after executor's unified mapping
-	requestBody := ctxutil.GetRequestBody(ctx)
+func (a *AntigravityAdapter) Execute(c *flow.Ctx, provider *domain.Provider) error {
+	clientType := flow.GetClientType(c)
+	requestModel := flow.GetRequestModel(c)
+	mappedModel := flow.GetMappedModel(c)
+	requestBody := flow.GetRequestBody(c)
+	request := c.Request
+	ctx := context.Background()
+	if request != nil {
+		ctx = request.Context()
+	}
 	backgroundDowngrade := false
 	backgroundModel := ""
 
@@ -99,8 +105,8 @@ func (a *AntigravityAdapter) Execute(ctx context.Context, w http.ResponseWriter,
 	retriedWithoutThinking := false
 
 	for attemptIdx := 0; attemptIdx < 2; attemptIdx++ {
-		ctx = ctxutil.WithRequestModel(baseCtx, requestModel)
-		ctx = ctxutil.WithRequestBody(ctx, requestBody)
+		c.Set(flow.KeyRequestModel, requestModel)
+		c.Set(flow.KeyRequestBody, requestBody)
 
 		// Apply background downgrade override if needed
 		config := provider.Config.Antigravity
@@ -109,12 +115,12 @@ func (a *AntigravityAdapter) Execute(ctx context.Context, w http.ResponseWriter,
 		}
 
 		// Update attempt record with the final mapped model (in case of background downgrade)
-		if attempt := ctxutil.GetUpstreamAttempt(ctx); attempt != nil {
+		if attempt := flow.GetUpstreamAttempt(c); attempt != nil {
 			attempt.MappedModel = mappedModel
 		}
 
 		// Get streaming flag from context (already detected correctly for Gemini URL path)
-		stream := ctxutil.GetIsStream(ctx)
+		stream := flow.GetIsStream(c)
 		clientWantsStream := stream
 		actualStream := stream
 		if clientType == domain.ClientTypeClaude && !clientWantsStream {
@@ -133,6 +139,7 @@ func (a *AntigravityAdapter) Execute(ctx context.Context, w http.ResponseWriter,
 
 		// Transform request based on client type
 		var geminiBody []byte
+		openAIWrapped := false
 		switch clientType {
 		case domain.ClientTypeClaude:
 			// Use direct transformation (no converter dependency)
@@ -151,207 +158,236 @@ func (a *AntigravityAdapter) Execute(ctx context.Context, w http.ResponseWriter,
 			// Apply minimal post-processing for features not yet fully integrated
 			geminiBody = applyClaudePostProcess(geminiBody, sessionID, hasThinking, requestBody, mappedModel)
 		case domain.ClientTypeOpenAI:
-			// TODO: Implement OpenAI transformation in the future
-			return domain.NewProxyErrorWithMessage(domain.ErrFormatConversion, true, "OpenAI transformation not yet implemented")
+			geminiBody = ConvertOpenAIRequestToAntigravity(mappedModel, requestBody, actualStream)
+			openAIWrapped = true
 		default:
 			// For Gemini, unwrap CLI envelope if present
 			geminiBody = unwrapGeminiCLIEnvelope(requestBody)
 		}
 
-		// Wrap request in v1internal format
-		var toolsForConfig []interface{}
-		if clientType == domain.ClientTypeClaude {
-			var raw map[string]interface{}
-			if err := json.Unmarshal(requestBody, &raw); err == nil {
-				if tools, ok := raw["tools"].([]interface{}); ok {
-					toolsForConfig = tools
-				}
+		// Resolve project ID (CLIProxyAPI behavior)
+		projectID := strings.TrimSpace(config.ProjectID)
+		if projectID == "" {
+			if pid, _, err := FetchProjectInfo(ctx, accessToken, config.Email); err == nil && strings.TrimSpace(pid) != "" {
+				projectID = pid
+				config.ProjectID = pid
 			}
 		}
-		upstreamBody, err := wrapV1InternalRequest(geminiBody, config.ProjectID, requestModel, mappedModel, sessionID, toolsForConfig)
-		if err != nil {
-			return domain.NewProxyErrorWithMessage(domain.ErrFormatConversion, true, "failed to wrap request for v1internal")
+
+		var upstreamBody []byte
+		if openAIWrapped {
+			upstreamBody = finalizeOpenAIWrappedRequest(geminiBody, projectID, mappedModel, sessionID)
+		} else {
+			// Wrap request in v1internal format
+			var toolsForConfig []interface{}
+			if clientType == domain.ClientTypeClaude {
+				var raw map[string]interface{}
+				if err := json.Unmarshal(requestBody, &raw); err == nil {
+					if tools, ok := raw["tools"].([]interface{}); ok {
+						toolsForConfig = tools
+					}
+				}
+			}
+			upstreamBody, err = wrapV1InternalRequest(geminiBody, projectID, requestModel, mappedModel, sessionID, toolsForConfig)
+			if err != nil {
+				return domain.NewProxyErrorWithMessage(domain.ErrFormatConversion, true, "failed to wrap request for v1internal")
+			}
 		}
 
-		// Build upstream URLs (prod first, daily fallback)
-		baseURLs := []string{V1InternalBaseURLProd, V1InternalBaseURLDaily}
+		// Build upstream URLs (CLIProxyAPI fallback order)
+		baseURLs := antigravityBaseURLFallbackOrder(config.Endpoint)
 		client := a.httpClient
 		var lastErr error
 
-		for idx, base := range baseURLs {
-			upstreamURL := a.buildUpstreamURL(base, actualStream)
+		for attempt := 0; attempt < antigravityRetryAttempts; attempt++ {
+			for idx, base := range baseURLs {
+				upstreamURL := a.buildUpstreamURL(base, actualStream)
 
-			upstreamReq, reqErr := http.NewRequestWithContext(ctx, "POST", upstreamURL, bytes.NewReader(upstreamBody))
-			if reqErr != nil {
-				lastErr = reqErr
-				continue
-			}
-
-			// Set only the required headers (like Antigravity-Manager)
-			upstreamReq.Header.Set("Content-Type", "application/json")
-			upstreamReq.Header.Set("Authorization", "Bearer "+accessToken)
-			upstreamReq.Header.Set("User-Agent", AntigravityUserAgent)
-
-			// Send request info via EventChannel (only once per attempt)
-			if eventChan := ctxutil.GetEventChan(ctx); eventChan != nil {
-				eventChan.SendRequestInfo(&domain.RequestInfo{
-					Method:  upstreamReq.Method,
-					URL:     upstreamURL,
-					Headers: flattenHeaders(upstreamReq.Header),
-					Body:    string(upstreamBody),
-				})
-			}
-
-			resp, err := client.Do(upstreamReq)
-			if err != nil {
-				lastErr = err
-				if hasNextEndpoint(idx, len(baseURLs)) {
+				upstreamReq, reqErr := http.NewRequestWithContext(ctx, "POST", upstreamURL, bytes.NewReader(upstreamBody))
+				if reqErr != nil {
+					lastErr = reqErr
 					continue
 				}
-				proxyErr := domain.NewProxyErrorWithMessage(domain.ErrUpstreamError, true, "failed to connect to upstream")
-				proxyErr.IsNetworkError = true // Mark as network error (connection timeout, DNS failure, etc.)
-				return proxyErr
-			}
-			defer resp.Body.Close()
 
-			// Check for 401 (token expired) and retry once
-			if resp.StatusCode == http.StatusUnauthorized {
-				resp.Body.Close()
-
-				// Invalidate token cache
-				a.tokenMu.Lock()
-				a.tokenCache = &TokenCache{}
-				a.tokenMu.Unlock()
-
-				// Get new token
-				accessToken, err = a.getAccessToken(ctx)
-				if err != nil {
-					return domain.NewProxyErrorWithMessage(err, true, "failed to refresh access token")
-				}
-
-				// Retry request with only required headers
-				upstreamReq, _ = http.NewRequestWithContext(ctx, "POST", upstreamURL, bytes.NewReader(upstreamBody))
+				// Set only the required headers (like Antigravity-Manager)
 				upstreamReq.Header.Set("Content-Type", "application/json")
 				upstreamReq.Header.Set("Authorization", "Bearer "+accessToken)
 				upstreamReq.Header.Set("User-Agent", AntigravityUserAgent)
-				resp, err = client.Do(upstreamReq)
+
+				// Send request info via EventChannel (only once per attempt)
+				if eventChan := flow.GetEventChan(c); eventChan != nil {
+					eventChan.SendRequestInfo(&domain.RequestInfo{
+						Method:  upstreamReq.Method,
+						URL:     upstreamURL,
+						Headers: flattenHeaders(upstreamReq.Header),
+						Body:    string(upstreamBody),
+					})
+				}
+
+				resp, err := client.Do(upstreamReq)
 				if err != nil {
 					lastErr = err
 					if hasNextEndpoint(idx, len(baseURLs)) {
 						continue
 					}
-					proxyErr := domain.NewProxyErrorWithMessage(domain.ErrUpstreamError, true, "failed to connect to upstream after token refresh")
-					proxyErr.IsNetworkError = true // Mark as network error
+					proxyErr := domain.NewProxyErrorWithMessage(domain.ErrUpstreamError, true, "failed to connect to upstream")
+					proxyErr.IsNetworkError = true // Mark as network error (connection timeout, DNS failure, etc.)
 					return proxyErr
 				}
 				defer resp.Body.Close()
-			}
 
-			// Check for error response
-			if resp.StatusCode >= 400 {
-				body, _ := io.ReadAll(resp.Body)
-				// Send error response info via EventChannel
-				if eventChan := ctxutil.GetEventChan(ctx); eventChan != nil {
-					eventChan.SendResponseInfo(&domain.ResponseInfo{
-						Status:  resp.StatusCode,
-						Headers: flattenHeaders(resp.Header),
-						Body:    string(body),
-					})
-				}
+				// Check for 401 (token expired) and retry once
+				if resp.StatusCode == http.StatusUnauthorized {
+					resp.Body.Close()
 
-				// Check for RESOURCE_EXHAUSTED (429) and extract cooldown info
-				var rateLimitInfo *domain.RateLimitInfo
-				var cooldownUpdateChan chan time.Time
-				if resp.StatusCode == http.StatusTooManyRequests {
-					rateLimitInfo, cooldownUpdateChan = a.parseRateLimitInfo(ctx, body, provider)
-				}
+					// Invalidate token cache
+					a.tokenMu.Lock()
+					a.tokenCache = &TokenCache{}
+					a.tokenMu.Unlock()
 
-				// Parse retry info for 429/5xx responses (like Antigravity-Manager)
-				var retryAfter time.Duration
-
-				// 1) Prefer Retry-After header (seconds)
-				if ra := strings.TrimSpace(resp.Header.Get("Retry-After")); ra != "" {
-					if secs, err := strconv.Atoi(ra); err == nil && secs > 0 {
-						retryAfter = time.Duration(secs) * time.Second
+					// Get new token
+					accessToken, err = a.getAccessToken(ctx)
+					if err != nil {
+						return domain.NewProxyErrorWithMessage(err, true, "failed to refresh access token")
 					}
+
+					// Retry request with only required headers
+					upstreamReq, _ = http.NewRequestWithContext(ctx, "POST", upstreamURL, bytes.NewReader(upstreamBody))
+					upstreamReq.Header.Set("Content-Type", "application/json")
+					upstreamReq.Header.Set("Authorization", "Bearer "+accessToken)
+					upstreamReq.Header.Set("User-Agent", AntigravityUserAgent)
+					resp, err = client.Do(upstreamReq)
+					if err != nil {
+						lastErr = err
+						if hasNextEndpoint(idx, len(baseURLs)) {
+							continue
+						}
+						proxyErr := domain.NewProxyErrorWithMessage(domain.ErrUpstreamError, true, "failed to connect to upstream after token refresh")
+						proxyErr.IsNetworkError = true // Mark as network error
+						return proxyErr
+					}
+					defer resp.Body.Close()
 				}
 
-				// 2) Fallback to body parsing (google.rpc.RetryInfo / quotaResetDelay)
-				if retryAfter == 0 {
-					if retryInfo := ParseRetryInfo(resp.StatusCode, body); retryInfo != nil {
-						retryAfter = retryInfo.Delay
+				// Check for error response
+				if resp.StatusCode >= 400 {
+					body, _ := io.ReadAll(resp.Body)
+					// Send error response info via EventChannel
+					if eventChan := flow.GetEventChan(c); eventChan != nil {
+						eventChan.SendResponseInfo(&domain.ResponseInfo{
+							Status:  resp.StatusCode,
+							Headers: flattenHeaders(resp.Header),
+							Body:    string(body),
+						})
+					}
 
-						// Manager: add a small buffer and cap for 429 retries
-						if resp.StatusCode == http.StatusTooManyRequests {
-							retryAfter += 200 * time.Millisecond
-							if retryAfter > 10*time.Second {
-								retryAfter = 10 * time.Second
+					// Check for RESOURCE_EXHAUSTED (429) and extract cooldown info
+					var rateLimitInfo *domain.RateLimitInfo
+					var cooldownUpdateChan chan time.Time
+					if resp.StatusCode == http.StatusTooManyRequests {
+						rateLimitInfo, cooldownUpdateChan = a.parseRateLimitInfo(ctx, body, provider)
+					}
+
+					// Parse retry info for 429/5xx responses (like Antigravity-Manager)
+					var retryAfter time.Duration
+
+					// 1) Prefer Retry-After header (seconds)
+					if ra := strings.TrimSpace(resp.Header.Get("Retry-After")); ra != "" {
+						if secs, err := strconv.Atoi(ra); err == nil && secs > 0 {
+							retryAfter = time.Duration(secs) * time.Second
+						}
+					}
+
+					// 2) Fallback to body parsing (google.rpc.RetryInfo / quotaResetDelay)
+					if retryAfter == 0 {
+						if retryInfo := ParseRetryInfo(resp.StatusCode, body); retryInfo != nil {
+							retryAfter = retryInfo.Delay
+
+							// Manager: add a small buffer and cap for 429 retries
+							if resp.StatusCode == http.StatusTooManyRequests {
+								retryAfter += 200 * time.Millisecond
+								if retryAfter > 10*time.Second {
+									retryAfter = 10 * time.Second
+								}
 							}
+
+							retryAfter = ApplyJitter(retryAfter)
+						}
+					}
+
+					proxyErr := domain.NewProxyErrorWithMessage(
+						fmt.Errorf("upstream error: %s", string(body)),
+						isRetryableStatusCode(resp.StatusCode),
+						fmt.Sprintf("upstream returned status %d", resp.StatusCode),
+					)
+
+					// Set status code and check if it's a server error (5xx)
+					proxyErr.HTTPStatusCode = resp.StatusCode
+					proxyErr.IsServerError = resp.StatusCode >= 500 && resp.StatusCode < 600
+
+					// Set retry info on error for upstream handling
+					if retryAfter > 0 {
+						proxyErr.RetryAfter = retryAfter
+					}
+
+					// Set rate limit info for cooldown handling
+					if rateLimitInfo != nil {
+						proxyErr.RateLimitInfo = rateLimitInfo
+						proxyErr.CooldownUpdateChan = cooldownUpdateChan
+					}
+
+					lastErr = proxyErr
+
+					// Signature failure recovery: retry once without thinking (like Manager)
+					if resp.StatusCode == http.StatusBadRequest && !retriedWithoutThinking && isThinkingSignatureError(body) {
+						retriedWithoutThinking = true
+
+						// Manager uses a small fixed delay before retrying.
+						select {
+						case <-ctx.Done():
+							return domain.NewProxyErrorWithMessage(ctx.Err(), false, "client disconnected")
+						case <-time.After(200 * time.Millisecond):
 						}
 
-						retryAfter = ApplyJitter(retryAfter)
-					}
-				}
-
-				proxyErr := domain.NewProxyErrorWithMessage(
-					fmt.Errorf("upstream error: %s", string(body)),
-					isRetryableStatusCode(resp.StatusCode),
-					fmt.Sprintf("upstream returned status %d", resp.StatusCode),
-				)
-
-				// Set status code and check if it's a server error (5xx)
-				proxyErr.HTTPStatusCode = resp.StatusCode
-				proxyErr.IsServerError = resp.StatusCode >= 500 && resp.StatusCode < 600
-
-				// Set retry info on error for upstream handling
-				if retryAfter > 0 {
-					proxyErr.RetryAfter = retryAfter
-				}
-
-				// Set rate limit info for cooldown handling
-				if rateLimitInfo != nil {
-					proxyErr.RateLimitInfo = rateLimitInfo
-					proxyErr.CooldownUpdateChan = cooldownUpdateChan
-				}
-
-				lastErr = proxyErr
-
-				// Signature failure recovery: retry once without thinking (like Manager)
-				if resp.StatusCode == http.StatusBadRequest && !retriedWithoutThinking && isThinkingSignatureError(body) {
-					retriedWithoutThinking = true
-
-					// Manager uses a small fixed delay before retrying.
-					select {
-					case <-ctx.Done():
-						return domain.NewProxyErrorWithMessage(ctx.Err(), false, "client disconnected")
-					case <-time.After(200 * time.Millisecond):
+						requestBody = stripThinkingFromClaude(requestBody)
+						if newModel := extractModelFromBody(requestBody); newModel != "" {
+							requestModel = newModel
+						}
+						mappedModel = "" // force remap
+						continue
 					}
 
-					requestBody = stripThinkingFromClaude(requestBody)
-					if newModel := extractModelFromBody(requestBody); newModel != "" {
-						requestModel = newModel
+					// Retry fallback handling (CLIProxyAPI behavior)
+					if resp.StatusCode == http.StatusTooManyRequests && hasNextEndpoint(idx, len(baseURLs)) {
+						resp.Body.Close()
+						continue
 					}
-					mappedModel = "" // force remap
-					continue
+					if antigravityShouldRetryNoCapacity(resp.StatusCode, body) {
+						if hasNextEndpoint(idx, len(baseURLs)) {
+							resp.Body.Close()
+							continue
+						}
+						if attempt+1 < antigravityRetryAttempts {
+							delay := antigravityNoCapacityRetryDelay(attempt)
+							if err := antigravityWait(ctx, delay); err != nil {
+								return domain.NewProxyErrorWithMessage(err, false, "client disconnected")
+							}
+							break
+						}
+					}
+
+					return proxyErr
 				}
 
-				// Fallback to next endpoint if available and retryable
-				if hasNextEndpoint(idx, len(baseURLs)) && shouldTryNextEndpoint(resp.StatusCode) {
-					resp.Body.Close()
-					continue
+				// Handle response
+				if actualStream && !clientWantsStream {
+					return a.handleCollectedStreamResponse(c, resp, clientType, requestModel)
 				}
-
-				return proxyErr
+				if actualStream {
+					return a.handleStreamResponse(c, resp, clientType)
+				}
+				return a.handleNonStreamResponse(c, resp, clientType)
 			}
-
-			// Handle response
-			if actualStream && !clientWantsStream {
-				return a.handleCollectedStreamResponse(ctx, w, resp, clientType, requestModel)
-			}
-			if actualStream {
-				return a.handleStreamResponse(ctx, w, resp, clientType)
-			}
-			return a.handleNonStreamResponse(ctx, w, resp, clientType)
 		}
 
 		// All endpoints failed in this iteration
@@ -490,17 +526,26 @@ func applyClaudePostProcess(geminiBody []byte, sessionID string, hasThinking boo
 	return result
 }
 
-// v1internal endpoints (prod + daily fallback, like Antigravity-Manager)
+// v1internal endpoints (CLIProxyAPI fallback order)
 const (
-	V1InternalBaseURLProd  = "https://cloudcode-pa.googleapis.com/v1internal"
-	V1InternalBaseURLDaily = "https://daily-cloudcode-pa.sandbox.googleapis.com/v1internal"
+	V1InternalBaseURLDaily        = "https://daily-cloudcode-pa.googleapis.com"
+	V1InternalSandboxBaseURLDaily = "https://daily-cloudcode-pa.sandbox.googleapis.com"
+	V1InternalBaseURLProd         = "https://cloudcode-pa.googleapis.com"
+	antigravityRetryAttempts      = 3
 )
 
 func (a *AntigravityAdapter) buildUpstreamURL(base string, stream bool) string {
-	if stream {
-		return fmt.Sprintf("%s:streamGenerateContent?alt=sse", base)
+	base = strings.TrimRight(base, "/")
+	if strings.Contains(base, "/v1internal") {
+		if stream {
+			return fmt.Sprintf("%s:streamGenerateContent?alt=sse", base)
+		}
+		return fmt.Sprintf("%s:generateContent", base)
 	}
-	return fmt.Sprintf("%s:generateContent", base)
+	if stream {
+		return fmt.Sprintf("%s/v1internal:streamGenerateContent?alt=sse", base)
+	}
+	return fmt.Sprintf("%s/v1internal:generateContent", base)
 }
 
 func hasNextEndpoint(index, total int) bool {
@@ -516,6 +561,76 @@ func shouldTryNextEndpoint(status int) bool {
 	return status >= 500
 }
 
+func antigravityBaseURLFallbackOrder(endpoint string) []string {
+	if endpoint = strings.TrimSpace(endpoint); endpoint != "" {
+		if isAntigravityEndpoint(endpoint) {
+			return []string{strings.TrimRight(endpoint, "/")}
+		}
+	}
+	return []string{
+		V1InternalBaseURLDaily,
+		V1InternalSandboxBaseURLDaily,
+		// V1InternalBaseURLProd,
+	}
+}
+
+func isAntigravityEndpoint(endpoint string) bool {
+	endpoint = strings.ToLower(strings.TrimSpace(endpoint))
+	if endpoint == "" {
+		return false
+	}
+	// Only accept Antigravity v1internal endpoints, not Vertex AI endpoints.
+	if strings.Contains(endpoint, "cloudcode-pa.googleapis.com") {
+		return true
+	}
+	if strings.Contains(endpoint, "daily-cloudcode-pa.googleapis.com") {
+		return true
+	}
+	if strings.Contains(endpoint, "daily-cloudcode-pa.sandbox.googleapis.com") {
+		return true
+	}
+	if strings.Contains(endpoint, "/v1internal") && strings.Contains(endpoint, "cloudcode-pa") {
+		return true
+	}
+	return false
+}
+
+func antigravityShouldRetryNoCapacity(statusCode int, body []byte) bool {
+	if statusCode != http.StatusServiceUnavailable {
+		return false
+	}
+	if len(body) == 0 {
+		return false
+	}
+	msg := strings.ToLower(string(body))
+	return strings.Contains(msg, "no capacity available")
+}
+
+func antigravityNoCapacityRetryDelay(attempt int) time.Duration {
+	if attempt < 0 {
+		attempt = 0
+	}
+	delay := time.Duration(attempt+1) * 250 * time.Millisecond
+	if delay > 2*time.Second {
+		delay = 2 * time.Second
+	}
+	return delay
+}
+
+func antigravityWait(ctx context.Context, wait time.Duration) error {
+	if wait <= 0 {
+		return nil
+	}
+	timer := time.NewTimer(wait)
+	defer timer.Stop()
+	select {
+	case <-ctx.Done():
+		return ctx.Err()
+	case <-timer.C:
+		return nil
+	}
+}
+
 // isThinkingSignatureError detects thinking signature related 400 errors (like Manager)
 func isThinkingSignatureError(body []byte) bool {
 	bodyStr := strings.ToLower(string(body))
@@ -526,7 +641,8 @@ func isThinkingSignatureError(body []byte) bool {
 		strings.Contains(bodyStr, "failed to deserialise")
 }
 
-func (a *AntigravityAdapter) handleNonStreamResponse(ctx context.Context, w http.ResponseWriter, resp *http.Response, clientType domain.ClientType) error {
+func (a *AntigravityAdapter) handleNonStreamResponse(c *flow.Ctx, resp *http.Response, clientType domain.ClientType) error {
+	w := c.Writer
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return domain.NewProxyErrorWithMessage(domain.ErrUpstreamError, true, "failed to read upstream response")
@@ -535,31 +651,30 @@ func (a *AntigravityAdapter) handleNonStreamResponse(ctx context.Context, w http
 	// Unwrap v1internal response wrapper (extract "response" field)
 	unwrappedBody := unwrapV1InternalResponse(body)
 
-	// Send events via EventChannel (executor will process them)
-	eventChan := ctxutil.GetEventChan(ctx)
-
-	// Send response info event
-	eventChan.SendResponseInfo(&domain.ResponseInfo{
-		Status:  resp.StatusCode,
-		Headers: flattenHeaders(resp.Header),
-		Body:    string(body), // Keep original for debugging
-	})
-
-	// Extract and send token usage metrics
-	if metrics := usage.ExtractFromResponse(string(unwrappedBody)); metrics != nil {
-		eventChan.SendMetrics(&domain.AdapterMetrics{
-			InputTokens:          metrics.InputTokens,
-			OutputTokens:         metrics.OutputTokens,
-			CacheReadCount:       metrics.CacheReadCount,
-			CacheCreationCount:   metrics.CacheCreationCount,
-			Cache5mCreationCount: metrics.Cache5mCreationCount,
-			Cache1hCreationCount: metrics.Cache1hCreationCount,
+	if eventChan := flow.GetEventChan(c); eventChan != nil {
+		eventChan.SendResponseInfo(&domain.ResponseInfo{
+			Status:  resp.StatusCode,
+			Headers: flattenHeaders(resp.Header),
+			Body:    string(body),
 		})
+
+		if metrics := usage.ExtractFromResponse(string(unwrappedBody)); metrics != nil {
+			eventChan.SendMetrics(&domain.AdapterMetrics{
+				InputTokens:          metrics.InputTokens,
+				OutputTokens:         metrics.OutputTokens,
+				CacheReadCount:       metrics.CacheReadCount,
+				CacheCreationCount:   metrics.CacheCreationCount,
+				Cache5mCreationCount: metrics.Cache5mCreationCount,
+				Cache1hCreationCount: metrics.Cache1hCreationCount,
+			})
+		}
 	}
 
 	// Extract and send response model
 	if modelVersion := extractModelVersion(unwrappedBody); modelVersion != "" {
-		eventChan.SendResponseModel(modelVersion)
+		if eventChan := flow.GetEventChan(c); eventChan != nil {
+			eventChan.SendResponseModel(modelVersion)
+		}
 	}
 
 	var responseBody []byte
@@ -567,14 +682,17 @@ func (a *AntigravityAdapter) handleNonStreamResponse(ctx context.Context, w http
 	// Transform response based on client type
 	switch clientType {
 	case domain.ClientTypeClaude:
-		requestModel := ctxutil.GetRequestModel(ctx)
+		requestModel := flow.GetRequestModel(c)
 		responseBody, err = convertGeminiToClaudeResponse(unwrappedBody, requestModel)
 		if err != nil {
 			return domain.NewProxyErrorWithMessage(domain.ErrFormatConversion, false, "failed to transform response")
 		}
 	case domain.ClientTypeOpenAI:
-		// TODO: Implement OpenAI response transformation
-		return domain.NewProxyErrorWithMessage(domain.ErrFormatConversion, false, "OpenAI response transformation not yet implemented")
+		responseBody, err = converter.GetGlobalRegistry().TransformResponse(
+			domain.ClientTypeGemini, domain.ClientTypeOpenAI, unwrappedBody)
+		if err != nil {
+			return domain.NewProxyErrorWithMessage(domain.ErrFormatConversion, false, "failed to transform response")
+		}
 	default:
 		// Gemini native
 		responseBody = unwrappedBody
@@ -588,8 +706,13 @@ func (a *AntigravityAdapter) handleNonStreamResponse(ctx context.Context, w http
 	return nil
 }
 
-func (a *AntigravityAdapter) handleStreamResponse(ctx context.Context, w http.ResponseWriter, resp *http.Response, clientType domain.ClientType) error {
-	eventChan := ctxutil.GetEventChan(ctx)
+func (a *AntigravityAdapter) handleStreamResponse(c *flow.Ctx, resp *http.Response, clientType domain.ClientType) error {
+	w := c.Writer
+	ctx := context.Background()
+	if c.Request != nil {
+		ctx = c.Request.Context()
+	}
+	eventChan := flow.GetEventChan(c)
 
 	// Send initial response info (for streaming, we only capture status and headers)
 	eventChan.SendResponseInfo(&domain.ResponseInfo{
@@ -614,17 +737,22 @@ func (a *AntigravityAdapter) handleStreamResponse(ctx context.Context, w http.Re
 
 	// Use specialized Claude SSE handler for Claude clients
 	isClaudeClient := clientType == domain.ClientTypeClaude
+	isOpenAIClient := clientType == domain.ClientTypeOpenAI
 
 	// Extract sessionID for signature caching (like CLIProxyAPI)
-	requestBody := ctxutil.GetRequestBody(ctx)
+	requestBody := flow.GetRequestBody(c)
 	sessionID := extractSessionID(requestBody)
 
 	// Get original request model for Claude response (like Antigravity-Manager)
-	requestModel := ctxutil.GetRequestModel(ctx)
+	requestModel := flow.GetRequestModel(c)
 
 	var claudeState *ClaudeStreamingState
 	if isClaudeClient {
 		claudeState = NewClaudeStreamingStateWithSession(sessionID, requestModel)
+	}
+	var openaiState *converter.TransformState
+	if isOpenAIClient {
+		openaiState = converter.NewTransformState()
 	}
 
 	// Collect all SSE events for response body and token extraction
@@ -698,6 +826,9 @@ func (a *AntigravityAdapter) handleStreamResponse(ctx context.Context, w http.Re
 
 				// Unwrap v1internal SSE chunk before processing
 				unwrappedLine := unwrapV1InternalSSEChunk(lineBytes)
+				if len(unwrappedLine) == 0 {
+					continue
+				}
 
 				// Collect original SSE for token extraction (extractor handles v1internal wrapper)
 				sseBuffer.WriteString(line)
@@ -706,9 +837,13 @@ func (a *AntigravityAdapter) handleStreamResponse(ctx context.Context, w http.Re
 				if isClaudeClient {
 					// Use specialized Claude SSE transformation
 					output = claudeState.ProcessGeminiSSELine(string(unwrappedLine))
-				} else if clientType == domain.ClientTypeOpenAI {
-					// TODO: Implement OpenAI streaming transformation
-					continue
+				} else if isOpenAIClient {
+					converted, convErr := converter.GetGlobalRegistry().TransformStreamChunk(
+						domain.ClientTypeGemini, domain.ClientTypeOpenAI, unwrappedLine, openaiState)
+					if convErr != nil {
+						continue
+					}
+					output = converted
 				} else {
 					// Gemini native
 					output = unwrappedLine
@@ -770,15 +905,20 @@ func (a *AntigravityAdapter) handleStreamResponse(ctx context.Context, w http.Re
 }
 
 // handleCollectedStreamResponse forwards upstream SSE but collects into a single response body (like Manager non-stream auto-convert)
-func (a *AntigravityAdapter) handleCollectedStreamResponse(ctx context.Context, w http.ResponseWriter, resp *http.Response, clientType domain.ClientType, requestModel string) error {
-	eventChan := ctxutil.GetEventChan(ctx)
-
-	// Send initial response info
-	eventChan.SendResponseInfo(&domain.ResponseInfo{
-		Status:  resp.StatusCode,
-		Headers: flattenHeaders(resp.Header),
-		Body:    "[stream-collected]",
-	})
+func (a *AntigravityAdapter) handleCollectedStreamResponse(c *flow.Ctx, resp *http.Response, clientType domain.ClientType, requestModel string) error {
+	w := c.Writer
+	ctx := context.Background()
+	if c.Request != nil {
+		ctx = c.Request.Context()
+	}
+	eventChan := flow.GetEventChan(c)
+	if eventChan != nil {
+		eventChan.SendResponseInfo(&domain.ResponseInfo{
+			Status:  resp.StatusCode,
+			Headers: flattenHeaders(resp.Header),
+			Body:    "[stream-collected]",
+		})
+	}
 
 	// Copy upstream headers (except those we override)
 	copyResponseHeaders(w.Header(), resp.Header)
@@ -788,14 +928,14 @@ func (a *AntigravityAdapter) handleCollectedStreamResponse(ctx context.Context, 
 	var claudeSSE strings.Builder
 	if isClaudeClient {
 		// Extract sessionID for signature caching (like CLIProxyAPI)
-		requestBody := ctxutil.GetRequestBody(ctx)
+		requestBody := flow.GetRequestBody(c)
 		sessionID := extractSessionID(requestBody)
 		claudeState = NewClaudeStreamingStateWithSession(sessionID, requestModel)
 	}
 
 	// Collect upstream SSE for attempt/debug and token extraction.
 	var upstreamSSE strings.Builder
-	var lastPayload []byte
+	var unwrappedSSE strings.Builder
 	var responseBody []byte
 
 	var lineBuffer bytes.Buffer
@@ -826,15 +966,7 @@ func (a *AntigravityAdapter) handleCollectedStreamResponse(ctx context.Context, 
 				if len(unwrappedLine) == 0 {
 					continue
 				}
-
-				// Track last Gemini payload for non-Claude responses (best-effort)
-				lineStr := strings.TrimSpace(string(unwrappedLine))
-				if strings.HasPrefix(lineStr, "data: ") {
-					dataStr := strings.TrimSpace(strings.TrimPrefix(lineStr, "data: "))
-					if dataStr != "" && dataStr != "[DONE]" {
-						lastPayload = []byte(dataStr)
-					}
-				}
+				unwrappedSSE.Write(unwrappedLine)
 
 				if isClaudeClient && claudeState != nil {
 					out := claudeState.ProcessGeminiSSELine(string(unwrappedLine))
@@ -901,16 +1033,23 @@ func (a *AntigravityAdapter) handleCollectedStreamResponse(ctx context.Context, 
 		}
 		responseBody = collected
 	} else {
-		if len(lastPayload) == 0 {
+		if unwrappedSSE.Len() == 0 {
 			return domain.NewProxyErrorWithMessage(domain.ErrUpstreamError, true, "empty upstream stream response")
 		}
+		geminiWrapped := convertStreamToNonStream([]byte(unwrappedSSE.String()))
+		geminiResponse := unwrapV1InternalResponse(geminiWrapped)
 		switch clientType {
 		case domain.ClientTypeGemini:
-			responseBody = lastPayload
+			responseBody = geminiResponse
 		case domain.ClientTypeOpenAI:
-			return domain.NewProxyErrorWithMessage(domain.ErrFormatConversion, false, "OpenAI response transformation not yet implemented")
+			var convErr error
+			responseBody, convErr = converter.GetGlobalRegistry().TransformResponse(
+				domain.ClientTypeGemini, domain.ClientTypeOpenAI, geminiResponse)
+			if convErr != nil {
+				return domain.NewProxyErrorWithMessage(domain.ErrFormatConversion, false, "failed to transform response")
+			}
 		default:
-			responseBody = lastPayload
+			responseBody = geminiResponse
 		}
 	}
 

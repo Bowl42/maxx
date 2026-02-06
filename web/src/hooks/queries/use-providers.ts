@@ -51,8 +51,16 @@ export function useUpdateProvider() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ id, data }: { id: number; data: Partial<Provider> }) =>
-      getTransport().updateProvider(id, data),
+    mutationFn: async ({ id, data }: { id: number; data: Partial<Provider> }) => {
+      const existing =
+        queryClient.getQueryData<Provider>(providerKeys.detail(id)) ||
+        queryClient
+          .getQueryData<Provider[]>(providerKeys.list())
+          ?.find((provider) => provider.id === id) ||
+        (await getTransport().getProvider(id));
+      const payload = existing ? { ...existing, ...data } : (data as Provider);
+      return getTransport().updateProvider(id, payload);
+    },
     onSuccess: (_, { id }) => {
       queryClient.invalidateQueries({ queryKey: providerKeys.detail(id) });
       queryClient.invalidateQueries({ queryKey: providerKeys.lists() });

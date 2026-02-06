@@ -170,12 +170,12 @@ export function ClientsConfigSection({
                     </p>
                   </div>
 
-                  <div className="flex items-center justify-between gap-3">
-                    <div className="space-y-1">
-                      <p className="text-sm font-medium text-foreground">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide block">
                         {t('provider.cloakStrictMode')}
-                      </p>
-                      <p className="text-xs text-muted-foreground">
+                      </label>
+                      <p className="text-xs text-muted-foreground mt-1">
                         {t('provider.cloakStrictModeDesc')}
                       </p>
                     </div>
@@ -193,7 +193,7 @@ export function ClientsConfigSection({
                       value={cloak.sensitiveWords}
                       onChange={(e) => onUpdateCloak({ sensitiveWords: e.target.value })}
                       placeholder={t('provider.cloakSensitiveWordsPlaceholder')}
-                      className="min-h-[88px]"
+                      className="min-h-[100px] bg-card"
                     />
                     <p className="text-xs text-muted-foreground mt-1">
                       {t('provider.cloakSensitiveWordsDesc')}

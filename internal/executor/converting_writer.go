@@ -152,7 +152,12 @@ func NewConvertingResponseWriter(
 	conv *converter.Registry,
 	originalType, targetType domain.ClientType,
 	isStream bool,
+	originalRequestBody []byte,
 ) *ConvertingResponseWriter {
+	state := converter.NewTransformState()
+	if len(originalRequestBody) > 0 {
+		state.OriginalRequestBody = bytes.Clone(originalRequestBody)
+	}
 	return &ConvertingResponseWriter{
 		underlying:   w,
 		converter:    conv,
@@ -161,7 +166,7 @@ func NewConvertingResponseWriter(
 		isStream:     isStream,
 		statusCode:   http.StatusOK,
 		headers:      make(http.Header),
-		streamState:  converter.NewTransformState(),
+		streamState:  state,
 	}
 }
 
@@ -226,7 +231,7 @@ func (c *ConvertingResponseWriter) Finalize() error {
 	body := c.buffer.Bytes()
 
 	// Convert the response
-	converted, err := c.converter.TransformResponse(c.targetType, c.originalType, body)
+	converted, err := c.converter.TransformResponseWithState(c.targetType, c.originalType, body, c.streamState)
 	if err != nil {
 		// On conversion error, use original body
 		converted = body
@@ -271,9 +276,9 @@ func NeedsConversion(originalType, targetType domain.ClientType) bool {
 	return originalType != targetType && originalType != "" && targetType != ""
 }
 
-// GetPreferredTargetType returns the best target type for conversion
-// Prefers Claude as it has the richest format support
-func GetPreferredTargetType(supportedTypes []domain.ClientType, originalType domain.ClientType) domain.ClientType {
+// GetPreferredTargetType returns the best target type for conversion.
+// Prefers Codex only for codex providers, otherwise Gemini then Claude.
+func GetPreferredTargetType(supportedTypes []domain.ClientType, originalType domain.ClientType, providerType string) domain.ClientType {
 	// If original type is supported, no conversion needed
 	for _, t := range supportedTypes {
 		if t == originalType {
@@ -281,7 +286,23 @@ func GetPreferredTargetType(supportedTypes []domain.ClientType, originalType dom
 		}
 	}
 
-	// Prefer Claude as target (richest format)
+	if providerType == "codex" {
+		// Prefer Codex when available (best fit for Codex provider)
+		for _, t := range supportedTypes {
+			if t == domain.ClientTypeCodex {
+				return t
+			}
+		}
+	}
+
+	// Prefer Gemini as target (best fit for Antigravity)
+	for _, t := range supportedTypes {
+		if t == domain.ClientTypeGemini {
+			return t
+		}
+	}
+
+	// Prefer Claude as target (fallback)
 	for _, t := range supportedTypes {
 		if t == domain.ClientTypeClaude {
 			return t

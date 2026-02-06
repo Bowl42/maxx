@@ -553,11 +553,11 @@ func (s *AdminService) GetLogs(limit int) (*LogsResult, error) {
 func (s *AdminService) autoSetSupportedClientTypes(provider *domain.Provider) {
 	switch provider.Type {
 	case "antigravity":
-		// Antigravity natively supports Claude and Gemini
-		// OpenAI requests will be converted to Claude format by Executor
+		// Antigravity natively supports Claude and Gemini.
+		// Conversion preference is Gemini-first.
 		provider.SupportedClientTypes = []domain.ClientType{
-			domain.ClientTypeClaude,
 			domain.ClientTypeGemini,
+			domain.ClientTypeClaude,
 		}
 	case "kiro":
 		// Kiro natively supports Claude protocol only

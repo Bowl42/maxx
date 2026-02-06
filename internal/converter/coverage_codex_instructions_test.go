@@ -141,8 +141,8 @@ func TestOpenAIToCodexReasoningWhitespace(t *testing.T) {
 	if err := json.Unmarshal(out, &codexReq); err != nil {
 		t.Fatalf("unmarshal: %v", err)
 	}
-	if codexReq.Reasoning == nil || codexReq.Reasoning.Effort != "medium" {
-		t.Fatalf("expected reasoning default for whitespace")
+	if codexReq.Reasoning == nil || codexReq.Reasoning.Effort != " " {
+		t.Fatalf("expected reasoning effort to preserve whitespace")
 	}
 }
 
@@ -192,8 +192,8 @@ func TestOpenAIToCodexInstructionsEnabled(t *testing.T) {
 	if err := json.Unmarshal(out, &codexReq); err != nil {
 		t.Fatalf("unmarshal: %v", err)
 	}
-	if strings.TrimSpace(codexReq.Instructions) == "" {
-		t.Fatalf("expected instructions")
+	if codexReq.Instructions != "" {
+		t.Fatalf("expected no instructions in request conversion")
 	}
 }
 

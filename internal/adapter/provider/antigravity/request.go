@@ -1,11 +1,24 @@
 package antigravity
 
 import (
+	"crypto/sha256"
+	"encoding/binary"
 	"encoding/json"
 	"fmt"
+	"math/rand"
+	"strconv"
 	"strings"
+	"sync"
+	"time"
 
 	"github.com/google/uuid"
+	"github.com/tidwall/gjson"
+	"github.com/tidwall/sjson"
+)
+
+var (
+	randSource      = rand.New(rand.NewSource(time.Now().UnixNano()))
+	randSourceMutex sync.Mutex
 )
 
 // RequestConfig holds resolved request configuration (like Antigravity-Manager)
@@ -178,6 +191,11 @@ func wrapV1InternalRequest(body []byte, projectID, originalModel, mappedModel, s
 
 	// Remove model field from inner request if present (will be at top level)
 	delete(innerRequest, "model")
+	// Strip v1internal wrapper fields if client passed them through
+	delete(innerRequest, "project")
+	delete(innerRequest, "requestId")
+	delete(innerRequest, "requestType")
+	delete(innerRequest, "userAgent")
 
 	// Resolve request configuration (like Antigravity-Manager)
 	toolsForDetection := toolsForConfig
@@ -215,17 +233,21 @@ func wrapV1InternalRequest(body []byte, projectID, originalModel, mappedModel, s
 	// Deep clean [undefined] strings (Cherry Studio client common injection)
 	deepCleanUndefined(innerRequest)
 
-	// [Safety Settings] Inject safety settings from environment variable (like Antigravity-Manager)
-	safetyThreshold := GetSafetyThresholdFromEnv()
-	innerRequest["safetySettings"] = BuildSafetySettingsMap(safetyThreshold)
+	// [Safety Settings] Antigravity v1internal does not accept request.safetySettings
+	delete(innerRequest, "safetySettings")
 
-	// [SessionID Support] If metadata.user_id was provided, use it as sessionId (like Antigravity-Manager)
-	if sessionID != "" {
-		innerRequest["sessionId"] = sessionID
+	// [SessionID Support] Use metadata.user_id if provided, otherwise generate a stable session id
+	if sessionID == "" {
+		sessionID = generateStableSessionID(body)
 	}
+	innerRequest["sessionId"] = sessionID
 
 	// Generate UUID requestId (like Antigravity-Manager)
 	requestID := fmt.Sprintf("agent-%s", uuid.New().String())
+
+	if strings.TrimSpace(projectID) == "" {
+		projectID = generateProjectID()
+	}
 
 	wrapped := map[string]interface{}{
 		"project":     projectID,
@@ -236,7 +258,127 @@ func wrapV1InternalRequest(body []byte, projectID, originalModel, mappedModel, s
 		"requestType": config.RequestType,
 	}
 
-	return json.Marshal(wrapped)
+	payload, err := json.Marshal(wrapped)
+	if err != nil {
+		return nil, err
+	}
+	payload = applyAntigravityRequestTuning(payload, config.FinalModel)
+	return payload, nil
+}
+
+// finalizeOpenAIWrappedRequest ensures an OpenAI->Antigravity converted request
+// has required envelope fields (project/requestId/sessionId/userAgent/requestType),
+// and applies Antigravity request tuning.
+func finalizeOpenAIWrappedRequest(payload []byte, projectID, modelName, sessionID string) []byte {
+	if len(payload) == 0 {
+		return payload
+	}
+	if strings.TrimSpace(projectID) == "" {
+		projectID = generateProjectID()
+	}
+	if sessionID == "" {
+		sessionID = generateStableSessionID(payload)
+	}
+
+	out := payload
+	out, _ = sjson.SetBytes(out, "project", projectID)
+	out, _ = sjson.SetBytes(out, "requestId", fmt.Sprintf("agent-%s", uuid.New().String()))
+	out, _ = sjson.SetBytes(out, "requestType", "agent")
+	out, _ = sjson.SetBytes(out, "userAgent", "antigravity")
+	out, _ = sjson.SetBytes(out, "model", modelName)
+	out, _ = sjson.DeleteBytes(out, "request.safetySettings")
+
+	// Move toolConfig to request.toolConfig if needed
+	if toolConfig := gjson.GetBytes(out, "toolConfig"); toolConfig.Exists() && !gjson.GetBytes(out, "request.toolConfig").Exists() {
+		out, _ = sjson.SetRawBytes(out, "request.toolConfig", []byte(toolConfig.Raw))
+		out, _ = sjson.DeleteBytes(out, "toolConfig")
+	}
+
+	// Ensure sessionId
+	out, _ = sjson.SetBytes(out, "request.sessionId", sessionID)
+	return applyAntigravityRequestTuning(out, modelName)
+}
+
+const antigravitySystemInstruction = "You are Antigravity, a powerful agentic AI coding assistant designed by the Google Deepmind team working on Advanced Agentic Coding.You are pair programming with a USER to solve their coding task. The task may require creating a new codebase, modifying or debugging an existing codebase, or simply answering a question.**Absolute paths only****Proactiveness**"
+
+func applyAntigravityRequestTuning(payload []byte, modelName string) []byte {
+	if len(payload) == 0 {
+		return payload
+	}
+	strJSON := string(payload)
+	paths := make([]string, 0)
+	Walk(gjson.ParseBytes(payload), "", "parametersJsonSchema", &paths)
+	for _, p := range paths {
+		if renamed, err := RenameKey(strJSON, p, p[:len(p)-len("parametersJsonSchema")]+"parameters"); err == nil {
+			strJSON = renamed
+		}
+	}
+
+	if strings.Contains(modelName, "claude") || strings.Contains(modelName, "gemini-3-pro-high") {
+		strJSON = CleanJSONSchemaForAntigravity(strJSON)
+	} else {
+		strJSON = CleanJSONSchemaForGemini(strJSON)
+	}
+
+	payload = []byte(strJSON)
+
+	if strings.Contains(modelName, "claude") || strings.Contains(modelName, "gemini-3-pro-high") {
+		partsResult := gjson.GetBytes(payload, "request.systemInstruction.parts")
+		payload, _ = sjson.SetBytes(payload, "request.systemInstruction.role", "user")
+		payload, _ = sjson.SetBytes(payload, "request.systemInstruction.parts.0.text", antigravitySystemInstruction)
+		payload, _ = sjson.SetBytes(payload, "request.systemInstruction.parts.1.text", fmt.Sprintf("Please ignore following [ignore]%s[/ignore]", antigravitySystemInstruction))
+		if partsResult.Exists() && partsResult.IsArray() {
+			for _, part := range partsResult.Array() {
+				payload, _ = sjson.SetRawBytes(payload, "request.systemInstruction.parts.-1", []byte(part.Raw))
+			}
+		}
+	}
+
+	if strings.Contains(modelName, "claude") {
+		payload, _ = sjson.SetBytes(payload, "request.toolConfig.functionCallingConfig.mode", "VALIDATED")
+	} else {
+		payload, _ = sjson.DeleteBytes(payload, "request.generationConfig.maxOutputTokens")
+	}
+
+	return payload
+}
+
+func generateSessionID() string {
+	randSourceMutex.Lock()
+	n := randSource.Int63n(9_000_000_000_000_000_000)
+	randSourceMutex.Unlock()
+	return "-" + strconv.FormatInt(n, 10)
+}
+
+func generateStableSessionID(payload []byte) string {
+	contents := gjson.GetBytes(payload, "request.contents")
+	if !contents.IsArray() {
+		contents = gjson.GetBytes(payload, "contents")
+	}
+	if contents.IsArray() {
+		for _, content := range contents.Array() {
+			if content.Get("role").String() == "user" {
+				text := content.Get("parts.0.text").String()
+				if text != "" {
+					h := sha256.Sum256([]byte(text))
+					n := int64(binary.BigEndian.Uint64(h[:8])) & 0x7FFFFFFFFFFFFFFF
+					return "-" + strconv.FormatInt(n, 10)
+				}
+			}
+		}
+	}
+	return generateSessionID()
+}
+
+func generateProjectID() string {
+	adjectives := []string{"useful", "bright", "swift", "calm", "bold"}
+	nouns := []string{"fuze", "wave", "spark", "flow", "core"}
+	randSourceMutex.Lock()
+	adj := adjectives[randSource.Intn(len(adjectives))]
+	noun := nouns[randSource.Intn(len(nouns))]
+	randSourceMutex.Unlock()
+	randomPart := strings.ToLower(uuid.NewString())[:5]
+	return adj + "-" + noun + "-" + randomPart
 }
 
 // stripThinkingFromClaude removes thinking config and blocks to retry without thinking (like Manager 400 retry)
