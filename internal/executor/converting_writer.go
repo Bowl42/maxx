@@ -232,8 +232,8 @@ func (c *ConvertingResponseWriter) Finalize() error {
 
 	// Convert the response
 	converted, err := c.converter.TransformResponseWithState(c.targetType, c.originalType, body, c.streamState)
-	if err != nil {
-		// On conversion error, use original body
+	if err != nil || converted == nil {
+		// On conversion error or nil result, use original body
 		converted = body
 	}
 
