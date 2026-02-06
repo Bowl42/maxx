@@ -429,35 +429,6 @@ func convertOpenAIChatCompletionsChunkToResponses(rawJSON []byte, state *Transfo
 		return nil
 	}
 
-	if usage := root.Get("usage"); usage.Exists() {
-		if v := usage.Get("prompt_tokens"); v.Exists() {
-			st.PromptTokens = v.Int()
-			st.UsageSeen = true
-		}
-		if v := usage.Get("prompt_tokens_details.cached_tokens"); v.Exists() {
-			st.CachedTokens = v.Int()
-			st.UsageSeen = true
-		}
-		if v := usage.Get("completion_tokens"); v.Exists() {
-			st.CompletionTokens = v.Int()
-			st.UsageSeen = true
-		} else if v := usage.Get("output_tokens"); v.Exists() {
-			st.CompletionTokens = v.Int()
-			st.UsageSeen = true
-		}
-		if v := usage.Get("output_tokens_details.reasoning_tokens"); v.Exists() {
-			st.ReasoningTokens = v.Int()
-			st.UsageSeen = true
-		} else if v := usage.Get("completion_tokens_details.reasoning_tokens"); v.Exists() {
-			st.ReasoningTokens = v.Int()
-			st.UsageSeen = true
-		}
-		if v := usage.Get("total_tokens"); v.Exists() {
-			st.TotalTokens = v.Int()
-			st.UsageSeen = true
-		}
-	}
-
 	nextSeq := func() int { st.Seq++; return st.Seq }
 	var out [][]byte
 
@@ -501,6 +472,35 @@ func convertOpenAIChatCompletionsChunkToResponses(rawJSON []byte, state *Transfo
 		inprog, _ = sjson.Set(inprog, "response.created_at", st.Created)
 		out = append(out, FormatSSE("response.in_progress", []byte(inprog)))
 		st.Started = true
+	}
+
+	if usage := root.Get("usage"); usage.Exists() {
+		if v := usage.Get("prompt_tokens"); v.Exists() {
+			st.PromptTokens = v.Int()
+			st.UsageSeen = true
+		}
+		if v := usage.Get("prompt_tokens_details.cached_tokens"); v.Exists() {
+			st.CachedTokens = v.Int()
+			st.UsageSeen = true
+		}
+		if v := usage.Get("completion_tokens"); v.Exists() {
+			st.CompletionTokens = v.Int()
+			st.UsageSeen = true
+		} else if v := usage.Get("output_tokens"); v.Exists() {
+			st.CompletionTokens = v.Int()
+			st.UsageSeen = true
+		}
+		if v := usage.Get("output_tokens_details.reasoning_tokens"); v.Exists() {
+			st.ReasoningTokens = v.Int()
+			st.UsageSeen = true
+		} else if v := usage.Get("completion_tokens_details.reasoning_tokens"); v.Exists() {
+			st.ReasoningTokens = v.Int()
+			st.UsageSeen = true
+		}
+		if v := usage.Get("total_tokens"); v.Exists() {
+			st.TotalTokens = v.Int()
+			st.UsageSeen = true
+		}
 	}
 
 	stopReasoning := func(text string) {

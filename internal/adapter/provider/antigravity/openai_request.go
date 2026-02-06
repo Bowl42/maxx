@@ -146,8 +146,11 @@ func ConvertOpenAIRequestToAntigravity(modelName string, inputRawJSON []byte, _ 
 					if len(contents) > 0 {
 						out, _ = sjson.SetBytes(out, "request.systemInstruction.role", "user")
 						for j := 0; j < len(contents); j++ {
-							out, _ = sjson.SetBytes(out, fmt.Sprintf("request.systemInstruction.parts.%d.text", systemPartIndex), contents[j].Get("text").String())
-							systemPartIndex++
+							text := contents[j].Get("text").String()
+							if text != "" {
+								out, _ = sjson.SetBytes(out, fmt.Sprintf("request.systemInstruction.parts.%d.text", systemPartIndex), text)
+								systemPartIndex++
+							}
 						}
 					}
 				}
@@ -165,8 +168,8 @@ func ConvertOpenAIRequestToAntigravity(modelName string, inputRawJSON []byte, _ 
 							text := item.Get("text").String()
 							if text != "" {
 								node, _ = sjson.SetBytes(node, "parts."+itoa(p)+".text", text)
+								p++
 							}
-							p++
 						case "image_url":
 							imageURL := item.Get("image_url.url").String()
 							if strings.HasPrefix(imageURL, "data:") {
@@ -215,8 +218,8 @@ func ConvertOpenAIRequestToAntigravity(modelName string, inputRawJSON []byte, _ 
 							text := item.Get("text").String()
 							if text != "" {
 								node, _ = sjson.SetBytes(node, "parts."+itoa(p)+".text", text)
+								p++
 							}
-							p++
 						case "image_url":
 							imageURL := item.Get("image_url.url").String()
 							if strings.HasPrefix(imageURL, "data:") { // expect data:...
@@ -276,7 +279,7 @@ func ConvertOpenAIRequestToAntigravity(modelName string, inputRawJSON []byte, _ 
 								if parsed.Type == gjson.JSON {
 									toolNode, _ = sjson.SetRawBytes(toolNode, "parts."+itoa(pp)+".functionResponse.response.result", []byte(parsed.Raw))
 								} else {
-									toolNode, _ = sjson.SetBytes(toolNode, "parts."+itoa(pp)+".functionResponse.response.result", resp)
+									toolNode, _ = sjson.SetRawBytes(toolNode, "parts."+itoa(pp)+".functionResponse.response.result", []byte(resp))
 								}
 							}
 							pp++
