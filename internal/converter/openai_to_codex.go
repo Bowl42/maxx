@@ -277,18 +277,19 @@ func (c *openaiToCodexResponse) TransformWithState(body []byte, state *Transform
 	}
 
 	outputsWrapper := `{"arr":[]}`
-	if rc := gjson.GetBytes(body, "choices.0.message.reasoning_content"); rc.Exists() && rc.String() != "" {
-		reasoning := `{"id":"","type":"reasoning","encrypted_content":"","summary":[]}`
-		reasoning, _ = sjson.Set(reasoning, "id", fmt.Sprintf("rs_%s", strings.TrimPrefix(respID, "resp_")))
-		reasoning, _ = sjson.Set(reasoning, "summary.0.type", "summary_text")
-		reasoning, _ = sjson.Set(reasoning, "summary.0.text", rc.String())
-		outputsWrapper, _ = sjson.SetRaw(outputsWrapper, "arr.-1", reasoning)
-	}
 
 	if choices := root.Get("choices"); choices.Exists() && choices.IsArray() {
 		choices.ForEach(func(_, choice gjson.Result) bool {
 			msg := choice.Get("message")
 			if msg.Exists() {
+				if rc := msg.Get("reasoning_content"); rc.Exists() && rc.String() != "" {
+					choiceIdx := int(choice.Get("index").Int())
+					reasoning := `{"id":"","type":"reasoning","encrypted_content":"","summary":[]}`
+					reasoning, _ = sjson.Set(reasoning, "id", fmt.Sprintf("rs_%s_%d", strings.TrimPrefix(respID, "resp_"), choiceIdx))
+					reasoning, _ = sjson.Set(reasoning, "summary.0.type", "summary_text")
+					reasoning, _ = sjson.Set(reasoning, "summary.0.text", rc.String())
+					outputsWrapper, _ = sjson.SetRaw(outputsWrapper, "arr.-1", reasoning)
+				}
 				if c := msg.Get("content"); c.Exists() && c.String() != "" {
 					item := `{"id":"","type":"message","status":"completed","content":[{"type":"output_text","annotations":[],"logprobs":[],"text":""}],"role":"assistant"}`
 					item, _ = sjson.Set(item, "id", fmt.Sprintf("msg_%s_%d", respID, int(choice.Get("index").Int())))
@@ -826,8 +827,8 @@ func convertOpenAIChatCompletionsChunkToResponses(rawJSON []byte, state *Transfo
 					outputsWrapper, _ = sjson.SetRaw(outputsWrapper, "arr.-1", item)
 				}
 			}
-			if len(st.FuncArgsBuf) > 0 {
-				for _, i := range sortedKeys(st.FuncArgsBuf) {
+			if len(st.FuncCallIDs) > 0 {
+				for _, i := range sortedKeys(st.FuncCallIDs) {
 					args := ""
 					if b := st.FuncArgsBuf[i]; b != nil {
 						args = b.String()
