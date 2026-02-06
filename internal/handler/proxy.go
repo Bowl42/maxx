@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"bytes"
 	"encoding/json"
 	"io"
 	"log"
@@ -10,9 +11,10 @@ import (
 	"sync"
 
 	"github.com/awsl-project/maxx/internal/adapter/client"
-	ctxutil "github.com/awsl-project/maxx/internal/context"
+	"github.com/awsl-project/maxx/internal/converter"
 	"github.com/awsl-project/maxx/internal/domain"
 	"github.com/awsl-project/maxx/internal/executor"
+	"github.com/awsl-project/maxx/internal/flow"
 	"github.com/awsl-project/maxx/internal/repository/cached"
 )
 
@@ -31,6 +33,8 @@ type ProxyHandler struct {
 	tokenAuth     *TokenAuthMiddleware
 	tracker       RequestTracker
 	trackerMu     sync.RWMutex
+	engine        *flow.Engine
+	extra         []flow.HandlerFunc
 }
 
 // NewProxyHandler creates a new proxy handler
@@ -40,12 +44,19 @@ func NewProxyHandler(
 	sessionRepo *cached.SessionRepository,
 	tokenAuth *TokenAuthMiddleware,
 ) *ProxyHandler {
-	return &ProxyHandler{
+	h := &ProxyHandler{
 		clientAdapter: clientAdapter,
 		executor:      exec,
 		sessionRepo:   sessionRepo,
 		tokenAuth:     tokenAuth,
+		engine:        flow.NewEngine(),
 	}
+	h.engine.Use(h.ingress)
+	return h
+}
+
+func (h *ProxyHandler) Use(handlers ...flow.HandlerFunc) {
+	h.extra = append(h.extra, handlers...)
 }
 
 // SetRequestTracker sets the request tracker for graceful shutdown
@@ -57,6 +68,16 @@ func (h *ProxyHandler) SetRequestTracker(tracker RequestTracker) {
 
 // ServeHTTP handles proxy requests
 func (h *ProxyHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	ctx := flow.NewCtx(w, r)
+	handlers := make([]flow.HandlerFunc, len(h.extra)+1)
+	copy(handlers, h.extra)
+	handlers[len(h.extra)] = h.dispatch
+	h.engine.HandleWith(ctx, handlers...)
+}
+
+func (h *ProxyHandler) ingress(c *flow.Ctx) {
+	r := c.Request
+	w := c.Writer
 	log.Printf("[Proxy] Received request: %s %s", r.Method, r.URL.Path)
 
 	// Track request for graceful shutdown
@@ -66,9 +87,9 @@ func (h *ProxyHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	if tracker != nil {
 		if !tracker.Add() {
-			// Server is shutting down, reject new requests
 			log.Printf("[Proxy] Rejecting request during shutdown: %s %s", r.Method, r.URL.Path)
 			writeError(w, http.StatusServiceUnavailable, "server is shutting down")
+			c.Abort()
 			return
 		}
 		defer tracker.Done()
@@ -76,6 +97,7 @@ func (h *ProxyHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	if r.Method != http.MethodPost {
 		writeError(w, http.StatusMethodNotAllowed, "method not allowed")
+		c.Abort()
 		return
 	}
 
@@ -88,26 +110,36 @@ func (h *ProxyHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		_, _ = io.Copy(io.Discard, r.Body)
 		_ = r.Body.Close()
 		writeCountTokensResponse(w)
+		c.Abort()
 		return
 	}
 
-	// Read body
 	body, err := io.ReadAll(r.Body)
 	if err != nil {
 		writeError(w, http.StatusBadRequest, "failed to read request body")
+		c.Abort()
 		return
 	}
-	defer r.Body.Close()
+	_ = r.Body.Close()
 
-	// Detect client type and extract info
+	// Normalize OpenAI Responses payloads sent to chat/completions
+	if strings.HasPrefix(r.URL.Path, "/v1/chat/completions") {
+		if normalized, ok := normalizeOpenAIChatCompletionsPayload(body); ok {
+			body = normalized
+		}
+	}
+
+	r.Body = io.NopCloser(bytes.NewReader(body))
+	ctx := r.Context()
+
 	clientType := h.clientAdapter.DetectClientType(r, body)
 	log.Printf("[Proxy] Detected client type: %s", clientType)
 	if clientType == "" {
 		writeError(w, http.StatusBadRequest, "unable to detect client type")
+		c.Abort()
 		return
 	}
 
-	// Token authentication (uses clientType for primary header, with fallback)
 	var apiToken *domain.APIToken
 	var apiTokenID uint64
 	if h.tokenAuth != nil {
@@ -115,6 +147,7 @@ func (h *ProxyHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		if err != nil {
 			log.Printf("[Proxy] Token auth failed: %v", err)
 			writeError(w, http.StatusUnauthorized, err.Error())
+			c.Abort()
 			return
 		}
 		if apiToken != nil {
@@ -128,18 +161,17 @@ func (h *ProxyHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	sessionID := h.clientAdapter.ExtractSessionID(r, body, clientType)
 	stream := h.clientAdapter.IsStreamRequest(r, body)
 
-	// Build context
-	ctx := r.Context()
-	ctx = ctxutil.WithClientType(ctx, clientType)
-	ctx = ctxutil.WithSessionID(ctx, sessionID)
-	ctx = ctxutil.WithRequestModel(ctx, requestModel)
-	ctx = ctxutil.WithRequestBody(ctx, body)
-	ctx = ctxutil.WithRequestHeaders(ctx, r.Header)
-	ctx = ctxutil.WithRequestURI(ctx, r.URL.RequestURI())
-	ctx = ctxutil.WithIsStream(ctx, stream)
-	ctx = ctxutil.WithAPITokenID(ctx, apiTokenID)
+	c.Set(flow.KeyClientType, clientType)
+	c.Set(flow.KeySessionID, sessionID)
+	c.Set(flow.KeyRequestModel, requestModel)
+	originalBody := bytes.Clone(body)
+	c.Set(flow.KeyRequestBody, body)
+	c.Set(flow.KeyOriginalRequestBody, originalBody)
+	c.Set(flow.KeyRequestHeaders, r.Header)
+	c.Set(flow.KeyRequestURI, r.URL.RequestURI())
+	c.Set(flow.KeyIsStream, stream)
+	c.Set(flow.KeyAPITokenID, apiTokenID)
 
-	// Check for project ID from header (set by ProjectProxyHandler)
 	var projectID uint64
 	if pidStr := r.Header.Get("X-Maxx-Project-ID"); pidStr != "" {
 		if pid, err := strconv.ParseUint(pidStr, 10, 64); err == nil {
@@ -148,10 +180,8 @@ func (h *ProxyHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	// Get or create session to get project ID
 	session, _ := h.sessionRepo.GetBySessionID(sessionID)
 	if session != nil {
-		// Priority: Session binding (Admin configured) > Token association > Header > 0
 		if session.ProjectID > 0 {
 			projectID = session.ProjectID
 			log.Printf("[Proxy] Using project ID from session binding: %d", projectID)
@@ -160,8 +190,6 @@ func (h *ProxyHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			log.Printf("[Proxy] Using project ID from token: %d", projectID)
 		}
 	} else {
-		// Create new session
-		// If no project from header, use token's project
 		if projectID == 0 && apiToken != nil && apiToken.ProjectID > 0 {
 			projectID = apiToken.ProjectID
 			log.Printf("[Proxy] Using project ID from token for new session: %d", projectID)
@@ -174,22 +202,74 @@ func (h *ProxyHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		_ = h.sessionRepo.Create(session)
 	}
 
-	ctx = ctxutil.WithProjectID(ctx, projectID)
+	c.Set(flow.KeyProjectID, projectID)
 
-	// Execute request (executor handles request recording, project binding, routing, etc.)
-	err = h.executor.Execute(ctx, w, r)
-	if err != nil {
-		proxyErr, ok := err.(*domain.ProxyError)
-		if ok {
-			if stream {
-				writeStreamError(w, proxyErr)
-			} else {
-				writeProxyError(w, proxyErr)
-			}
-		} else {
-			writeError(w, http.StatusInternalServerError, err.Error())
+	r = r.WithContext(ctx)
+	c.Request = r
+	c.InboundBody = body
+	c.IsStream = stream
+	c.Set(flow.KeyProxyContext, ctx)
+	c.Set(flow.KeyProxyStream, stream)
+	c.Set(flow.KeyProxyRequestModel, requestModel)
+
+	c.Next()
+}
+
+func (h *ProxyHandler) dispatch(c *flow.Ctx) {
+	stream := c.IsStream
+	if v, ok := c.Get(flow.KeyProxyStream); ok {
+		if s, ok := v.(bool); ok {
+			stream = s
 		}
 	}
+
+	err := h.executor.ExecuteWith(c)
+	if err == nil {
+		return
+	}
+	proxyErr, ok := err.(*domain.ProxyError)
+	if ok {
+		if stream {
+			writeStreamError(c.Writer, proxyErr)
+		} else {
+			writeProxyError(c.Writer, proxyErr)
+		}
+		c.Err = err
+		c.Abort()
+		return
+	}
+	writeError(c.Writer, http.StatusInternalServerError, err.Error())
+	c.Err = err
+	c.Abort()
+}
+
+func normalizeOpenAIChatCompletionsPayload(body []byte) ([]byte, bool) {
+	var data map[string]interface{}
+	if err := json.Unmarshal(body, &data); err != nil {
+		return nil, false
+	}
+	if _, hasMessages := data["messages"]; hasMessages {
+		return nil, false
+	}
+	if _, hasInput := data["input"]; !hasInput {
+		if _, hasInstructions := data["instructions"]; !hasInstructions {
+			return nil, false
+		}
+	}
+
+	model, _ := data["model"].(string)
+	stream, _ := data["stream"].(bool)
+	converted, err := converter.GetGlobalRegistry().TransformRequest(
+		domain.ClientTypeCodex,
+		domain.ClientTypeOpenAI,
+		body,
+		model,
+		stream,
+	)
+	if err != nil {
+		return nil, false
+	}
+	return converted, true
 }
 
 // Helper functions

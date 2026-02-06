@@ -361,8 +361,8 @@ func TestHelpers_ShortenNameIfNeededLong(t *testing.T) {
 	if len(short) > maxToolNameLen {
 		t.Fatalf("expected shortened")
 	}
-	if !strings.Contains(short, "_") {
-		t.Fatalf("expected hash suffix")
+	if short == name {
+		t.Fatalf("expected shortened name to differ")
 	}
 }
 
@@ -462,8 +462,8 @@ func TestShortenNameIfNeededLong(t *testing.T) {
 	if len(short) > maxToolNameLen {
 		t.Fatalf("expected shortened name")
 	}
-	if !strings.Contains(short, "_") {
-		t.Fatalf("expected hash suffix")
+	if short == name {
+		t.Fatalf("expected shortened name to differ")
 	}
 }
 

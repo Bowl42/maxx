@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/awsl-project/maxx/internal/domain"
+	"github.com/tidwall/gjson"
 )
 
 func init() {
@@ -14,6 +15,10 @@ func init() {
 
 type geminiToOpenAIRequest struct{}
 type geminiToOpenAIResponse struct{}
+
+type geminiOpenAIStreamMeta struct {
+	Model string
+}
 
 func (c *geminiToOpenAIRequest) Transform(body []byte, model string, stream bool) ([]byte, error) {
 	var req GeminiRequest
@@ -267,6 +272,33 @@ func (c *geminiToOpenAIResponse) TransformChunk(chunk []byte, state *TransformSt
 		if err := json.Unmarshal(event.Data, &geminiChunk); err != nil {
 			continue
 		}
+		meta := gjson.ParseBytes(event.Data)
+		streamMeta, _ := state.Custom.(*geminiOpenAIStreamMeta)
+		if streamMeta == nil {
+			streamMeta = &geminiOpenAIStreamMeta{}
+			state.Custom = streamMeta
+		}
+		if streamMeta.Model == "" {
+			if mv := meta.Get("modelVersion"); mv.Exists() && mv.String() != "" {
+				streamMeta.Model = mv.String()
+			}
+			if streamMeta.Model == "" && len(state.OriginalRequestBody) > 0 {
+				if reqModel := gjson.GetBytes(state.OriginalRequestBody, "model"); reqModel.Exists() && reqModel.String() != "" {
+					streamMeta.Model = reqModel.String()
+				}
+			}
+		}
+		if state.MessageID == "" {
+			if rid := meta.Get("responseId"); rid.Exists() && rid.String() != "" {
+				state.MessageID = rid.String()
+			}
+		}
+		var createdAt int64
+		if ct := meta.Get("createTime"); ct.Exists() {
+			if t, err := time.Parse(time.RFC3339Nano, ct.String()); err == nil {
+				createdAt = t.Unix()
+			}
+		}
 
 		// First chunk
 		if state.MessageID == "" {
@@ -275,10 +307,14 @@ func (c *geminiToOpenAIResponse) TransformChunk(chunk []byte, state *TransformSt
 				ID:      state.MessageID,
 				Object:  "chat.completion.chunk",
 				Created: time.Now().Unix(),
+				Model:   streamMeta.Model,
 				Choices: []OpenAIChoice{{
 					Index: 0,
 					Delta: &OpenAIMessage{Role: "assistant", Content: ""},
 				}},
+			}
+			if createdAt > 0 {
+				openaiChunk.Created = createdAt
 			}
 			output = append(output, FormatSSE("", openaiChunk)...)
 		}
@@ -291,10 +327,14 @@ func (c *geminiToOpenAIResponse) TransformChunk(chunk []byte, state *TransformSt
 						ID:      state.MessageID,
 						Object:  "chat.completion.chunk",
 						Created: time.Now().Unix(),
+						Model:   streamMeta.Model,
 						Choices: []OpenAIChoice{{
 							Index: 0,
-							Delta: &OpenAIMessage{ReasoningContent: part.Text},
+							Delta: &OpenAIMessage{Role: "assistant", ReasoningContent: part.Text},
 						}},
+					}
+					if createdAt > 0 {
+						openaiChunk.Created = createdAt
 					}
 					output = append(output, FormatSSE("", openaiChunk)...)
 					continue
@@ -304,10 +344,14 @@ func (c *geminiToOpenAIResponse) TransformChunk(chunk []byte, state *TransformSt
 						ID:      state.MessageID,
 						Object:  "chat.completion.chunk",
 						Created: time.Now().Unix(),
+						Model:   streamMeta.Model,
 						Choices: []OpenAIChoice{{
 							Index: 0,
-							Delta: &OpenAIMessage{Content: part.Text},
+							Delta: &OpenAIMessage{Role: "assistant", Content: part.Text},
 						}},
+					}
+					if createdAt > 0 {
+						openaiChunk.Created = createdAt
 					}
 					output = append(output, FormatSSE("", openaiChunk)...)
 				}
@@ -316,15 +360,20 @@ func (c *geminiToOpenAIResponse) TransformChunk(chunk []byte, state *TransformSt
 						ID:      state.MessageID,
 						Object:  "chat.completion.chunk",
 						Created: time.Now().Unix(),
+						Model:   streamMeta.Model,
 						Choices: []OpenAIChoice{{
 							Index: 0,
 							Delta: &OpenAIMessage{
+								Role: "assistant",
 								Content: []OpenAIContentPart{{
 									Type:     "image_url",
 									ImageURL: &OpenAIImageURL{URL: "data:" + part.InlineData.MimeType + ";base64," + part.InlineData.Data},
 								}},
 							},
 						}},
+					}
+					if createdAt > 0 {
+						openaiChunk.Created = createdAt
 					}
 					output = append(output, FormatSSE("", openaiChunk)...)
 				}
@@ -337,9 +386,11 @@ func (c *geminiToOpenAIResponse) TransformChunk(chunk []byte, state *TransformSt
 						ID:      state.MessageID,
 						Object:  "chat.completion.chunk",
 						Created: time.Now().Unix(),
+						Model:   streamMeta.Model,
 						Choices: []OpenAIChoice{{
 							Index: 0,
 							Delta: &OpenAIMessage{
+								Role: "assistant",
 								ToolCalls: []OpenAIToolCall{{
 									Index:    state.CurrentIndex,
 									ID:       id,
@@ -348,6 +399,9 @@ func (c *geminiToOpenAIResponse) TransformChunk(chunk []byte, state *TransformSt
 								}},
 							},
 						}},
+					}
+					if createdAt > 0 {
+						openaiChunk.Created = createdAt
 					}
 					state.CurrentIndex++
 					output = append(output, FormatSSE("", openaiChunk)...)
@@ -363,11 +417,15 @@ func (c *geminiToOpenAIResponse) TransformChunk(chunk []byte, state *TransformSt
 					ID:      state.MessageID,
 					Object:  "chat.completion.chunk",
 					Created: time.Now().Unix(),
+					Model:   streamMeta.Model,
 					Choices: []OpenAIChoice{{
 						Index:        0,
-						Delta:        &OpenAIMessage{},
+						Delta:        &OpenAIMessage{Role: "assistant", Content: ""},
 						FinishReason: finishReason,
 					}},
+				}
+				if createdAt > 0 {
+					openaiChunk.Created = createdAt
 				}
 				output = append(output, FormatSSE("", openaiChunk)...)
 				output = append(output, FormatDone()...)

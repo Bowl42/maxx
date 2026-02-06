@@ -27,8 +27,8 @@ const (
 	UserAgentLoadCodeAssist = "antigravity/windows/amd64"
 	// fetchAvailableModels 使用带版本号的 User-Agent
 	UserAgentFetchModels = "antigravity/1.11.3 Darwin/arm64"
-	// 代理请求使用的 User-Agent
-	AntigravityUserAgent = "antigravity/1.11.9 windows/amd64"
+	// 代理请求使用的 User-Agent (CLIProxyAPI default)
+	AntigravityUserAgent = "antigravity/1.104.0 darwin/arm64"
 
 	// 默认 Project ID (当 API 未返回时使用)
 	DefaultProjectID = "bamboo-precept-lgxtn"

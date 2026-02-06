@@ -188,12 +188,14 @@ func RefreshAccessToken(ctx context.Context, refreshToken string) (*TokenRespons
 	data.Set("grant_type", "refresh_token")
 	data.Set("client_id", OAuthClientID)
 	data.Set("refresh_token", refreshToken)
+	data.Set("scope", "openid profile email")
 
 	req, err := http.NewRequestWithContext(ctx, "POST", OpenAITokenURL, strings.NewReader(data.Encode()))
 	if err != nil {
 		return nil, fmt.Errorf("failed to create request: %w", err)
 	}
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	req.Header.Set("Accept", "application/json")
 
 	client := &http.Client{Timeout: 15 * time.Second}
 	resp, err := client.Do(req)
@@ -275,13 +277,13 @@ type CodexUsageResponse struct {
 
 // codexUsageAPIResponse handles both camelCase and snake_case from API
 type codexUsageAPIResponse struct {
-	PlanType            string `json:"plan_type,omitempty"`
-	PlanTypeCamel       string `json:"planType,omitempty"`
-	RateLimit           *struct {
-		Allowed            *bool `json:"allowed,omitempty"`
-		LimitReached       *bool `json:"limit_reached,omitempty"`
-		LimitReachedCamel  *bool `json:"limitReached,omitempty"`
-		PrimaryWindow      *struct {
+	PlanType      string `json:"plan_type,omitempty"`
+	PlanTypeCamel string `json:"planType,omitempty"`
+	RateLimit     *struct {
+		Allowed           *bool `json:"allowed,omitempty"`
+		LimitReached      *bool `json:"limit_reached,omitempty"`
+		LimitReachedCamel *bool `json:"limitReached,omitempty"`
+		PrimaryWindow     *struct {
 			UsedPercent             *float64 `json:"used_percent,omitempty"`
 			UsedPercentCamel        *float64 `json:"usedPercent,omitempty"`
 			LimitWindowSeconds      *int64   `json:"limit_window_seconds,omitempty"`
@@ -323,10 +325,10 @@ type codexUsageAPIResponse struct {
 		} `json:"secondaryWindow,omitempty"`
 	} `json:"rate_limit,omitempty"`
 	RateLimitCamel *struct {
-		Allowed            *bool `json:"allowed,omitempty"`
-		LimitReached       *bool `json:"limit_reached,omitempty"`
-		LimitReachedCamel  *bool `json:"limitReached,omitempty"`
-		PrimaryWindow      *struct {
+		Allowed           *bool `json:"allowed,omitempty"`
+		LimitReached      *bool `json:"limit_reached,omitempty"`
+		LimitReachedCamel *bool `json:"limitReached,omitempty"`
+		PrimaryWindow     *struct {
 			UsedPercent             *float64 `json:"used_percent,omitempty"`
 			UsedPercentCamel        *float64 `json:"usedPercent,omitempty"`
 			LimitWindowSeconds      *int64   `json:"limit_window_seconds,omitempty"`
@@ -368,10 +370,10 @@ type codexUsageAPIResponse struct {
 		} `json:"secondaryWindow,omitempty"`
 	} `json:"rateLimit,omitempty"`
 	CodeReviewRateLimit *struct {
-		Allowed            *bool `json:"allowed,omitempty"`
-		LimitReached       *bool `json:"limit_reached,omitempty"`
-		LimitReachedCamel  *bool `json:"limitReached,omitempty"`
-		PrimaryWindow      *struct {
+		Allowed           *bool `json:"allowed,omitempty"`
+		LimitReached      *bool `json:"limit_reached,omitempty"`
+		LimitReachedCamel *bool `json:"limitReached,omitempty"`
+		PrimaryWindow     *struct {
 			UsedPercent             *float64 `json:"used_percent,omitempty"`
 			UsedPercentCamel        *float64 `json:"usedPercent,omitempty"`
 			LimitWindowSeconds      *int64   `json:"limit_window_seconds,omitempty"`
@@ -393,10 +395,10 @@ type codexUsageAPIResponse struct {
 		} `json:"primaryWindow,omitempty"`
 	} `json:"code_review_rate_limit,omitempty"`
 	CodeReviewRateLimitCamel *struct {
-		Allowed            *bool `json:"allowed,omitempty"`
-		LimitReached       *bool `json:"limit_reached,omitempty"`
-		LimitReachedCamel  *bool `json:"limitReached,omitempty"`
-		PrimaryWindow      *struct {
+		Allowed           *bool `json:"allowed,omitempty"`
+		LimitReached      *bool `json:"limit_reached,omitempty"`
+		LimitReachedCamel *bool `json:"limitReached,omitempty"`
+		PrimaryWindow     *struct {
 			UsedPercent             *float64 `json:"used_percent,omitempty"`
 			UsedPercentCamel        *float64 `json:"usedPercent,omitempty"`
 			LimitWindowSeconds      *int64   `json:"limit_window_seconds,omitempty"`

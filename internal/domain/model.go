@@ -1,6 +1,9 @@
 package domain
 
-import "time"
+import (
+	"strings"
+	"time"
+)
 
 // 各种请求的客户端
 type ClientType string
@@ -811,52 +814,42 @@ type ResponseModel struct {
 
 // MatchWildcard 检查输入是否匹配通配符模式
 func MatchWildcard(pattern, input string) bool {
-	// 简单情况
+	pattern = strings.TrimSpace(pattern)
+	input = strings.TrimSpace(input)
+	if pattern == "" {
+		return false
+	}
 	if pattern == "*" {
 		return true
 	}
-	if !containsWildcard(pattern) {
-		return pattern == input
-	}
-
-	parts := splitByWildcard(pattern)
-
-	// 处理 prefix* 模式
-	if len(parts) == 2 && parts[1] == "" {
-		return hasPrefix(input, parts[0])
-	}
-
-	// 处理 *suffix 模式
-	if len(parts) == 2 && parts[0] == "" {
-		return hasSuffix(input, parts[1])
-	}
-
-	// 处理多通配符模式
-	pos := 0
-	for i, part := range parts {
-		if part == "" {
+	// Iterative glob-style matcher supporting only '*' wildcard.
+	pi, si := 0, 0
+	starIdx := -1
+	matchIdx := 0
+	for si < len(input) {
+		if pi < len(pattern) && pattern[pi] == input[si] {
+			pi++
+			si++
 			continue
 		}
-
-		idx := indexOf(input[pos:], part)
-		if idx < 0 {
-			return false
+		if pi < len(pattern) && pattern[pi] == '*' {
+			starIdx = pi
+			matchIdx = si
+			pi++
+			continue
 		}
-
-		// 第一部分必须在开头（如果模式不以 * 开头）
-		if i == 0 && idx != 0 {
-			return false
+		if starIdx != -1 {
+			pi = starIdx + 1
+			matchIdx++
+			si = matchIdx
+			continue
 		}
-
-		pos += idx + len(part)
-	}
-
-	// 最后一部分必须在结尾（如果模式不以 * 结尾）
-	if parts[len(parts)-1] != "" && !hasSuffix(input, parts[len(parts)-1]) {
 		return false
 	}
-
-	return true
+	for pi < len(pattern) && pattern[pi] == '*' {
+		pi++
+	}
+	return pi == len(pattern)
 }
 
 // 辅助函数

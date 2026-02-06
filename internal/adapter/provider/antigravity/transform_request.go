@@ -74,13 +74,7 @@ func TransformClaudeToGemini(
 	genConfig := buildGenerationConfig(&claudeReq, mappedModel, stream, hasThinking)
 	geminiReq["generationConfig"] = genConfig
 
-	// 5.5 Safety Settings (configurable via environment)
-	// Reference: Antigravity-Manager's build_safety_settings
-	safetyThreshold := GetSafetyThresholdFromEnv()
-	safetySettings := BuildSafetySettingsMap(safetyThreshold)
-	geminiReq["safetySettings"] = safetySettings
-
-	// 5.6 Deep clean [undefined] strings (Cherry Studio injection fix)
+	// 5.5 Deep clean [undefined] strings (Cherry Studio injection fix)
 	// Reference: Antigravity-Manager line 278
 	deepCleanUndefined(geminiReq)
 

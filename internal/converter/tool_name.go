@@ -1,8 +1,8 @@
 package converter
 
 import (
-	"fmt"
-	"hash/crc32"
+	"strconv"
+	"strings"
 )
 
 const maxToolNameLen = 64
@@ -11,25 +11,54 @@ func shortenNameIfNeeded(name string) string {
 	if len(name) <= maxToolNameLen {
 		return name
 	}
-	hash := crc32.ChecksumIEEE([]byte(name))
-	// Keep a stable prefix to preserve readability, add hash suffix for uniqueness.
-	prefixLen := maxToolNameLen - 9 // "_" + 8 hex
-	return fmt.Sprintf("%s_%08x", name[:prefixLen], hash)
+	if strings.HasPrefix(name, "mcp__") {
+		idx := strings.LastIndex(name, "__")
+		if idx > 3 {
+			candidate := "mcp__" + name[idx+2:]
+			if len(candidate) > maxToolNameLen {
+				return candidate[:maxToolNameLen]
+			}
+			return candidate
+		}
+	}
+	return name[:maxToolNameLen]
 }
 
 func buildShortNameMap(names []string) map[string]string {
+	used := map[string]struct{}{}
 	result := make(map[string]string, len(names))
-	used := make(map[string]int)
-	for _, name := range names {
-		short := shortenNameIfNeeded(name)
-		if count, ok := used[short]; ok {
-			count++
-			used[short] = count
-			short = shortenNameIfNeeded(fmt.Sprintf("%s_%d", name, count))
-		} else {
-			used[short] = 0
+
+	baseCandidate := func(n string) string {
+		return shortenNameIfNeeded(n)
+	}
+
+	makeUnique := func(cand string) string {
+		if _, ok := used[cand]; !ok {
+			return cand
 		}
-		result[name] = short
+		base := cand
+		for i := 1; ; i++ {
+			suffix := "_" + strconv.Itoa(i)
+			allowed := maxToolNameLen - len(suffix)
+			if allowed < 0 {
+				allowed = 0
+			}
+			tmp := base
+			if len(tmp) > allowed {
+				tmp = tmp[:allowed]
+			}
+			tmp = tmp + suffix
+			if _, ok := used[tmp]; !ok {
+				return tmp
+			}
+		}
+	}
+
+	for _, n := range names {
+		cand := baseCandidate(n)
+		uniq := makeUnique(cand)
+		used[uniq] = struct{}{}
+		result[n] = uniq
 	}
 	return result
 }

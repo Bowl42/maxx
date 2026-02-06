@@ -174,11 +174,11 @@ func TestOpenAIToCodexRequestAndStream(t *testing.T) {
 	if !strings.Contains(string(streamOut), "response.created") {
 		t.Fatalf("missing response.created")
 	}
-	if !strings.Contains(string(streamOut), "response.output_item.delta") {
+	if !strings.Contains(string(streamOut), "response.output_text.delta") {
 		t.Fatalf("missing delta")
 	}
-	if !strings.Contains(string(streamOut), "response.done") {
-		t.Fatalf("missing done")
+	if !strings.Contains(string(streamOut), "response.completed") {
+		t.Fatalf("missing completed")
 	}
 }
 
@@ -508,13 +508,14 @@ func TestOpenAIToClaudeStreamDoneWithoutMessage(t *testing.T) {
 func TestCodexToOpenAIStreamDoneFlow(t *testing.T) {
 	state := NewTransformState()
 	created := map[string]interface{}{"type": "response.created", "response": map[string]interface{}{"id": "resp_1"}}
-	delta := map[string]interface{}{"type": "response.output_item.delta", "delta": map[string]interface{}{"text": "hi"}}
-	done := map[string]interface{}{"type": "response.done"}
+	delta := map[string]interface{}{"type": "response.output_text.delta", "delta": "hi"}
+	completed := map[string]interface{}{"type": "response.completed", "response": map[string]interface{}{"usage": map[string]interface{}{"input_tokens": 1}}}
 	c1, _ := json.Marshal(created)
 	c2, _ := json.Marshal(delta)
-	c3, _ := json.Marshal(done)
+	c3, _ := json.Marshal(completed)
 	stream := append(FormatSSE("", json.RawMessage(c1)), FormatSSE("", json.RawMessage(c2))...)
 	stream = append(stream, FormatSSE("", json.RawMessage(c3))...)
+	stream = append(stream, FormatDone()...)
 	conv := &codexToOpenAIResponse{}
 	out, err := conv.TransformChunk(stream, state)
 	if err != nil {

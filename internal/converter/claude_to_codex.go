@@ -30,6 +30,22 @@ func (c *claudeToCodexRequest) Transform(body []byte, model string, stream bool)
 		TopP:            req.TopP,
 	}
 
+	shortMap := map[string]string{}
+	if len(req.Tools) > 0 {
+		var names []string
+		for _, tool := range req.Tools {
+			if tool.Type != "" {
+				continue // server tools should keep their type
+			}
+			if tool.Name != "" {
+				names = append(names, tool.Name)
+			}
+		}
+		if len(names) > 0 {
+			shortMap = buildShortNameMap(names)
+		}
+	}
+
 	// Convert messages to input
 	var input []CodexInputItem
 	if req.System != nil {
@@ -69,6 +85,11 @@ func (c *claudeToCodexRequest) Transform(body []byte, model string, stream bool)
 					case "tool_use":
 						// Convert tool use to function_call output
 						name, _ := m["name"].(string)
+						if short, ok := shortMap[name]; ok {
+							name = short
+						} else {
+							name = shortenNameIfNeeded(name)
+						}
 						id, _ := m["id"].(string)
 						inputData := m["input"]
 						argJSON, _ := json.Marshal(inputData)
@@ -102,9 +123,21 @@ func (c *claudeToCodexRequest) Transform(body []byte, model string, stream bool)
 
 	// Convert tools
 	for _, tool := range req.Tools {
+		if tool.Type != "" {
+			codexReq.Tools = append(codexReq.Tools, CodexTool{
+				Type: tool.Type,
+			})
+			continue
+		}
+		name := tool.Name
+		if short, ok := shortMap[name]; ok {
+			name = short
+		} else {
+			name = shortenNameIfNeeded(name)
+		}
 		codexReq.Tools = append(codexReq.Tools, CodexTool{
 			Type:        "function",
-			Name:        tool.Name,
+			Name:        name,
 			Description: tool.Description,
 			Parameters:  tool.InputSchema,
 		})

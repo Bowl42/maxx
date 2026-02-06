@@ -13,9 +13,9 @@ import (
 	"time"
 
 	"github.com/awsl-project/maxx/internal/adapter/provider"
-	ctxutil "github.com/awsl-project/maxx/internal/context"
 	"github.com/awsl-project/maxx/internal/converter"
 	"github.com/awsl-project/maxx/internal/domain"
+	"github.com/awsl-project/maxx/internal/flow"
 	"github.com/awsl-project/maxx/internal/usage"
 )
 
@@ -64,10 +64,15 @@ func (a *KiroAdapter) SupportedClientTypes() []domain.ClientType {
 }
 
 // Execute performs the proxy request to the upstream CodeWhisperer API
-func (a *KiroAdapter) Execute(ctx context.Context, w http.ResponseWriter, req *http.Request, provider *domain.Provider) error {
-	requestModel := ctxutil.GetRequestModel(ctx)
-	requestBody := ctxutil.GetRequestBody(ctx)
-	stream := ctxutil.GetIsStream(ctx)
+func (a *KiroAdapter) Execute(c *flow.Ctx, provider *domain.Provider) error {
+	requestModel := flow.GetRequestModel(c)
+	requestBody := flow.GetRequestBody(c)
+	stream := flow.GetIsStream(c)
+	request := c.Request
+	ctx := context.Background()
+	if request != nil {
+		ctx = request.Context()
+	}
 
 	config := provider.Config.Kiro
 
@@ -84,18 +89,18 @@ func (a *KiroAdapter) Execute(ctx context.Context, w http.ResponseWriter, req *h
 	}
 
 	// Convert Claude request to CodeWhisperer format (传入 req 用于生成稳定会话ID)
-	cwBody, mappedModel, err := ConvertClaudeToCodeWhisperer(requestBody, config.ModelMapping, req)
+	cwBody, mappedModel, err := ConvertClaudeToCodeWhisperer(requestBody, config.ModelMapping, request)
 	if err != nil {
 		return domain.NewProxyErrorWithMessage(err, true, fmt.Sprintf("failed to convert request: %v", err))
 	}
 
 	// Update attempt record with the mapped model (kiro-specific internal mapping)
-	if attempt := ctxutil.GetUpstreamAttempt(ctx); attempt != nil {
+	if attempt := flow.GetUpstreamAttempt(c); attempt != nil {
 		attempt.MappedModel = mappedModel
 	}
 
 	// Get EventChannel for sending events to executor
-	eventChan := ctxutil.GetEventChan(ctx)
+	eventChan := flow.GetEventChan(c)
 
 	// Build upstream URL
 	upstreamURL := fmt.Sprintf(CodeWhispererURLTemplate, region)
@@ -196,9 +201,9 @@ func (a *KiroAdapter) Execute(ctx context.Context, w http.ResponseWriter, req *h
 	inputTokens := calculateInputTokens(requestBody)
 
 	if stream {
-		return a.handleStreamResponse(ctx, w, resp, requestModel, inputTokens)
+		return a.handleStreamResponse(c, resp, requestModel, inputTokens)
 	}
-	return a.handleCollectedStreamResponse(ctx, w, resp, requestModel, inputTokens)
+	return a.handleCollectedStreamResponse(c, resp, requestModel, inputTokens)
 }
 
 // getAccessToken gets a valid access token, refreshing if necessary
@@ -335,8 +340,13 @@ func (a *KiroAdapter) refreshIdCToken(ctx context.Context, config *domain.Provid
 }
 
 // handleStreamResponse handles streaming EventStream response
-func (a *KiroAdapter) handleStreamResponse(ctx context.Context, w http.ResponseWriter, resp *http.Response, requestModel string, inputTokens int) error {
-	eventChan := ctxutil.GetEventChan(ctx)
+func (a *KiroAdapter) handleStreamResponse(c *flow.Ctx, resp *http.Response, requestModel string, inputTokens int) error {
+	w := c.Writer
+	ctx := context.Background()
+	if c.Request != nil {
+		ctx = c.Request.Context()
+	}
+	eventChan := flow.GetEventChan(c)
 
 	// Send initial response info
 	eventChan.SendResponseInfo(&domain.ResponseInfo{
@@ -362,7 +372,7 @@ func (a *KiroAdapter) handleStreamResponse(ctx context.Context, w http.ResponseW
 
 	if err := streamCtx.sendInitialEvents(); err != nil {
 		inTok, outTok := streamCtx.GetTokenCounts()
-		a.sendFinalEvents(ctx, sseBuffer.String(), inTok, outTok, requestModel, streamCtx.GetFirstTokenTimeMs())
+		a.sendFinalEvents(eventChan, sseBuffer.String(), inTok, outTok, requestModel, streamCtx.GetFirstTokenTimeMs())
 		return domain.NewProxyErrorWithMessage(err, false, "failed to send initial events")
 	}
 
@@ -370,30 +380,29 @@ func (a *KiroAdapter) handleStreamResponse(ctx context.Context, w http.ResponseW
 	if err != nil {
 		if ctx.Err() != nil {
 			inTok, outTok := streamCtx.GetTokenCounts()
-			a.sendFinalEvents(ctx, sseBuffer.String(), inTok, outTok, requestModel, streamCtx.GetFirstTokenTimeMs())
+			a.sendFinalEvents(eventChan, sseBuffer.String(), inTok, outTok, requestModel, streamCtx.GetFirstTokenTimeMs())
 			return domain.NewProxyErrorWithMessage(ctx.Err(), false, "client disconnected")
 		}
 
 		_ = streamCtx.sendFinalEvents()
 		inTok, outTok := streamCtx.GetTokenCounts()
-		a.sendFinalEvents(ctx, sseBuffer.String(), inTok, outTok, requestModel, streamCtx.GetFirstTokenTimeMs())
+		a.sendFinalEvents(eventChan, sseBuffer.String(), inTok, outTok, requestModel, streamCtx.GetFirstTokenTimeMs())
 		return nil
 	}
 
 	if err := streamCtx.sendFinalEvents(); err != nil {
 		inTok, outTok := streamCtx.GetTokenCounts()
-		a.sendFinalEvents(ctx, sseBuffer.String(), inTok, outTok, requestModel, streamCtx.GetFirstTokenTimeMs())
+		a.sendFinalEvents(eventChan, sseBuffer.String(), inTok, outTok, requestModel, streamCtx.GetFirstTokenTimeMs())
 		return domain.NewProxyErrorWithMessage(err, false, "failed to send final events")
 	}
 
 	inTok, outTok := streamCtx.GetTokenCounts()
-	a.sendFinalEvents(ctx, sseBuffer.String(), inTok, outTok, requestModel, streamCtx.GetFirstTokenTimeMs())
+	a.sendFinalEvents(eventChan, sseBuffer.String(), inTok, outTok, requestModel, streamCtx.GetFirstTokenTimeMs())
 	return nil
 }
 
 // sendFinalEvents sends final events via EventChannel
-func (a *KiroAdapter) sendFinalEvents(ctx context.Context, body string, inputTokens, outputTokens int, requestModel string, firstTokenTimeMs int64) {
-	eventChan := ctxutil.GetEventChan(ctx)
+func (a *KiroAdapter) sendFinalEvents(eventChan domain.AdapterEventChan, body string, inputTokens, outputTokens int, requestModel string, firstTokenTimeMs int64) {
 	if eventChan == nil {
 		return
 	}
@@ -405,8 +414,8 @@ func (a *KiroAdapter) sendFinalEvents(ctx context.Context, body string, inputTok
 
 	// Send response info with body
 	eventChan.SendResponseInfo(&domain.ResponseInfo{
-		Status:  200, // streaming always returns 200 at this point
-		Body:    body,
+		Status: 200, // streaming always returns 200 at this point
+		Body:   body,
 	})
 
 	// Try to extract usage metrics from the SSE content first
@@ -432,8 +441,9 @@ func (a *KiroAdapter) sendFinalEvents(ctx context.Context, body string, inputTok
 }
 
 // handleCollectedStreamResponse collects streaming response into a single JSON response
-func (a *KiroAdapter) handleCollectedStreamResponse(ctx context.Context, w http.ResponseWriter, resp *http.Response, requestModel string, inputTokens int) error {
-	eventChan := ctxutil.GetEventChan(ctx)
+func (a *KiroAdapter) handleCollectedStreamResponse(c *flow.Ctx, resp *http.Response, requestModel string, inputTokens int) error {
+	w := c.Writer
+	eventChan := flow.GetEventChan(c)
 
 	// Send initial response info
 	eventChan.SendResponseInfo(&domain.ResponseInfo{

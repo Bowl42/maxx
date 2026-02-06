@@ -1,10 +1,8 @@
 package provider
 
 import (
-	"context"
-	"net/http"
-
 	"github.com/awsl-project/maxx/internal/domain"
+	"github.com/awsl-project/maxx/internal/flow"
 )
 
 // ProviderAdapter handles communication with upstream providers
@@ -13,10 +11,10 @@ type ProviderAdapter interface {
 	SupportedClientTypes() []domain.ClientType
 
 	// Execute performs the proxy request to the upstream provider
-	// It reads from ctx for ClientType, MappedModel, RequestBody
-	// It writes the response to w
+	// It reads from flow.Ctx for ClientType, MappedModel, RequestBody
+	// It writes the response to c.Writer
 	// Returns ProxyError on failure
-	Execute(ctx context.Context, w http.ResponseWriter, req *http.Request, provider *domain.Provider) error
+	Execute(c *flow.Ctx, provider *domain.Provider) error
 }
 
 // AdapterFactory creates ProviderAdapter instances

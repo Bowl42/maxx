@@ -11,8 +11,8 @@ import (
 	"time"
 
 	"github.com/awsl-project/maxx/internal/adapter/provider"
-	ctxutil "github.com/awsl-project/maxx/internal/context"
 	"github.com/awsl-project/maxx/internal/domain"
+	"github.com/awsl-project/maxx/internal/flow"
 	"github.com/awsl-project/maxx/internal/usage"
 	"github.com/router-for-me/CLIProxyAPI/v6/sdk/cliproxy/auth"
 	"github.com/router-for-me/CLIProxyAPI/v6/sdk/cliproxy/executor"
@@ -53,16 +53,18 @@ func (a *CLIProxyAPICodexAdapter) SupportedClientTypes() []domain.ClientType {
 	return []domain.ClientType{domain.ClientTypeCodex}
 }
 
-func (a *CLIProxyAPICodexAdapter) Execute(ctx context.Context, w http.ResponseWriter, req *http.Request, p *domain.Provider) error {
-	requestBody := ctxutil.GetRequestBody(ctx)
-	stream := ctxutil.GetIsStream(ctx)
-	model := ctxutil.GetMappedModel(ctx)
+func (a *CLIProxyAPICodexAdapter) Execute(c *flow.Ctx, p *domain.Provider) error {
+	w := c.Writer
+
+	requestBody := flow.GetRequestBody(c)
+	stream := flow.GetIsStream(c)
+	model := flow.GetMappedModel(c)
 
 	// Codex CLI 使用 OpenAI Responses API 格式
 	sourceFormat := translator.FormatCodex
 
 	// 发送事件
-	if eventChan := ctxutil.GetEventChan(ctx); eventChan != nil {
+	if eventChan := flow.GetEventChan(c); eventChan != nil {
 		eventChan.SendRequestInfo(&domain.RequestInfo{
 			Method: "POST",
 			URL:    fmt.Sprintf("cliproxyapi://codex/%s", model),
@@ -84,18 +86,23 @@ func (a *CLIProxyAPICodexAdapter) Execute(ctx context.Context, w http.ResponseWr
 	}
 
 	if stream {
-		return a.executeStream(ctx, w, execReq, execOpts)
+		return a.executeStream(c, w, execReq, execOpts)
 	}
-	return a.executeNonStream(ctx, w, execReq, execOpts)
+	return a.executeNonStream(c, w, execReq, execOpts)
 }
 
-func (a *CLIProxyAPICodexAdapter) executeNonStream(ctx context.Context, w http.ResponseWriter, execReq executor.Request, execOpts executor.Options) error {
+func (a *CLIProxyAPICodexAdapter) executeNonStream(c *flow.Ctx, w http.ResponseWriter, execReq executor.Request, execOpts executor.Options) error {
+	ctx := context.Background()
+	if c.Request != nil {
+		ctx = c.Request.Context()
+	}
+
 	resp, err := a.executor.Execute(ctx, a.authObj, execReq, execOpts)
 	if err != nil {
 		return domain.NewProxyErrorWithMessage(err, true, fmt.Sprintf("executor request failed: %v", err))
 	}
 
-	if eventChan := ctxutil.GetEventChan(ctx); eventChan != nil {
+	if eventChan := flow.GetEventChan(c); eventChan != nil {
 		// Send response info
 		eventChan.SendResponseInfo(&domain.ResponseInfo{
 			Status: http.StatusOK,
@@ -125,13 +132,16 @@ func (a *CLIProxyAPICodexAdapter) executeNonStream(ctx context.Context, w http.R
 	return nil
 }
 
-func (a *CLIProxyAPICodexAdapter) executeStream(ctx context.Context, w http.ResponseWriter, execReq executor.Request, execOpts executor.Options) error {
+func (a *CLIProxyAPICodexAdapter) executeStream(c *flow.Ctx, w http.ResponseWriter, execReq executor.Request, execOpts executor.Options) error {
 	flusher, ok := w.(http.Flusher)
 	if !ok {
-		return a.executeNonStream(ctx, w, execReq, execOpts)
+		return a.executeNonStream(c, w, execReq, execOpts)
 	}
 
-	startTime := time.Now()
+	ctx := context.Background()
+	if c.Request != nil {
+		ctx = c.Request.Context()
+	}
 
 	stream, err := a.executor.ExecuteStream(ctx, a.authObj, execReq, execOpts)
 	if err != nil {
@@ -144,7 +154,7 @@ func (a *CLIProxyAPICodexAdapter) executeStream(ctx context.Context, w http.Resp
 	w.Header().Set("Connection", "keep-alive")
 	w.WriteHeader(http.StatusOK)
 
-	eventChan := ctxutil.GetEventChan(ctx)
+	eventChan := flow.GetEventChan(c)
 
 	// Collect SSE content for token extraction
 	var sseBuffer bytes.Buffer
@@ -165,7 +175,7 @@ func (a *CLIProxyAPICodexAdapter) executeStream(ctx context.Context, w http.Resp
 
 			// Report TTFT on first non-empty chunk
 			if !firstChunkSent && eventChan != nil {
-				eventChan.SendFirstToken(time.Since(startTime).Milliseconds())
+				eventChan.SendFirstToken(time.Now().UnixMilli())
 				firstChunkSent = true
 			}
 		}
