@@ -113,53 +113,65 @@ func (a *CLIProxyAPICodexAdapter) getAccessToken(ctx context.Context) (string, e
 
 	// 使用配置中的 access_token
 	cfg := a.codexConfig()
-	if strings.TrimSpace(cfg.AccessToken) != "" {
+	a.tokenMu.RLock()
+	cfgAccessToken := strings.TrimSpace(cfg.AccessToken)
+	cfgExpiresAt := strings.TrimSpace(cfg.ExpiresAt)
+	cfgRefreshToken := cfg.RefreshToken
+	a.tokenMu.RUnlock()
+
+	if cfgAccessToken != "" {
 		var expiresAt time.Time
-		if strings.TrimSpace(cfg.ExpiresAt) != "" {
-			if parsed, err := time.Parse(time.RFC3339, cfg.ExpiresAt); err == nil {
+		if cfgExpiresAt != "" {
+			if parsed, err := time.Parse(time.RFC3339, cfgExpiresAt); err == nil {
 				expiresAt = parsed
 			}
 		}
 		a.tokenMu.Lock()
 		a.tokenCache = &TokenCache{
-			AccessToken: cfg.AccessToken,
+			AccessToken: cfgAccessToken,
 			ExpiresAt:   expiresAt,
 		}
 		a.tokenMu.Unlock()
 
 		if expiresAt.IsZero() || time.Now().Add(60*time.Second).Before(expiresAt) {
-			return cfg.AccessToken, nil
+			return cfgAccessToken, nil
 		}
 	}
 
 	// 刷新 token
-	tokenResp, err := refreshAccessToken(ctx, cfg.RefreshToken)
+	tokenResp, err := refreshAccessToken(ctx, cfgRefreshToken)
 	if err != nil {
 		// 刷新失败时，如果有旧 token 就兜底使用
-		if strings.TrimSpace(cfg.AccessToken) != "" {
-			return cfg.AccessToken, nil
+		if cfgAccessToken != "" {
+			return cfgAccessToken, nil
 		}
 		return "", err
 	}
 
-	// 计算过期时间
-	expiresAt := time.Now().Add(time.Duration(tokenResp.ExpiresIn-60) * time.Second)
+	// 计算过期时间（预留 60s 缓冲，至少保留 1s 避免负值导致无限刷新）
+	ttl := tokenResp.ExpiresIn - 60
+	if ttl < 1 {
+		ttl = 1
+	}
+	expiresAt := time.Now().Add(time.Duration(ttl) * time.Second)
 
-	// 更新缓存
+	// 更新缓存和 cfg 字段在同一个临界区
 	a.tokenMu.Lock()
 	a.tokenCache = &TokenCache{
 		AccessToken: tokenResp.AccessToken,
 		ExpiresAt:   expiresAt,
 	}
-	a.tokenMu.Unlock()
-
-	// 持久化 token 到数据库（best-effort，失败不影响当前请求）
 	if a.providerUpdate != nil {
 		cfg.AccessToken = tokenResp.AccessToken
 		cfg.ExpiresAt = expiresAt.Format(time.RFC3339)
 		if tokenResp.RefreshToken != "" {
 			cfg.RefreshToken = tokenResp.RefreshToken
 		}
+	}
+	a.tokenMu.Unlock()
+
+	// 持久化 token 到数据库（best-effort，失败不影响当前请求）
+	if a.providerUpdate != nil {
 		if err := a.providerUpdate(a.provider); err != nil {
 			log.Printf("[CLIProxyAPI-Codex] failed to persist refreshed token: %v", err)
 		}
