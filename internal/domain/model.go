@@ -158,15 +158,6 @@ type ProviderConfigCLIProxyAPICodex struct {
 	// OpenAI OAuth refresh_token
 	RefreshToken string `json:"refreshToken"`
 
-	// Access token（避免启动时不必要的 refresh）
-	AccessToken string `json:"accessToken,omitempty"`
-
-	// Access token 过期时间 (RFC3339 格式)
-	ExpiresAt string `json:"expiresAt,omitempty"`
-
-	// ChatGPT Account ID
-	AccountID string `json:"accountId,omitempty"`
-
 	// Model 映射: RequestModel → MappedModel
 	ModelMapping map[string]string `json:"modelMapping,omitempty"`
 }

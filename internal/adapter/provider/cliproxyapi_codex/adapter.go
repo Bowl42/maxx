@@ -5,14 +5,13 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
 	"log"
 	"net/http"
+	"net/url"
 	"strings"
 	"sync"
 	"time"
-
-	"io"
-	"net/url"
 
 	"github.com/awsl-project/maxx/internal/adapter/provider"
 	"github.com/awsl-project/maxx/internal/domain"
@@ -44,12 +43,18 @@ func (a *CLIProxyAPICodexAdapter) SetProviderUpdateFunc(fn func(*domain.Provider
 	a.providerUpdate = fn
 }
 
+// codexConfig returns the Codex config from the provider.
+// CPA adapter always uses ProviderConfigCodex (the real provider's config).
+func (a *CLIProxyAPICodexAdapter) codexConfig() *domain.ProviderConfigCodex {
+	return a.provider.Config.Codex
+}
+
 func NewAdapter(p *domain.Provider) (provider.ProviderAdapter, error) {
-	if p.Config == nil || p.Config.CLIProxyAPICodex == nil {
-		return nil, fmt.Errorf("provider %s missing cliproxyapi-codex config", p.Name)
+	if p.Config == nil || p.Config.Codex == nil {
+		return nil, fmt.Errorf("provider %s missing codex config", p.Name)
 	}
 
-	cfg := p.Config.CLIProxyAPICodex
+	cfg := p.Config.Codex
 
 	// 创建 Auth 对象
 	metadata := map[string]any{
@@ -72,7 +77,7 @@ func NewAdapter(p *domain.Provider) (provider.ProviderAdapter, error) {
 		tokenCache: &TokenCache{},
 	}
 
-	// 从配置初始化 token 缓存（与原生 codex adapter 一致）
+	// 从配置初始化 token 缓存
 	if cfg.AccessToken != "" && cfg.ExpiresAt != "" {
 		expiresAt, err := time.Parse(time.RFC3339, cfg.ExpiresAt)
 		if err == nil && time.Now().Before(expiresAt) {
@@ -90,7 +95,7 @@ func (a *CLIProxyAPICodexAdapter) SupportedClientTypes() []domain.ClientType {
 	return []domain.ClientType{domain.ClientTypeCodex}
 }
 
-// getAccessToken 获取有效的 access_token，参考原生 codex adapter 的三级策略：
+// getAccessToken 获取有效的 access_token，三级策略：
 // 1. 内存缓存
 // 2. 配置中的持久化 token
 // 3. refresh_token 刷新
@@ -107,7 +112,7 @@ func (a *CLIProxyAPICodexAdapter) getAccessToken(ctx context.Context) (string, e
 	a.tokenMu.RUnlock()
 
 	// 使用配置中的 access_token
-	cfg := a.provider.Config.CLIProxyAPICodex
+	cfg := a.codexConfig()
 	if strings.TrimSpace(cfg.AccessToken) != "" {
 		var expiresAt time.Time
 		if strings.TrimSpace(cfg.ExpiresAt) != "" {
@@ -170,13 +175,15 @@ func (a *CLIProxyAPICodexAdapter) updateAuthToken(ctx context.Context) error {
 	if err != nil {
 		return fmt.Errorf("failed to get access token: %w", err)
 	}
+	a.tokenMu.Lock()
+	if a.authObj.Metadata == nil {
+		a.authObj.Metadata = make(map[string]any)
+	}
 	a.authObj.Metadata["access_token"] = token
-	// 设置过期时间，避免 SDK 内部认为 token 无效
-	a.tokenMu.RLock()
 	if !a.tokenCache.ExpiresAt.IsZero() {
 		a.authObj.Metadata["expired"] = a.tokenCache.ExpiresAt.Format(time.RFC3339)
 	}
-	a.tokenMu.RUnlock()
+	a.tokenMu.Unlock()
 	return nil
 }
 
