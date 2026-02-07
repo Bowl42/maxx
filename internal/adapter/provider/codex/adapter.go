@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"log"
 	"net"
 	"net/http"
 	"strings"
@@ -82,6 +83,9 @@ func NewAdapter(p *domain.Provider) (provider.ProviderAdapter, error) {
 				CLIProxyAPICodex: &domain.ProviderConfigCLIProxyAPICodex{
 					Email:        config.Email,
 					RefreshToken: config.RefreshToken,
+					AccessToken:  config.AccessToken,
+					ExpiresAt:    config.ExpiresAt,
+					AccountID:    config.AccountID,
 					ModelMapping: config.ModelMapping,
 				},
 			},
@@ -330,9 +334,10 @@ func (a *CodexAdapter) getAccessToken(ctx context.Context) (string, error) {
 				}
 			}
 		}
-		// Note: We intentionally ignore errors here as token persistence is best-effort
-		// The token will still work in memory even if DB update fails
-		_ = a.providerUpdate(a.provider)
+		// Best-effort: token already works in memory, log if DB update fails
+		if err := a.providerUpdate(a.provider); err != nil {
+			log.Printf("[Codex] failed to persist refreshed token: %v", err)
+		}
 	}
 
 	return tokenResp.AccessToken, nil
