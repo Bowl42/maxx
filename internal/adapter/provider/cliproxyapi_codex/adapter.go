@@ -5,9 +5,12 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
 	"log"
 	"net/http"
+	"net/url"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/awsl-project/maxx/internal/adapter/provider"
@@ -20,30 +23,69 @@ import (
 	"github.com/router-for-me/CLIProxyAPI/v6/sdk/translator"
 )
 
+// TokenCache caches access tokens
+type TokenCache struct {
+	AccessToken string
+	ExpiresAt   time.Time
+}
+
 type CLIProxyAPICodexAdapter struct {
-	provider *domain.Provider
-	authObj  *auth.Auth
-	executor *exec.CodexExecutor
+	provider       *domain.Provider
+	authObj        *auth.Auth
+	executor       *exec.CodexExecutor
+	tokenCache     *TokenCache
+	tokenMu        sync.RWMutex
+	providerUpdate func(*domain.Provider) error
+}
+
+// SetProviderUpdateFunc sets the callback for persisting provider updates
+func (a *CLIProxyAPICodexAdapter) SetProviderUpdateFunc(fn func(*domain.Provider) error) {
+	a.providerUpdate = fn
+}
+
+// codexConfig returns the Codex config from the provider.
+// CPA adapter always uses ProviderConfigCodex (the real provider's config).
+func (a *CLIProxyAPICodexAdapter) codexConfig() *domain.ProviderConfigCodex {
+	return a.provider.Config.Codex
 }
 
 func NewAdapter(p *domain.Provider) (provider.ProviderAdapter, error) {
-	if p.Config == nil || p.Config.CLIProxyAPICodex == nil {
-		return nil, fmt.Errorf("provider %s missing cliproxyapi-codex config", p.Name)
+	if p.Config == nil || p.Config.Codex == nil {
+		return nil, fmt.Errorf("provider %s missing codex config", p.Name)
 	}
 
-	// 创建 Auth 对象，executor 内部会自动处理 token 刷新
+	cfg := p.Config.Codex
+
+	// 创建 Auth 对象
+	metadata := map[string]any{
+		"type":          "codex",
+		"refresh_token": cfg.RefreshToken,
+	}
+	if cfg.AccountID != "" {
+		metadata["account_id"] = cfg.AccountID
+	}
+
 	authObj := &auth.Auth{
 		Provider: "codex",
-		Metadata: map[string]any{
-			"type":          "codex",
-			"refresh_token": p.Config.CLIProxyAPICodex.RefreshToken,
-		},
+		Metadata: metadata,
 	}
 
 	adapter := &CLIProxyAPICodexAdapter{
-		provider: p,
-		authObj:  authObj,
-		executor: exec.NewCodexExecutor(),
+		provider:   p,
+		authObj:    authObj,
+		executor:   exec.NewCodexExecutor(),
+		tokenCache: &TokenCache{},
+	}
+
+	// 从配置初始化 token 缓存
+	if cfg.AccessToken != "" && cfg.ExpiresAt != "" {
+		expiresAt, err := time.Parse(time.RFC3339, cfg.ExpiresAt)
+		if err == nil && time.Now().Before(expiresAt) {
+			adapter.tokenCache = &TokenCache{
+				AccessToken: cfg.AccessToken,
+				ExpiresAt:   expiresAt,
+			}
+		}
 	}
 
 	return adapter, nil
@@ -51,6 +93,110 @@ func NewAdapter(p *domain.Provider) (provider.ProviderAdapter, error) {
 
 func (a *CLIProxyAPICodexAdapter) SupportedClientTypes() []domain.ClientType {
 	return []domain.ClientType{domain.ClientTypeCodex}
+}
+
+// getAccessToken 获取有效的 access_token，三级策略：
+// 1. 内存缓存
+// 2. 配置中的持久化 token
+// 3. refresh_token 刷新
+func (a *CLIProxyAPICodexAdapter) getAccessToken(ctx context.Context) (string, error) {
+	// 检查缓存
+	a.tokenMu.RLock()
+	if a.tokenCache.AccessToken != "" {
+		if a.tokenCache.ExpiresAt.IsZero() || time.Now().Add(60*time.Second).Before(a.tokenCache.ExpiresAt) {
+			token := a.tokenCache.AccessToken
+			a.tokenMu.RUnlock()
+			return token, nil
+		}
+	}
+	a.tokenMu.RUnlock()
+
+	// 使用配置中的 access_token
+	cfg := a.codexConfig()
+	a.tokenMu.RLock()
+	cfgAccessToken := strings.TrimSpace(cfg.AccessToken)
+	cfgExpiresAt := strings.TrimSpace(cfg.ExpiresAt)
+	cfgRefreshToken := cfg.RefreshToken
+	a.tokenMu.RUnlock()
+
+	if cfgAccessToken != "" {
+		var expiresAt time.Time
+		if cfgExpiresAt != "" {
+			if parsed, err := time.Parse(time.RFC3339, cfgExpiresAt); err == nil {
+				expiresAt = parsed
+			}
+		}
+		a.tokenMu.Lock()
+		a.tokenCache = &TokenCache{
+			AccessToken: cfgAccessToken,
+			ExpiresAt:   expiresAt,
+		}
+		a.tokenMu.Unlock()
+
+		if expiresAt.IsZero() || time.Now().Add(60*time.Second).Before(expiresAt) {
+			return cfgAccessToken, nil
+		}
+	}
+
+	// 刷新 token
+	tokenResp, err := refreshAccessToken(ctx, cfgRefreshToken)
+	if err != nil {
+		// 刷新失败时，如果有旧 token 就兜底使用
+		if cfgAccessToken != "" {
+			return cfgAccessToken, nil
+		}
+		return "", err
+	}
+
+	// 计算过期时间（预留 60s 缓冲，至少保留 1s 避免负值导致无限刷新）
+	ttl := tokenResp.ExpiresIn - 60
+	if ttl < 1 {
+		ttl = 1
+	}
+	expiresAt := time.Now().Add(time.Duration(ttl) * time.Second)
+
+	// 更新缓存和 cfg 字段在同一个临界区
+	a.tokenMu.Lock()
+	a.tokenCache = &TokenCache{
+		AccessToken: tokenResp.AccessToken,
+		ExpiresAt:   expiresAt,
+	}
+	if a.providerUpdate != nil {
+		cfg.AccessToken = tokenResp.AccessToken
+		cfg.ExpiresAt = expiresAt.Format(time.RFC3339)
+		if tokenResp.RefreshToken != "" {
+			cfg.RefreshToken = tokenResp.RefreshToken
+		}
+	}
+	a.tokenMu.Unlock()
+
+	// 持久化 token 到数据库（best-effort，失败不影响当前请求）
+	if a.providerUpdate != nil {
+		if err := a.providerUpdate(a.provider); err != nil {
+			log.Printf("[CLIProxyAPI-Codex] failed to persist refreshed token: %v", err)
+		}
+	}
+
+	return tokenResp.AccessToken, nil
+}
+
+// updateAuthToken 将获取到的 access_token 设置到 authObj.Metadata 中，
+// 使 CPA SDK 内部的 codexCreds 能正确读取到 token
+func (a *CLIProxyAPICodexAdapter) updateAuthToken(ctx context.Context) error {
+	token, err := a.getAccessToken(ctx)
+	if err != nil {
+		return fmt.Errorf("failed to get access token: %w", err)
+	}
+	a.tokenMu.Lock()
+	if a.authObj.Metadata == nil {
+		a.authObj.Metadata = make(map[string]any)
+	}
+	a.authObj.Metadata["access_token"] = token
+	if !a.tokenCache.ExpiresAt.IsZero() {
+		a.authObj.Metadata["expired"] = a.tokenCache.ExpiresAt.Format(time.RFC3339)
+	}
+	a.tokenMu.Unlock()
+	return nil
 }
 
 func (a *CLIProxyAPICodexAdapter) Execute(c *flow.Ctx, p *domain.Provider) error {
@@ -70,6 +216,15 @@ func (a *CLIProxyAPICodexAdapter) Execute(c *flow.Ctx, p *domain.Provider) error
 			URL:    fmt.Sprintf("cliproxyapi://codex/%s", model),
 			Body:   string(requestBody),
 		})
+	}
+
+	// 确保 authObj 中有有效的 access_token
+	ctx := context.Background()
+	if c.Request != nil {
+		ctx = c.Request.Context()
+	}
+	if err := a.updateAuthToken(ctx); err != nil {
+		return domain.NewProxyErrorWithMessage(err, true, fmt.Sprintf("failed to get access token: %v", err))
 	}
 
 	// 构建 executor 请求
@@ -243,4 +398,58 @@ func extractModelFromSSE(sseContent string) string {
 		}
 	}
 	return lastModel
+}
+
+// tokenResponse represents the OAuth token response
+type tokenResponse struct {
+	AccessToken  string `json:"access_token"`
+	RefreshToken string `json:"refresh_token"`
+	ExpiresIn    int    `json:"expires_in"`
+	TokenType    string `json:"token_type"`
+	Scope        string `json:"scope"`
+	IDToken      string `json:"id_token,omitempty"`
+}
+
+const (
+	openAITokenURL = "https://auth.openai.com/oauth/token"
+	oauthClientID  = "app_EMoamEEZ73f0CkXaXp7hrann"
+)
+
+// refreshAccessToken refreshes the access token using a refresh token
+func refreshAccessToken(ctx context.Context, refreshToken string) (*tokenResponse, error) {
+	data := url.Values{}
+	data.Set("grant_type", "refresh_token")
+	data.Set("client_id", oauthClientID)
+	data.Set("refresh_token", refreshToken)
+	data.Set("scope", "openid profile email")
+
+	req, err := http.NewRequestWithContext(ctx, "POST", openAITokenURL, strings.NewReader(data.Encode()))
+	if err != nil {
+		return nil, fmt.Errorf("failed to create request: %w", err)
+	}
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	req.Header.Set("Accept", "application/json")
+
+	client := &http.Client{Timeout: 15 * time.Second}
+	resp, err := client.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("token refresh request failed: %w", err)
+	}
+	defer resp.Body.Close()
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read response: %w", err)
+	}
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("token refresh failed with status %d: %s", resp.StatusCode, string(body))
+	}
+
+	var tokenResp tokenResponse
+	if err := json.Unmarshal(body, &tokenResp); err != nil {
+		return nil, fmt.Errorf("failed to parse token response: %w", err)
+	}
+
+	return &tokenResp, nil
 }

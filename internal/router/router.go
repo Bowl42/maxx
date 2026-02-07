@@ -77,6 +77,7 @@ func (r *Router) InitAdapters() error {
 		if err != nil {
 			return err
 		}
+		r.injectProviderUpdate(a)
 		r.adapters[p.ID] = a
 	}
 	return nil
@@ -92,6 +93,7 @@ func (r *Router) RefreshAdapter(p *domain.Provider) error {
 	if err != nil {
 		return err
 	}
+	r.injectProviderUpdate(a)
 	r.mu.Lock()
 	r.adapters[p.ID] = a
 	r.mu.Unlock()
@@ -283,5 +285,19 @@ func (r *Router) GetCooldowns() ([]*domain.Cooldown, error) {
 func (r *Router) ClearCooldown(providerID uint64) error {
 	r.cooldownManager.ClearCooldown(providerID, "")
 	return nil
+}
+
+// injectProviderUpdate injects a provider-update callback into adapters that support it.
+// Uses duck-typing: if the adapter has SetProviderUpdateFunc, inject repo.Update.
+func (r *Router) injectProviderUpdate(a provider.ProviderAdapter) {
+	type providerUpdater interface {
+		SetProviderUpdateFunc(fn func(*domain.Provider) error)
+	}
+	if u, ok := a.(providerUpdater); ok {
+		repo := r.providerRepo
+		u.SetProviderUpdateFunc(func(p *domain.Provider) error {
+			return repo.Update(p)
+		})
+	}
 }
 

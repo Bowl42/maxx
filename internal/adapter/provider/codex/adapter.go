@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"log"
 	"net"
 	"net/http"
 	"strings"
@@ -73,20 +74,7 @@ func NewAdapter(p *domain.Provider) (provider.ProviderAdapter, error) {
 
 	// If UseCLIProxyAPI is enabled, directly return CLIProxyAPI adapter
 	if config.UseCLIProxyAPI {
-		cliproxyapiProvider := &domain.Provider{
-			ID:                   p.ID,
-			Name:                 p.Name,
-			Type:                 "cliproxyapi-codex",
-			SupportedClientTypes: p.SupportedClientTypes,
-			Config: &domain.ProviderConfig{
-				CLIProxyAPICodex: &domain.ProviderConfigCLIProxyAPICodex{
-					Email:        config.Email,
-					RefreshToken: config.RefreshToken,
-					ModelMapping: config.ModelMapping,
-				},
-			},
-		}
-		return cliproxyapi.NewAdapter(cliproxyapiProvider)
+		return cliproxyapi.NewAdapter(p)
 	}
 
 	adapter := &CodexAdapter{
@@ -330,9 +318,10 @@ func (a *CodexAdapter) getAccessToken(ctx context.Context) (string, error) {
 				}
 			}
 		}
-		// Note: We intentionally ignore errors here as token persistence is best-effort
-		// The token will still work in memory even if DB update fails
-		_ = a.providerUpdate(a.provider)
+		// Best-effort: token already works in memory, log if DB update fails
+		if err := a.providerUpdate(a.provider); err != nil {
+			log.Printf("[Codex] failed to persist refreshed token: %v", err)
+		}
 	}
 
 	return tokenResp.AccessToken, nil
