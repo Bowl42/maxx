@@ -186,7 +186,7 @@ Create or edit `~/.codex/auth.json`:
 ```json
 {
   "maxx": {
-    "api_key": "maxx_your_token_here"
+    "OPENAI_API_KEY": "maxx_your_token_here"
   }
 }
 ```
@@ -205,12 +205,12 @@ codex
 <summary>🔐 Token Authentication</summary>
 
 **When Token Authentication is Enabled:**
-- Configure `api_key` in `auth.json` with a token created in the 'API Tokens' page (format: `maxx_xxx`)
+- Configure `OPENAI_API_KEY` in `auth.json` with a token created in the 'API Tokens' page (format: `maxx_xxx`)
 - Codex CLI will automatically add the `Authorization: Bearer <token>` header to requests
 - maxx will validate the token before processing requests
 
 **When Token Authentication is Disabled:**
-- You can set `api_key` in `auth.json` to any value (e.g., `"dummy"`)
+- You can set `OPENAI_API_KEY` in `auth.json` to any value (e.g., `"dummy"`)
 - maxx will not validate the token
 - Suitable for internal networks or testing scenarios
 - ⚠️ **Warning:** Disabling token authentication reduces security

@@ -296,7 +296,7 @@ stream_idle_timeout_ms = 300000`}
               <CodeBlock
                 code={`{
   "maxx": {
-    "api_key": "maxx_your_token_here"
+    "OPENAI_API_KEY": "maxx_your_token_here"
   }
 }`}
                 id="codex-auth"

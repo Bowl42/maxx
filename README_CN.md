@@ -186,7 +186,7 @@ stream_idle_timeout_ms = 300000
 ```json
 {
   "maxx": {
-    "api_key": "maxx_your_token_here"
+    "OPENAI_API_KEY": "maxx_your_token_here"
   }
 }
 ```
@@ -205,12 +205,12 @@ codex
 <summary>🔐 Token 认证说明</summary>
 
 **开启 Token 认证时：**
-- 在 `auth.json` 中配置 `api_key` 为在「API 令牌」页面创建的 Token（格式：`maxx_xxx`）
+- 在 `auth.json` 中配置 `OPENAI_API_KEY` 为在「API 令牌」页面创建的 Token（格式：`maxx_xxx`）
 - Codex CLI 会自动在请求头中添加 `Authorization: Bearer <token>`
 - maxx 会在处理请求前验证 Token
 
 **关闭 Token 认证时：**
-- 可以在 `auth.json` 中将 `api_key` 设置为任意值（如 `"dummy"`）
+- 可以在 `auth.json` 中将 `OPENAI_API_KEY` 设置为任意值（如 `"dummy"`）
 - maxx 不会验证 Token
 - 适用于内网环境或测试场景
 - ⚠️ **警告：** 关闭 Token 认证会降低安全性
