@@ -22,6 +22,9 @@ var gpt51Prompt string
 //go:embed codex_instructions/gpt52.md
 var gpt52Prompt string
 
+//go:embed codex_instructions/gpt53.md
+var gpt53Prompt string
+
 //go:embed codex_instructions/gpt52_codex.md
 var gpt52CodexPrompt string
 
@@ -106,12 +109,16 @@ func codexInstructionsForCodex(modelName string) string {
 		return codexMaxPrompt
 	case strings.Contains(modelName, "5.2-codex"):
 		return gpt52CodexPrompt
+	case strings.Contains(modelName, "5.3-codex"):
+		return gpt52CodexPrompt
 	case strings.Contains(modelName, "codex"):
 		return codexPrompt
 	case strings.Contains(modelName, "5.1"):
 		return gpt51Prompt
 	case strings.Contains(modelName, "5.2"):
 		return gpt52Prompt
+	case strings.Contains(modelName, "5.3"):
+		return gpt53Prompt
 	default:
 		return defaultPrompt
 	}

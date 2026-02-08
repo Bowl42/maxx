@@ -59,6 +59,12 @@ func TestCodexInstructionsBranches(t *testing.T) {
 	if v := codexInstructionsForCodex("gpt-5.2"); v == "" {
 		t.Fatalf("expected 5.2 prompt")
 	}
+	if v := codexInstructionsForCodex("gpt-5.3"); v == "" {
+		t.Fatalf("expected 5.3 prompt")
+	}
+	if v := codexInstructionsForCodex("gpt-5.3-codex"); v == "" {
+		t.Fatalf("expected 5.3-codex prompt")
+	}
 	if v := codexInstructionsForCodex("other"); v == "" {
 		t.Fatalf("expected default prompt")
 	}

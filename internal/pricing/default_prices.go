@@ -41,6 +41,17 @@ func initDefaultPrices() *PriceTable {
 		CacheReadPriceMicro:    500_000,    // $0.50/M
 	})
 
+	// Claude Opus 4.6: input=$5, output=$25, cache_creation=$6.25, cache_read=$0.50
+	pt.Set(&ModelPricing{
+		ModelID:                "claude-opus-4-6",
+		InputPriceMicro:        5_000_000,  // $5.00/M
+		OutputPriceMicro:       25_000_000, // $25.00/M
+		Cache5mWritePriceMicro: 6_250_000,  // $6.25/M
+		Cache1hWritePriceMicro: 6_250_000,  // $6.25/M
+		CacheReadPriceMicro:    500_000,    // $0.50/M
+		Has1MContext:           true,
+	})
+
 	// Claude Haiku 4.5: input=$1, output=$5, cache_creation=$1.25, cache_read=$0.10
 	pt.Set(&ModelPricing{
 		ModelID:                "claude-haiku-4-5",
@@ -77,6 +88,15 @@ func initDefaultPrices() *PriceTable {
 		Cache5mWritePriceMicro: 6_250_000,
 		Cache1hWritePriceMicro: 6_250_000,
 		CacheReadPriceMicro:    500_000,
+	})
+	pt.Set(&ModelPricing{
+		ModelID:                "claude-opus-4-6-20260205",
+		InputPriceMicro:        5_000_000,
+		OutputPriceMicro:       25_000_000,
+		Cache5mWritePriceMicro: 6_250_000,
+		Cache1hWritePriceMicro: 6_250_000,
+		CacheReadPriceMicro:    500_000,
+		Has1MContext:           true,
 	})
 
 	// ========== Claude 4 系列 ==========
@@ -235,6 +255,22 @@ func initDefaultPrices() *PriceTable {
 	// gpt-5.2-codex: input=$1.75, cache_read=$0.175, output=$14
 	pt.Set(&ModelPricing{
 		ModelID:             "gpt-5.2-codex",
+		InputPriceMicro:     1_750_000,  // $1.75/M
+		OutputPriceMicro:    14_000_000, // $14.00/M
+		CacheReadPriceMicro: 175_000,    // $0.175/M
+	})
+
+	// gpt-5.3: input=$1.75, cache_read=$0.175, output=$14
+	pt.Set(&ModelPricing{
+		ModelID:             "gpt-5.3",
+		InputPriceMicro:     1_750_000,  // $1.75/M
+		OutputPriceMicro:    14_000_000, // $14.00/M
+		CacheReadPriceMicro: 175_000,    // $0.175/M
+	})
+
+	// gpt-5.3-codex: input=$1.75, cache_read=$0.175, output=$14
+	pt.Set(&ModelPricing{
+		ModelID:             "gpt-5.3-codex",
 		InputPriceMicro:     1_750_000,  // $1.75/M
 		OutputPriceMicro:    14_000_000, // $14.00/M
 		CacheReadPriceMicro: 175_000,    // $0.175/M

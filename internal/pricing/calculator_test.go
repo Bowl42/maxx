@@ -107,6 +107,15 @@ func TestCalculator_Calculate(t *testing.T) {
 			wantZero: false,
 		},
 		{
+			name:  "gpt-5.3 basic",
+			model: "gpt-5.3",
+			metrics: &usage.Metrics{
+				InputTokens:  50_000,
+				OutputTokens: 5_000,
+			},
+			wantZero: false,
+		},
+		{
 			name:  "gemini-2.5-pro basic",
 			model: "gemini-2.5-pro",
 			metrics: &usage.Metrics{
@@ -199,11 +208,14 @@ func TestPriceTable_Get_PrefixMatch(t *testing.T) {
 		{"claude-sonnet-4-5-20250514", true}, // prefix match
 		{"claude-opus-4-5", true},
 		{"claude-opus-4-5-20251001", true}, // prefix match
+		{"claude-opus-4-6", true},
+		{"claude-opus-4-6-20260205", true}, // prefix match
 		{"claude-haiku-4-5", true},
 		{"claude-haiku-4-5-20251001", true}, // prefix match
 		{"gpt-5.1", true},
 		{"gpt-5.1-codex", true},
 		{"gpt-5.2", true},
+		{"gpt-5.3", true},
 		{"gemini-2.5-pro", true},
 		{"gemini-2.5-flash", true},
 		{"gemini-3-pro-preview", true},

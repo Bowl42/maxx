@@ -61,6 +61,8 @@ const COMMON_MODELS = [
   { id: 'o1-mini', name: 'o1 Mini', provider: 'OpenAI' },
   { id: 'o1-pro', name: 'o1 Pro', provider: 'OpenAI' },
   { id: 'o3-mini', name: 'o3 Mini', provider: 'OpenAI' },
+  { id: 'gpt-5.3', name: 'GPT-5.3', provider: 'OpenAI' },
+  { id: 'gpt-5.3-codex', name: 'GPT-5.3 Codex', provider: 'OpenAI' },
   // NVIDIA models
   { id: 'minimaxai/minimax-m2.1', name: 'MiniMax M2.1', provider: 'NVIDIA' },
   { id: 'z-ai/glm4.7', name: 'GLM 4.7', provider: 'NVIDIA' },
@@ -75,6 +77,11 @@ const COMMON_MODELS = [
   },
   { id: 'mistralai/devstral-2-123b-instruct-2512', name: 'Devstral 2 123B', provider: 'NVIDIA' },
   // Antigravity supported target models (use these as mapping targets)
+  {
+    id: 'claude-opus-4-6-thinking',
+    name: 'Claude Opus 4.6 Thinking',
+    provider: 'Antigravity',
+  },
   {
     id: 'claude-opus-4-5-thinking',
     name: 'Claude Opus 4.5 Thinking',
