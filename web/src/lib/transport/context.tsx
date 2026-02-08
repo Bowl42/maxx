@@ -66,13 +66,21 @@ export function TransportProvider({
     return { status: 'loading' };
   });
 
+  const readyTransport = state.status === 'ready' ? state.transport : null;
+
   useEffect(() => {
     let cancelled = false;
 
+    if (state.status === 'error') {
+      return () => {
+        cancelled = true;
+      };
+    }
+
     // 已经 ready 后，后台尝试连接 WebSocket（不阻塞 UI）
-    if (state.status === 'ready') {
-      if (!state.transport.isConnected()) {
-        state.transport
+    if (readyTransport) {
+      if (!readyTransport.isConnected()) {
+        readyTransport
           .connect()
           .then(() => {
             if (!cancelled) {
@@ -111,7 +119,7 @@ export function TransportProvider({
     return () => {
       cancelled = true;
     };
-  }, [state]);
+  }, [state.status, readyTransport]);
 
   // 加载中
   if (state.status === 'loading') {
