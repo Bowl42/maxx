@@ -748,6 +748,7 @@ export interface BackupData {
   routingStrategies?: BackupRoutingStrategy[];
   apiTokens?: BackupAPIToken[];
   modelMappings?: BackupModelMapping[];
+  modelPrices?: BackupModelPrice[];
 }
 
 export interface BackupSystemSetting {
@@ -758,6 +759,7 @@ export interface BackupSystemSetting {
 export interface BackupProvider {
   name: string;
   type: string;
+  logo?: string;
   config?: ProviderConfig;
   supportedClientTypes?: ClientType[];
   supportModels?: string[];
@@ -815,6 +817,21 @@ export interface BackupModelMapping {
   pattern: string;
   target: string;
   priority: number;
+}
+
+export interface BackupModelPrice {
+  modelId: string;
+  inputPriceMicro: number;
+  outputPriceMicro: number;
+  cacheReadPriceMicro: number;
+  cache5mWritePriceMicro: number;
+  cache1hWritePriceMicro: number;
+  has1mContext: boolean;
+  context1mThreshold: number;
+  inputPremiumNum: number;
+  inputPremiumDenom: number;
+  outputPremiumNum: number;
+  outputPremiumDenom: number;
 }
 
 /** 导入选项 */
