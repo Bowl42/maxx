@@ -105,15 +105,6 @@ func (h *ProxyHandler) ingress(c *flow.Ctx) {
 		r.URL.Path = strings.TrimPrefix(r.URL.Path, "/v1")
 	}
 
-	// Claude Desktop / Anthropic compatibility: count_tokens placeholder
-	if isCountTokensPath(r.URL.Path) {
-		_, _ = io.Copy(io.Discard, r.Body)
-		_ = r.Body.Close()
-		writeCountTokensResponse(w)
-		c.Abort()
-		return
-	}
-
 	body, err := io.ReadAll(r.Body)
 	if err != nil {
 		writeError(w, http.StatusBadRequest, "failed to read request body")
@@ -332,17 +323,4 @@ func writeStreamError(w http.ResponseWriter, err *domain.ProxyError) {
 	if f, ok := w.(http.Flusher); ok {
 		f.Flush()
 	}
-}
-
-func isCountTokensPath(path string) bool {
-	return strings.HasPrefix(path, "/v1/messages/count_tokens")
-}
-
-func writeCountTokensResponse(w http.ResponseWriter) {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-	_ = json.NewEncoder(w).Encode(map[string]interface{}{
-		"input_tokens":  0,
-		"output_tokens": 0,
-	})
 }

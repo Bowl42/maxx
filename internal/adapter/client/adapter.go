@@ -282,7 +282,7 @@ func (a *Adapter) detectFromBodyBytes(body []byte) domain.ClientType {
 }
 
 func isClaudeUserAgent(userAgent string) bool {
-	return strings.HasPrefix(strings.ToLower(strings.TrimSpace(userAgent)), "claude-cli")
+	return strings.HasPrefix(userAgent, "claude-cli")
 }
 
 // ExtractModel extracts the model from the request (URL path for Gemini, body for others)

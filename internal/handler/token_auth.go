@@ -66,6 +66,11 @@ func (m *TokenAuthMiddleware) ExtractToken(req *http.Request, clientType domain.
 		if token := req.Header.Get("x-api-key"); token != "" {
 			return token
 		}
+		if auth := req.Header.Get("Authorization"); auth != "" {
+			if parts := strings.Fields(auth); len(parts) == 2 && strings.EqualFold(parts[0], "Bearer") {
+				return parts[1]
+			}
+		}
 	case domain.ClientTypeOpenAI, domain.ClientTypeCodex:
 		if auth := req.Header.Get("Authorization"); auth != "" {
 			if parts := strings.Fields(auth); len(parts) == 2 && strings.EqualFold(parts[0], "Bearer") {

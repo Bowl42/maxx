@@ -12,7 +12,7 @@ const (
 
 // applyClaudeHeaders sets Claude API request headers.
 // Following CLIProxyAPI pattern: build headers from scratch, use EnsureHeader for selective passthrough.
-func applyClaudeHeaders(req *http.Request, clientReq *http.Request, apiKey string, extraBetas []string, stream bool) {
+func applyClaudeHeaders(req *http.Request, clientReq *http.Request, apiKey string, useAPIKey bool, extraBetas []string, stream bool) {
 	// Get client headers for EnsureHeader
 	var clientHeaders http.Header
 	if clientReq != nil {
@@ -24,8 +24,7 @@ func applyClaudeHeaders(req *http.Request, clientReq *http.Request, apiKey strin
 		isAnthropicBase := req.URL != nil &&
 			strings.EqualFold(req.URL.Scheme, "https") &&
 			strings.EqualFold(req.URL.Host, "api.anthropic.com")
-		// OAuth tokens must use Authorization even for Anthropic base URL
-		if !isClaudeOAuthToken(apiKey) && isAnthropicBase {
+		if isAnthropicBase && useAPIKey {
 			req.Header.Del("Authorization")
 			req.Header.Set("x-api-key", apiKey)
 		} else {

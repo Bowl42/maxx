@@ -7,22 +7,22 @@ import (
 	"testing"
 )
 
-func TestWriteCountTokensResponse(t *testing.T) {
+func TestWriteError(t *testing.T) {
 	rec := httptest.NewRecorder()
-	writeCountTokensResponse(rec)
+	writeError(rec, http.StatusBadRequest, "bad request")
 
-	if rec.Code != http.StatusOK {
-		t.Fatalf("status = %d, want %d", rec.Code, http.StatusOK)
+	if rec.Code != http.StatusBadRequest {
+		t.Fatalf("status = %d, want %d", rec.Code, http.StatusBadRequest)
 	}
 	if ct := rec.Header().Get("Content-Type"); ct != "application/json" {
 		t.Fatalf("Content-Type = %q, want application/json", ct)
 	}
 
-	var payload map[string]int
+	var payload map[string]map[string]interface{}
 	if err := json.Unmarshal(rec.Body.Bytes(), &payload); err != nil {
 		t.Fatalf("invalid JSON: %v", err)
 	}
-	if payload["input_tokens"] != 0 || payload["output_tokens"] != 0 {
-		t.Fatalf("payload = %v, want zeros", payload)
+	if payload["error"]["message"] != "bad request" {
+		t.Fatalf("payload = %v, want error message", payload)
 	}
 }
