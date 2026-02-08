@@ -203,3 +203,18 @@ func TestModelsHandlerPricingSupplementByUserAgent(t *testing.T) {
 		t.Fatalf("did not expect gpt-5.3 in claude model list")
 	}
 }
+
+func TestShouldIncludePricingModelForUserAgentOpenAIOSeriesMatching(t *testing.T) {
+	if !shouldIncludePricingModelForUserAgent("o1-mini", "codex_cli_rs/0.98.0") {
+		t.Fatalf("expected o1-mini to be included")
+	}
+	if !shouldIncludePricingModelForUserAgent("o3-mini", "codex_cli_rs/0.98.0") {
+		t.Fatalf("expected o3-mini to be included")
+	}
+	if !shouldIncludePricingModelForUserAgent("o4-mini", "codex_cli_rs/0.98.0") {
+		t.Fatalf("expected o4-mini to be included")
+	}
+	if shouldIncludePricingModelForUserAgent("ollama-foo", "codex_cli_rs/0.98.0") {
+		t.Fatalf("did not expect ollama-foo to be included")
+	}
+}

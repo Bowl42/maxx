@@ -129,7 +129,9 @@ func shouldIncludePricingModelForUserAgent(modelID, userAgent string) bool {
 	}
 
 	return strings.HasPrefix(modelIDLower, "gpt-") ||
-		strings.HasPrefix(modelIDLower, "o") ||
+		strings.HasPrefix(modelIDLower, "o1") ||
+		strings.HasPrefix(modelIDLower, "o3") ||
+		strings.HasPrefix(modelIDLower, "o4") ||
 		strings.Contains(modelIDLower, "codex")
 }
 

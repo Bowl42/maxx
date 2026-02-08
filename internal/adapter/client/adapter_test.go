@@ -30,3 +30,18 @@ func TestDetectClientTypePrefersClaudeUserAgent(t *testing.T) {
 		t.Fatalf("client type = %s, want %s", got, domain.ClientTypeOpenAI)
 	}
 }
+
+func TestDetectClientTypeRecognizesV1ResponsesPath(t *testing.T) {
+	adapter := NewAdapter()
+	body := []byte(`{"messages":[{"role":"user","content":"hi"}]}`)
+
+	req := httptest.NewRequest("POST", "/v1/responses", strings.NewReader(string(body)))
+	if got := adapter.DetectClientType(req, body); got != domain.ClientTypeCodex {
+		t.Fatalf("client type = %s, want %s", got, domain.ClientTypeCodex)
+	}
+
+	req = httptest.NewRequest("POST", "/v1/responses/create", strings.NewReader(string(body)))
+	if got := adapter.DetectClientType(req, body); got != domain.ClientTypeCodex {
+		t.Fatalf("client type = %s, want %s", got, domain.ClientTypeCodex)
+	}
+}
