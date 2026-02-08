@@ -400,3 +400,7 @@ wails build
 Both methods will automatically create a tag and generate release notes.
 
 </details>
+
+## Acknowledgements
+
+Special thanks to [router-for-me/CLIProxyAPI](https://github.com/router-for-me/CLIProxyAPI) for its open-source contributions and inspiration for forwarding compatibility design.
