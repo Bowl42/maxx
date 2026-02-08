@@ -5,6 +5,7 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/awsl-project/maxx/internal/pricing"
 	"github.com/awsl-project/maxx/internal/repository"
 )
 
@@ -35,13 +36,13 @@ func (h *ModelsHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	names, err := h.collectModelNames()
+	userAgent := r.Header.Get("User-Agent")
+	names, err := h.collectModelNamesForUserAgent(userAgent)
 	if err != nil {
 		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": err.Error()})
 		return
 	}
 
-	userAgent := r.Header.Get("User-Agent")
 	if strings.HasPrefix(userAgent, "claude-cli") {
 		writeJSON(w, http.StatusOK, buildClaudeModelsResponse(names))
 		return
@@ -51,6 +52,10 @@ func (h *ModelsHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *ModelsHandler) collectModelNames() ([]string, error) {
+	return h.collectModelNamesForUserAgent("")
+}
+
+func (h *ModelsHandler) collectModelNamesForUserAgent(userAgent string) ([]string, error) {
 	result := make(map[string]struct{})
 
 	if h.responseModelRepo != nil {
@@ -86,12 +91,48 @@ func (h *ModelsHandler) collectModelNames() ([]string, error) {
 		}
 	}
 
+	appendPricingModelNames(result, userAgent)
+
 	names := make([]string, 0, len(result))
 	for name := range result {
 		names = append(names, name)
 	}
 	sort.Strings(names)
 	return names, nil
+}
+
+func appendPricingModelNames(target map[string]struct{}, userAgent string) {
+	for _, modelPricing := range pricing.DefaultPriceTable().All() {
+		modelID := strings.TrimSpace(modelPricing.ModelID)
+		if modelID == "" {
+			continue
+		}
+		if !shouldIncludePricingModelForUserAgent(modelID, userAgent) {
+			continue
+		}
+		addModelName(target, modelID)
+	}
+}
+
+func shouldIncludePricingModelForUserAgent(modelID, userAgent string) bool {
+	modelIDLower := strings.ToLower(strings.TrimSpace(modelID))
+	if modelIDLower == "" {
+		return false
+	}
+
+	userAgentLower := strings.ToLower(strings.TrimSpace(userAgent))
+	if userAgentLower == "" {
+		return false
+	}
+	if strings.HasPrefix(userAgentLower, "claude-cli") {
+		return strings.HasPrefix(modelIDLower, "claude-")
+	}
+
+	return strings.HasPrefix(modelIDLower, "gpt-") ||
+		strings.HasPrefix(modelIDLower, "o1") ||
+		strings.HasPrefix(modelIDLower, "o3") ||
+		strings.HasPrefix(modelIDLower, "o4") ||
+		strings.Contains(modelIDLower, "codex")
 }
 
 func addModelName(target map[string]struct{}, name string) {

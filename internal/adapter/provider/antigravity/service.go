@@ -43,9 +43,9 @@ type UserInfo struct {
 
 // ModelQuota 单个模型的配额信息
 type ModelQuota struct {
-	Name       string  `json:"name"`
-	Percentage int     `json:"percentage"` // 剩余配额百分比 0-100
-	ResetTime  string  `json:"resetTime"`  // 重置时间 ISO8601
+	Name       string `json:"name"`
+	Percentage int    `json:"percentage"` // 剩余配额百分比 0-100
+	ResetTime  string `json:"resetTime"`  // 重置时间 ISO8601
 }
 
 // QuotaData 配额信息
@@ -58,11 +58,11 @@ type QuotaData struct {
 
 // TokenValidationResult token 验证结果
 type TokenValidationResult struct {
-	Valid       bool      `json:"valid"`
-	Error       string    `json:"error,omitempty"`
-	UserInfo    *UserInfo `json:"userInfo,omitempty"`
-	ProjectID   string    `json:"projectID,omitempty"`
-	Quota       *QuotaData `json:"quota,omitempty"`
+	Valid     bool       `json:"valid"`
+	Error     string     `json:"error,omitempty"`
+	UserInfo  *UserInfo  `json:"userInfo,omitempty"`
+	ProjectID string     `json:"projectID,omitempty"`
+	Quota     *QuotaData `json:"quota,omitempty"`
 }
 
 // ValidateRefreshToken 验证 refresh token 并获取用户信息和配额
@@ -349,6 +349,8 @@ func fetchQuota(ctx context.Context, accessToken, projectID string) (*QuotaData,
 		"gemini-3-pro-high",
 		"gemini-3-flash",
 		"gemini-3-pro-image",
+		"claude-opus-4-6-thinking",
+		"claude-opus-4-5-thinking",
 		"claude-sonnet-4-5-thinking",
 	}
 

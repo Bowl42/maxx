@@ -94,19 +94,21 @@ func (a *CustomAdapter) Execute(c *flow.Ctx, provider *domain.Provider) error {
 	case domain.ClientTypeClaude:
 		// Claude: Following CLIProxyAPI pattern
 		// 1. Process body first (get extraBetas, inject cloaking/cache_control)
+		apiKey := a.provider.Config.Custom.APIKey
 		clientUA := ""
 		if request != nil {
 			clientUA = request.Header.Get("User-Agent")
 		}
 		var extraBetas []string
 		requestBody, extraBetas = processClaudeRequestBody(requestBody, clientUA, a.provider.Config.Custom.Cloak)
-		isOAuthToken = isClaudeOAuthToken(a.provider.Config.Custom.APIKey)
+		useAPIKey := shouldUseClaudeAPIKey(apiKey, request)
+		isOAuthToken = isClaudeOAuthToken(apiKey)
 		if isOAuthToken {
 			requestBody = applyClaudeToolPrefix(requestBody, claudeToolPrefix)
 		}
 
 		// 2. Set headers (streaming only if requested)
-		applyClaudeHeaders(upstreamReq, request, a.provider.Config.Custom.APIKey, extraBetas, stream)
+		applyClaudeHeaders(upstreamReq, request, apiKey, useAPIKey, extraBetas, stream)
 
 		// 3. Update request body and ContentLength (IMPORTANT: body was modified)
 		upstreamReq.Body = io.NopCloser(bytes.NewReader(requestBody))
@@ -120,7 +122,8 @@ func (a *CustomAdapter) Execute(c *flow.Ctx, provider *domain.Provider) error {
 	default:
 		// Other types: Preserve original header forwarding logic
 		originalHeaders := flow.GetRequestHeaders(c)
-		upstreamReq.Header = originalHeaders
+		upstreamReq.Header = make(http.Header)
+		copyHeadersFiltered(upstreamReq.Header, originalHeaders)
 
 		// Override auth headers with provider's credentials
 		if a.provider.Config.Custom.APIKey != "" {
@@ -528,6 +531,19 @@ func updateModelInBody(body []byte, model string, clientType domain.ClientType) 
 
 func buildUpstreamURL(baseURL string, requestPath string) string {
 	return strings.TrimSuffix(baseURL, "/") + requestPath
+}
+
+func shouldUseClaudeAPIKey(apiKey string, clientReq *http.Request) bool {
+	if clientReq != nil {
+		if strings.TrimSpace(clientReq.Header.Get("x-api-key")) != "" {
+			return true
+		}
+		if strings.TrimSpace(clientReq.Header.Get("Authorization")) != "" {
+			return false
+		}
+	}
+
+	return !isClaudeOAuthToken(apiKey)
 }
 
 // addClaudeQueryParams adds query parameters to URL for Claude API (following CLIProxyAPI)

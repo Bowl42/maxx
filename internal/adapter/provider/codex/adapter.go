@@ -120,9 +120,13 @@ func (a *CodexAdapter) Execute(c *flow.Ctx, provider *domain.Provider) error {
 	cacheID, updatedBody := applyCodexRequestTuning(c, requestBody)
 	requestBody = updatedBody
 
-	// Build upstream URL
+	// Build upstream URL and stream mode
 	upstreamURL := CodexBaseURL + "/responses"
 	upstreamStream := true
+	if !clientWantsStream {
+		upstreamURL = CodexBaseURL + "/responses/compact"
+		upstreamStream = false
+	}
 	if len(requestBody) > 0 {
 		if updated, err := sjson.SetBytes(requestBody, "stream", upstreamStream); err == nil {
 			requestBody = updated
@@ -227,7 +231,7 @@ func (a *CodexAdapter) Execute(c *flow.Ctx, provider *domain.Provider) error {
 	if clientWantsStream {
 		return a.handleStreamResponse(c, resp)
 	}
-	return a.handleCollectedStreamResponse(c, resp)
+	return a.handleNonStreamResponse(c, resp)
 }
 
 func (a *CodexAdapter) getAccessToken(ctx context.Context) (string, error) {
@@ -361,43 +365,6 @@ func (a *CodexAdapter) handleNonStreamResponse(c *flow.Ctx, resp *http.Response)
 	return nil
 }
 
-func (a *CodexAdapter) handleCollectedStreamResponse(c *flow.Ctx, resp *http.Response) error {
-	body, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return domain.NewProxyErrorWithMessage(domain.ErrUpstreamError, true, "failed to read upstream response")
-	}
-
-	responsePayload := body
-	if isSSEPayload(body) {
-		if completed := extractCodexCompletedResponse(body); len(completed) > 0 {
-			responsePayload = completed
-		}
-	}
-
-	if eventChan := flow.GetEventChan(c); eventChan != nil {
-		eventChan.SendResponseInfo(&domain.ResponseInfo{
-			Status:  resp.StatusCode,
-			Headers: flattenHeaders(resp.Header),
-			Body:    string(responsePayload),
-		})
-		if metrics := usage.ExtractFromResponse(string(responsePayload)); metrics != nil {
-			eventChan.SendMetrics(&domain.AdapterMetrics{
-				InputTokens:  metrics.InputTokens,
-				OutputTokens: metrics.OutputTokens,
-			})
-		}
-		if model := extractModelFromResponse(responsePayload); model != "" {
-			eventChan.SendResponseModel(model)
-		}
-	}
-
-	copyResponseHeaders(c.Writer.Header(), resp.Header)
-	c.Writer.Header().Set("Content-Type", "application/json")
-	c.Writer.WriteHeader(resp.StatusCode)
-	_, _ = c.Writer.Write(responsePayload)
-	return nil
-}
-
 func (a *CodexAdapter) handleStreamResponse(c *flow.Ctx, resp *http.Response) error {
 	eventChan := flow.GetEventChan(c)
 	if eventChan != nil {
@@ -444,8 +411,7 @@ func (a *CodexAdapter) handleStreamResponse(c *flow.Ctx, resp *http.Response) er
 		if line != "" {
 			sseBuffer.WriteString(line)
 
-			// Check for response.completed in data line
-			if strings.HasPrefix(line, "data:") && strings.Contains(line, "\"response.completed\"") {
+			if isCodexResponseCompletedLine(line) {
 				responseCompleted = true
 			}
 
@@ -480,6 +446,20 @@ func (a *CodexAdapter) handleStreamResponse(c *flow.Ctx, resp *http.Response) er
 			return nil
 		}
 	}
+}
+
+func isCodexResponseCompletedLine(line string) bool {
+	if !strings.HasPrefix(line, "data:") {
+		return false
+	}
+	data := strings.TrimSpace(strings.TrimPrefix(line, "data:"))
+	if data == "" || data == "[DONE]" {
+		return false
+	}
+	if !gjson.Valid(data) {
+		return false
+	}
+	return gjson.Get(data, "type").String() == "response.completed"
 }
 
 func (a *CodexAdapter) sendFinalStreamEvents(eventChan domain.AdapterEventChan, sseBuffer *strings.Builder, resp *http.Response) {
@@ -677,34 +657,6 @@ func extractModelFromSSE(sseContent string) string {
 	return lastModel
 }
 
-func isSSEPayload(body []byte) bool {
-	trimmed := bytes.TrimSpace(body)
-	return bytes.HasPrefix(trimmed, []byte("data:")) || bytes.HasPrefix(trimmed, []byte("event:"))
-}
-
-func extractCodexCompletedResponse(body []byte) []byte {
-	scanner := bufio.NewScanner(bytes.NewReader(body))
-	scanner.Buffer(nil, 52_428_800)
-	for scanner.Scan() {
-		line := scanner.Bytes()
-		if !bytes.HasPrefix(line, []byte("data:")) {
-			continue
-		}
-		data := bytes.TrimSpace(line[5:])
-		if bytes.Equal(data, []byte("[DONE]")) {
-			continue
-		}
-		root := gjson.ParseBytes(data)
-		if root.Get("type").String() == "response.completed" {
-			if resp := root.Get("response"); resp.Exists() {
-				return []byte(resp.Raw)
-			}
-			return data
-		}
-	}
-	return nil
-}
-
 // applyCodexHeaders applies headers for Codex API requests
 // It follows the CLIProxyAPI pattern: passthrough client headers, use defaults only when missing
 func (a *CodexAdapter) applyCodexHeaders(upstreamReq, clientReq *http.Request, accessToken, accountID string, stream bool, cacheID string) {
@@ -714,15 +666,11 @@ func (a *CodexAdapter) applyCodexHeaders(upstreamReq, clientReq *http.Request, a
 	if clientReq != nil {
 		for k, vv := range clientReq.Header {
 			lk := strings.ToLower(k)
-			// Skip hop-by-hop headers and authorization (we'll set our own)
-			switch lk {
-			case "connection", "keep-alive", "transfer-encoding", "upgrade",
-				"host", "content-length":
+			if codexFilteredHeaders[lk] {
 				continue
-			case "authorization":
-				if hasAccessToken {
-					continue
-				}
+			}
+			if lk == "authorization" && hasAccessToken {
+				continue
 			}
 			for _, v := range vv {
 				upstreamReq.Header.Add(k, v)
@@ -769,4 +717,52 @@ func ensureHeader(dst http.Header, clientReq *http.Request, key, defaultValue st
 		return
 	}
 	dst.Set(key, defaultValue)
+}
+
+var codexFilteredHeaders = map[string]bool{
+	// Hop-by-hop headers
+	"connection":        true,
+	"keep-alive":        true,
+	"transfer-encoding": true,
+	"upgrade":           true,
+
+	// Headers set by HTTP client
+	"host":           true,
+	"content-length": true,
+
+	// Proxy/forwarding headers (privacy protection)
+	"x-forwarded-for":    true,
+	"x-forwarded-host":   true,
+	"x-forwarded-proto":  true,
+	"x-forwarded-port":   true,
+	"x-forwarded-server": true,
+	"x-real-ip":          true,
+	"x-client-ip":        true,
+	"x-originating-ip":   true,
+	"x-remote-ip":        true,
+	"x-remote-addr":      true,
+	"forwarded":          true,
+
+	// CDN/Cloud provider headers
+	"cf-connecting-ip": true,
+	"cf-ipcountry":     true,
+	"cf-ray":           true,
+	"cf-visitor":       true,
+	"true-client-ip":   true,
+	"fastly-client-ip": true,
+	"x-azure-clientip": true,
+	"x-azure-fdid":     true,
+	"x-azure-ref":      true,
+
+	// Tracing headers
+	"x-request-id":      true,
+	"x-correlation-id":  true,
+	"x-trace-id":        true,
+	"x-amzn-trace-id":   true,
+	"x-b3-traceid":      true,
+	"x-b3-spanid":       true,
+	"x-b3-parentspanid": true,
+	"x-b3-sampled":      true,
+	"traceparent":       true,
+	"tracestate":        true,
 }

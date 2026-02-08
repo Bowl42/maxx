@@ -78,9 +78,12 @@ func (s *ManagedServer) setupRoutes() *http.ServeMux {
 	mux.Handle("/api/codex/", http.StripPrefix("/api", components.CodexHandler))
 
 	mux.Handle("/v1/messages", components.ProxyHandler)
+	mux.Handle("/v1/messages/", components.ProxyHandler)
 	mux.Handle("/v1/chat/completions", components.ProxyHandler)
 	mux.Handle("/responses", components.ProxyHandler)
+	mux.Handle("/responses/", components.ProxyHandler)
 	mux.Handle("/v1/responses", components.ProxyHandler)
+	mux.Handle("/v1/responses/", components.ProxyHandler)
 	mux.Handle("/v1/models", components.ModelsHandler)
 	mux.Handle("/v1beta/models/", components.ProxyHandler)
 

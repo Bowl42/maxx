@@ -47,6 +47,7 @@ const modelDisplayNames: Record<string, string> = {
   'gemini-3-flash': 'Gemini 3 Flash',
   'gemini-3-pro-image': 'Gemini 3 Pro Image',
   'claude-sonnet-4-5-thinking': 'Claude Sonnet 4.5',
+  'claude-opus-4-6-thinking': 'Claude Opus 4.6',
 };
 
 // 配额条的颜色

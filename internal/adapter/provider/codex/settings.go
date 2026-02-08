@@ -23,10 +23,10 @@ const (
 	CodexUsageURL = "https://chatgpt.com/backend-api/wham/usage"
 
 	// API Version
-	CodexVersion = "0.21.0"
+	CodexVersion = "0.98.0"
 
 	// User-Agent (mimics codex CLI)
-	CodexUserAgent = "codex_cli_rs/0.50.0 (Mac OS 26.0.1; arm64)"
+	CodexUserAgent = "codex_cli_rs/0.98.0 (Mac OS 26.0.1; arm64) Apple_Terminal/464"
 
 	// Originator header
 	CodexOriginator = "codex_cli_rs"

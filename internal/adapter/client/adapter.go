@@ -228,6 +228,8 @@ func (a *Adapter) DetectClientType(req *http.Request, body []byte) domain.Client
 	switch {
 	case strings.HasPrefix(path, "/v1/messages"):
 		return domain.ClientTypeClaude
+	case strings.HasPrefix(path, "/v1/responses"):
+		return domain.ClientTypeCodex
 	case strings.HasPrefix(path, "/responses"):
 		return domain.ClientTypeCodex
 	case strings.HasPrefix(path, "/v1/chat/completions"):
@@ -282,7 +284,7 @@ func (a *Adapter) detectFromBodyBytes(body []byte) domain.ClientType {
 }
 
 func isClaudeUserAgent(userAgent string) bool {
-	return strings.HasPrefix(strings.ToLower(strings.TrimSpace(userAgent)), "claude-cli")
+	return strings.HasPrefix(userAgent, "claude-cli")
 }
 
 // ExtractModel extracts the model from the request (URL path for Gemini, body for others)

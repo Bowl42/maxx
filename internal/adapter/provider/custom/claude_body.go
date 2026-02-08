@@ -267,7 +267,7 @@ func injectFakeUserID(body []byte) []byte {
 // shouldCloak determines if request should be cloaked based on config and client User-Agent.
 // Returns true if cloaking should be applied.
 func shouldCloak(cloakMode string, userAgent string) bool {
-	switch strings.ToLower(strings.TrimSpace(cloakMode)) {
+	switch strings.ToLower(cloakMode) {
 	case "always":
 		return true
 	case "never":

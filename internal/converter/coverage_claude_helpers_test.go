@@ -20,6 +20,9 @@ func TestClaudeGeminiHelperCoverage(t *testing.T) {
 	if shouldEnableThinkingByDefault("claude-opus-4-5-20250101") != true {
 		t.Fatalf("expected thinking enabled for opus 4.5")
 	}
+	if shouldEnableThinkingByDefault("claude-opus-4-6-20260205") != true {
+		t.Fatalf("expected thinking enabled for opus 4.6")
+	}
 	if shouldEnableThinkingByDefault("model-thinking") != true {
 		t.Fatalf("expected thinking enabled for -thinking")
 	}

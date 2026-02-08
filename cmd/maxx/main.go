@@ -346,10 +346,14 @@ func main() {
 	// Proxy routes - catch all AI API endpoints
 	// Claude API
 	mux.Handle("/v1/messages", proxyHandler)
+	mux.Handle("/v1/messages/", proxyHandler)
 	// OpenAI API
 	mux.Handle("/v1/chat/completions", proxyHandler)
 	// Codex API
 	mux.Handle("/responses", proxyHandler)
+	mux.Handle("/responses/", proxyHandler)
+	mux.Handle("/v1/responses", proxyHandler)
+	mux.Handle("/v1/responses/", proxyHandler)
 	// Gemini API (Google AI Studio style)
 	mux.Handle("/v1beta/models/", proxyHandler)
 

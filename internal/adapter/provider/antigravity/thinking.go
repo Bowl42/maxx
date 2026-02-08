@@ -12,7 +12,7 @@ func shouldEnableThinkingByDefault(model string) bool {
 	modelLower := strings.ToLower(model)
 
 	// Enable thinking by default for Opus 4.5 variants
-	if strings.Contains(modelLower, "opus-4-5") || strings.Contains(modelLower, "opus-4.5") {
+	if strings.Contains(modelLower, "opus-4-6") || strings.Contains(modelLower, "opus-4.6") || strings.Contains(modelLower, "opus-4-5") || strings.Contains(modelLower, "opus-4.5") {
 		return true
 	}
 

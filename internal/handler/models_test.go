@@ -71,6 +71,15 @@ func (f *fakeModelMappingRepo) DeleteAll() error    { return nil }
 func (f *fakeModelMappingRepo) ClearAll() error     { return nil }
 func (f *fakeModelMappingRepo) SeedDefaults() error { return nil }
 
+func containsModel(ids []string, want string) bool {
+	for _, id := range ids {
+		if id == want {
+			return true
+		}
+	}
+	return false
+}
+
 func TestCollectModelNames(t *testing.T) {
 	responseRepo := &fakeResponseModelRepo{names: []string{"gpt-1", "gpt-2"}}
 	providerRepo := &fakeProviderRepo{
@@ -136,5 +145,76 @@ func TestModelsHandlerFormats(t *testing.T) {
 	}
 	if openaiResp["object"] != "list" {
 		t.Fatalf("openai response object = %v, want list", openaiResp["object"])
+	}
+}
+
+func TestModelsHandlerPricingSupplementByUserAgent(t *testing.T) {
+	handler := NewModelsHandler(nil, nil, nil)
+
+	openAIReq := httptest.NewRequest(http.MethodGet, "/v1/models", nil)
+	openAIReq.Header.Set("User-Agent", "codex_cli_rs/0.98.0")
+	openAIRec := httptest.NewRecorder()
+	handler.ServeHTTP(openAIRec, openAIReq)
+	if openAIRec.Code != http.StatusOK {
+		t.Fatalf("status = %d, want 200", openAIRec.Code)
+	}
+	var openAIPayload struct {
+		Data []struct {
+			ID string `json:"id"`
+		} `json:"data"`
+	}
+	if err := json.Unmarshal(openAIRec.Body.Bytes(), &openAIPayload); err != nil {
+		t.Fatalf("invalid openai payload: %v", err)
+	}
+	openAIIDs := make([]string, 0, len(openAIPayload.Data))
+	for _, item := range openAIPayload.Data {
+		openAIIDs = append(openAIIDs, item.ID)
+	}
+	if !containsModel(openAIIDs, "gpt-5.3") {
+		t.Fatalf("expected gpt-5.3 in openai model list")
+	}
+	if containsModel(openAIIDs, "claude-opus-4-6") {
+		t.Fatalf("did not expect claude pricing-only model in codex model list")
+	}
+
+	claudeReq := httptest.NewRequest(http.MethodGet, "/v1/models", nil)
+	claudeReq.Header.Set("User-Agent", "claude-cli/2.1.17")
+	claudeRec := httptest.NewRecorder()
+	handler.ServeHTTP(claudeRec, claudeReq)
+	if claudeRec.Code != http.StatusOK {
+		t.Fatalf("status = %d, want 200", claudeRec.Code)
+	}
+	var claudePayload struct {
+		Data []struct {
+			ID string `json:"id"`
+		} `json:"data"`
+	}
+	if err := json.Unmarshal(claudeRec.Body.Bytes(), &claudePayload); err != nil {
+		t.Fatalf("invalid claude payload: %v", err)
+	}
+	claudeIDs := make([]string, 0, len(claudePayload.Data))
+	for _, item := range claudePayload.Data {
+		claudeIDs = append(claudeIDs, item.ID)
+	}
+	if !containsModel(claudeIDs, "claude-opus-4-6") {
+		t.Fatalf("expected claude-opus-4-6 in claude model list")
+	}
+	if containsModel(claudeIDs, "gpt-5.3") {
+		t.Fatalf("did not expect gpt-5.3 in claude model list")
+	}
+}
+
+func TestShouldIncludePricingModelForUserAgentOpenAIOSeriesMatching(t *testing.T) {
+	if !shouldIncludePricingModelForUserAgent("o1-mini", "codex_cli_rs/0.98.0") {
+		t.Fatalf("expected o1-mini to be included")
+	}
+	if !shouldIncludePricingModelForUserAgent("o3-mini", "codex_cli_rs/0.98.0") {
+		t.Fatalf("expected o3-mini to be included")
+	}
+	if !shouldIncludePricingModelForUserAgent("o4-mini", "codex_cli_rs/0.98.0") {
+		t.Fatalf("expected o4-mini to be included")
+	}
+	if shouldIncludePricingModelForUserAgent("ollama-foo", "codex_cli_rs/0.98.0") {
+		t.Fatalf("did not expect ollama-foo to be included")
 	}
 }

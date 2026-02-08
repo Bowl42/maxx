@@ -410,3 +410,7 @@ wails build
 两种方式都会自动创建 tag 并生成 release notes。
 
 </details>
+
+## 致谢
+
+特别感谢 [router-for-me/CLIProxyAPI](https://github.com/router-for-me/CLIProxyAPI) 开源项目，为本项目在转发兼容性设计上提供了重要参考与启发。
