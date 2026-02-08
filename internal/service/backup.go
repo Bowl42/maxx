@@ -1,6 +1,9 @@
 package service
 
 import (
+	"crypto/sha256"
+	"encoding/hex"
+	"encoding/json"
 	"fmt"
 	"time"
 
@@ -932,17 +935,37 @@ func buildRouteKey(providerName string, clientType domain.ClientType, projectSlu
 }
 
 func buildModelMappingKey(mapping domain.BackupModelMapping) string {
-	return fmt.Sprintf(
-		"%s|%s|%s|%s|%s|%s|%s|%s|%s|%d",
-		mapping.Scope,
-		mapping.ClientType,
-		mapping.ProviderType,
-		mapping.ProviderName,
-		mapping.ProjectSlug,
-		mapping.RouteName,
-		mapping.APITokenName,
-		mapping.Pattern,
-		mapping.Target,
-		mapping.Priority,
-	)
+	type mappingKeyPayload struct {
+		Scope        domain.ModelMappingScope `json:"scope"`
+		ClientType   domain.ClientType        `json:"clientType"`
+		ProviderType string                   `json:"providerType"`
+		ProviderName string                   `json:"providerName"`
+		ProjectSlug  string                   `json:"projectSlug"`
+		RouteName    string                   `json:"routeName"`
+		APITokenName string                   `json:"apiTokenName"`
+		Pattern      string                   `json:"pattern"`
+		Target       string                   `json:"target"`
+		Priority     int                      `json:"priority"`
+	}
+
+	payload := mappingKeyPayload{
+		Scope:        mapping.Scope,
+		ClientType:   mapping.ClientType,
+		ProviderType: mapping.ProviderType,
+		ProviderName: mapping.ProviderName,
+		ProjectSlug:  mapping.ProjectSlug,
+		RouteName:    mapping.RouteName,
+		APITokenName: mapping.APITokenName,
+		Pattern:      mapping.Pattern,
+		Target:       mapping.Target,
+		Priority:     mapping.Priority,
+	}
+
+	encoded, err := json.Marshal(payload)
+	if err != nil {
+		return ""
+	}
+
+	sum := sha256.Sum256(encoded)
+	return hex.EncodeToString(sum[:])
 }

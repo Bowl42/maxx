@@ -249,3 +249,30 @@ func TestBackupService_Import_ModelMappingsSkipDuplicates(t *testing.T) {
 		t.Fatalf("expected duplicate model mapping skip, got summary=%+v", mappingSummary)
 	}
 }
+
+func TestBuildModelMappingKey_NoSeparatorCollision(t *testing.T) {
+	left := domain.BackupModelMapping{
+		Scope:        domain.ModelMappingScopeGlobal,
+		ProviderName: "a|b",
+		Pattern:      "foo",
+		Target:       "bar",
+		Priority:     1,
+	}
+	right := domain.BackupModelMapping{
+		Scope:        domain.ModelMappingScopeGlobal,
+		ProviderName: "a",
+		Pattern:      "b|foo",
+		Target:       "bar",
+		Priority:     1,
+	}
+
+	leftKey := buildModelMappingKey(left)
+	rightKey := buildModelMappingKey(right)
+
+	if leftKey == "" || rightKey == "" {
+		t.Fatalf("mapping key should not be empty")
+	}
+	if leftKey == rightKey {
+		t.Fatalf("mapping keys should differ, left=%q right=%q", leftKey, rightKey)
+	}
+}
