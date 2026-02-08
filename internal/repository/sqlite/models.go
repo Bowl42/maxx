@@ -64,6 +64,7 @@ type Provider struct {
 	SoftDeleteModel
 	Type                 string `gorm:"size:64"`
 	Name                 string `gorm:"size:255"`
+	Logo                 LongText
 	Config               LongText
 	SupportedClientTypes LongText
 	SupportModels        LongText

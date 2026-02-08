@@ -293,6 +293,7 @@ func main() {
 		settingRepo,
 		cachedAPITokenRepo,
 		cachedModelMappingRepo,
+		modelPriceRepo,
 		r, // Router implements ProviderAdapterRefresher interface
 	)
 

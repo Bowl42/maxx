@@ -102,7 +102,7 @@ func (h *AdminHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 // Provider handlers
 func (h *AdminHandler) handleProviders(w http.ResponseWriter, r *http.Request, id uint64) {
 	// Check for special endpoints
-	path := r.URL.Path
+	path := strings.TrimSuffix(r.URL.Path, "/")
 	if strings.HasSuffix(path, "/export") {
 		h.handleProvidersExport(w, r)
 		return

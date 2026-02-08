@@ -342,6 +342,7 @@ func InitializeServerComponents(
 		repos.SettingRepo,
 		repos.CachedAPITokenRepo,
 		repos.CachedModelMappingRepo,
+		repos.ModelPriceRepo,
 		r,
 	)
 

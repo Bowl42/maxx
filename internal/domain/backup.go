@@ -23,6 +23,7 @@ type BackupData struct {
 	RoutingStrategies []BackupRoutingStrategy `json:"routingStrategies,omitempty"`
 	APITokens         []BackupAPIToken        `json:"apiTokens,omitempty"`
 	ModelMappings     []BackupModelMapping    `json:"modelMappings,omitempty"`
+	ModelPrices       []BackupModelPrice      `json:"modelPrices,omitempty"`
 }
 
 // BackupSystemSetting represents a system setting for backup
@@ -35,6 +36,7 @@ type BackupSystemSetting struct {
 type BackupProvider struct {
 	Name                 string          `json:"name"`
 	Type                 string          `json:"type"`
+	Logo                 string          `json:"logo,omitempty"`
 	Config               *ProviderConfig `json:"config,omitempty"`
 	SupportedClientTypes []ClientType    `json:"supportedClientTypes,omitempty"`
 	SupportModels        []string        `json:"supportModels,omitempty"`
@@ -98,6 +100,22 @@ type BackupModelMapping struct {
 	Pattern      string            `json:"pattern"`
 	Target       string            `json:"target"`
 	Priority     int               `json:"priority"`
+}
+
+// BackupModelPrice represents a model price for backup
+type BackupModelPrice struct {
+	ModelID                string `json:"modelId"`
+	InputPriceMicro        uint64 `json:"inputPriceMicro"`
+	OutputPriceMicro       uint64 `json:"outputPriceMicro"`
+	CacheReadPriceMicro    uint64 `json:"cacheReadPriceMicro"`
+	Cache5mWritePriceMicro uint64 `json:"cache5mWritePriceMicro"`
+	Cache1hWritePriceMicro uint64 `json:"cache1hWritePriceMicro"`
+	Has1MContext           bool   `json:"has1mContext"`
+	Context1MThreshold     uint64 `json:"context1mThreshold"`
+	InputPremiumNum        uint64 `json:"inputPremiumNum"`
+	InputPremiumDenom      uint64 `json:"inputPremiumDenom"`
+	OutputPremiumNum       uint64 `json:"outputPremiumNum"`
+	OutputPremiumDenom     uint64 `json:"outputPremiumDenom"`
 }
 
 // ImportOptions defines options for import operation
