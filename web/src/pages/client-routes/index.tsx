@@ -160,8 +160,10 @@ export function ClientRoutesPage() {
                 </div>
               </div>
 
-              {/* Sort Buttons - Only show when viewing Global routes */}
-              {selectedProjectId === '0' && (
+              {/* Sort Buttons - Only show when viewing Global routes and on appropriate pages */}
+              {selectedProjectId === '0' &&
+                ((hasAntigravityRoutes && activeClientType === 'antigravity') ||
+                  (hasCodexRoutes && activeClientType === 'codex')) && (
                 <div className="flex items-center gap-2">
                   {/* Only show Antigravity sort button for antigravity client type */}
                   {hasAntigravityRoutes && activeClientType === 'antigravity' && (
