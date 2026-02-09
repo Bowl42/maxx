@@ -63,7 +63,7 @@ func TestMatchWildcard(t *testing.T) {
 func TestMatchModelMapping(t *testing.T) {
 	mapping := map[string]string{
 		"*sonnet*":     "gemini-2.5-pro",
-		"*opus*":       "claude-opus-4-6-thinking",
+		"*opus*":       "claude-opus-4-5-thinking",
 		"*haiku*":      "gemini-2.5-flash-lite",
 		"gpt-4o-mini*": "gemini-2.5-flash",
 		"gpt-4*":       "gemini-2.5-pro",
@@ -77,7 +77,7 @@ func TestMatchModelMapping(t *testing.T) {
 		// Wildcard matches
 		{"claude-sonnet-4-20250514", "gemini-2.5-pro"},
 		{"claude-3-5-sonnet-20241022", "gemini-2.5-pro"},
-		{"claude-opus-4-20250514", "claude-opus-4-6-thinking"},
+		{"claude-opus-4-20250514", "claude-opus-4-5-thinking"},
 		{"claude-3-5-haiku-20241022", "gemini-2.5-flash-lite"},
 		{"gpt-4-turbo", "gemini-2.5-pro"},
 		{"gpt-4o", "gemini-2.5-pro"},

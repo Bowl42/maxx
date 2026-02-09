@@ -67,6 +67,8 @@ export class HttpTransport implements Transport {
   private reconnectTimer: ReturnType<typeof setTimeout> | null = null;
   private connectPromise: Promise<void> | null = null;
   private authToken: string | null = null;
+  private manualDisconnect = false;
+  private connectTimeoutMs = 5000;
 
   constructor(config: TransportConfig = {}) {
     this.config = {
@@ -720,6 +722,8 @@ export class HttpTransport implements Transport {
   // ===== 生命周期 =====
 
   async connect(): Promise<void> {
+    this.manualDisconnect = false;
+
     // Already connected
     if (this.ws?.readyState === WebSocket.OPEN) {
       return Promise.resolve();
@@ -733,10 +737,60 @@ export class HttpTransport implements Transport {
     this.connectPromise = new Promise((resolve, reject) => {
       this.ws = new WebSocket(this.config.wsURL);
 
+      let opened = false;
+      let settled = false;
+      let reconnectScheduled = false;
+      let timeoutId: ReturnType<typeof setTimeout> | null = null;
+
+      const clearConnectTimeout = () => {
+        if (!timeoutId) {
+          return;
+        }
+        clearTimeout(timeoutId);
+        timeoutId = null;
+      };
+
+      const scheduleReconnectOnce = () => {
+        if (reconnectScheduled || this.manualDisconnect) {
+          return;
+        }
+        reconnectScheduled = true;
+        this.scheduleReconnect();
+      };
+
+      const settleResolve = () => {
+        if (settled) {
+          return;
+        }
+        settled = true;
+        clearConnectTimeout();
+        this.connectPromise = null;
+        resolve();
+      };
+
+      const settleReject = (error: Error) => {
+        if (settled) {
+          return;
+        }
+        settled = true;
+        clearConnectTimeout();
+        this.connectPromise = null;
+        reject(error);
+      };
+
+      timeoutId = setTimeout(() => {
+        if (opened) {
+          return;
+        }
+        settleReject(new Error(`WebSocket connection timeout after ${this.connectTimeoutMs}ms`));
+        this.ws?.close();
+        scheduleReconnectOnce();
+      }, this.connectTimeoutMs);
+
       this.ws.onopen = () => {
+        opened = true;
         const isReconnect = this.reconnectAttempts > 0;
         this.reconnectAttempts = 0;
-        this.connectPromise = null;
 
         // 如果是重连，发送内部事件通知前端清理状态
         if (isReconnect) {
@@ -744,17 +798,22 @@ export class HttpTransport implements Transport {
           listeners?.forEach((callback) => callback({}));
         }
 
-        resolve();
+        settleResolve();
       };
 
-      this.ws.onerror = (error) => {
-        this.connectPromise = null;
-        reject(error);
+      this.ws.onerror = () => {
+        if (opened) {
+          return;
+        }
+        settleReject(new Error('WebSocket connection error'));
+        scheduleReconnectOnce();
       };
 
       this.ws.onclose = () => {
-        this.connectPromise = null;
-        this.scheduleReconnect();
+        if (!opened) {
+          settleReject(new Error('WebSocket connection closed before open'));
+        }
+        scheduleReconnectOnce();
       };
 
       this.ws.onmessage = (event) => {
@@ -772,6 +831,9 @@ export class HttpTransport implements Transport {
   }
 
   disconnect(): void {
+    this.manualDisconnect = true;
+    this.reconnectAttempts = 0;
+
     if (this.reconnectTimer) {
       clearTimeout(this.reconnectTimer);
       this.reconnectTimer = null;

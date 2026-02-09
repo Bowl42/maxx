@@ -2,6 +2,7 @@ import { createContext, useContext, useState, useEffect, type ReactNode } from '
 import { useTransport } from '@/lib/transport';
 
 const AUTH_TOKEN_KEY = 'maxx-admin-token';
+const AUTH_INIT_TIMEOUT_MS = 8000;
 
 interface AuthContextValue {
   isAuthenticated: boolean;
@@ -24,14 +25,22 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const [authEnabled, setAuthEnabled] = useState(false);
 
   useEffect(() => {
+    let cancelled = false;
+    let timedOut = false;
+    let timeoutId: ReturnType<typeof setTimeout> | null = null;
+
+    const shouldSkip = () => cancelled || timedOut;
+
     const checkAuth = async () => {
       try {
         const status = await transport.getAuthStatus();
+        if (shouldSkip()) {
+          return;
+        }
         setAuthEnabled(status.authEnabled);
 
         if (!status.authEnabled) {
           setIsAuthenticated(true);
-          setIsLoading(false);
           return;
         }
 
@@ -40,21 +49,72 @@ export function AuthProvider({ children }: AuthProviderProps) {
           transport.setAuthToken(savedToken);
           try {
             await transport.getProxyStatus();
+            if (shouldSkip()) {
+              return;
+            }
             setIsAuthenticated(true);
-          } catch {
+          } catch (error) {
+            if (shouldSkip()) {
+              return;
+            }
+            console.error('[AuthProvider] Saved token verification failed:', error);
             localStorage.removeItem(AUTH_TOKEN_KEY);
             transport.clearAuthToken();
           }
         }
-      } catch {
+      } catch (error) {
+        if (shouldSkip()) {
+          return;
+        }
+        console.error('[AuthProvider] Auth check failed, fallback to authenticated:', error);
         // Auth check failed, assume no auth required
         setIsAuthenticated(true);
-      } finally {
-        setIsLoading(false);
       }
     };
 
-    checkAuth();
+    const runAuthBootstrap = async () => {
+      console.log('[AuthProvider] Starting auth bootstrap...');
+
+      try {
+        await Promise.race([
+          checkAuth(),
+          new Promise<never>((_, reject) => {
+            timeoutId = setTimeout(() => {
+              reject(
+                new Error(`[AuthProvider] Auth bootstrap timeout after ${AUTH_INIT_TIMEOUT_MS}ms`),
+              );
+            }, AUTH_INIT_TIMEOUT_MS);
+          }),
+        ]);
+      } catch (error) {
+        if (cancelled) {
+          return;
+        }
+
+        timedOut = true;
+        console.error(
+          '[AuthProvider] Auth bootstrap failed or timed out, fallback to authenticated:',
+          error,
+        );
+        setIsAuthenticated(true);
+      } finally {
+        if (timeoutId) {
+          clearTimeout(timeoutId);
+        }
+        if (!cancelled) {
+          setIsLoading(false);
+        }
+      }
+    };
+
+    runAuthBootstrap();
+
+    return () => {
+      cancelled = true;
+      if (timeoutId) {
+        clearTimeout(timeoutId);
+      }
+    };
   }, [transport]);
 
   const login = (token: string) => {

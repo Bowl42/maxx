@@ -66,24 +66,47 @@ export function TransportProvider({
     return { status: 'loading' };
   });
 
+  const readyTransport = state.status === 'ready' ? state.transport : null;
+
   useEffect(() => {
-    // 如果已经 ready，不需要再初始化
-    if (state.status === 'ready') {
-      return;
+    let cancelled = false;
+
+    if (state.status === 'error') {
+      return () => {
+        cancelled = true;
+      };
     }
 
-    let cancelled = false;
+    // 已经 ready 后，后台尝试连接 WebSocket（不阻塞 UI）
+    if (readyTransport) {
+      if (!readyTransport.isConnected()) {
+        readyTransport
+          .connect()
+          .then(() => {
+            if (!cancelled) {
+              console.log('[TransportProvider] WebSocket connected');
+            }
+          })
+          .catch((error) => {
+            if (!cancelled) {
+              console.error('[TransportProvider] WebSocket connect failed (non-blocking):', error);
+            }
+          });
+      }
+
+      return () => {
+        cancelled = true;
+      };
+    }
+
+    console.log('[TransportProvider] Initializing transport...');
 
     initializeTransport()
       .then((transport) => {
         if (!cancelled) {
-          return transport.connect().then(() => {
-            if (!cancelled) {
-              const type = getTransportType()!;
-              console.log('[TransportProvider] Ready:', transport.constructor.name);
-              setState({ status: 'ready', transport, type });
-            }
-          });
+          const type = getTransportType()!;
+          console.log('[TransportProvider] Ready:', transport.constructor.name);
+          setState({ status: 'ready', transport, type });
         }
       })
       .catch((error) => {
@@ -96,7 +119,7 @@ export function TransportProvider({
     return () => {
       cancelled = true;
     };
-  }, [state.status]);
+  }, [state.status, readyTransport]);
 
   // 加载中
   if (state.status === 'loading') {
