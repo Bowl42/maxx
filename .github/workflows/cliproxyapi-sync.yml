@@ -2,7 +2,7 @@ name: CLIProxyAPI Sync
 
 on:
   schedule:
-    - cron: "17 2 * * 1"
+    - cron: "0 2 * * *"
   workflow_dispatch:
   workflow_call:
     secrets:
