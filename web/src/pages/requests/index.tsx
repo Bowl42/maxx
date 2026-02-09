@@ -79,6 +79,7 @@ export function RequestsPage() {
   // Status 过滤器
   const [selectedStatus, setSelectedStatus] = useState<string | undefined>(undefined);
   const scrollContainerRef = useRef<HTMLDivElement | null>(null);
+  const containerReadyRef = useRef(false);
   const [containerReady, setContainerReady] = useState(false);
   const [scrollTop, setScrollTop] = useState(0);
   const [viewportHeight, setViewportHeight] = useState(0);
@@ -86,9 +87,18 @@ export function RequestsPage() {
   const rowHeightRef = useRef(DEFAULT_ROW_HEIGHT);
   const rowMeasureObserver = useRef<ResizeObserver | null>(null);
 
+  // Lazy initialization to prevent re-render during initial mount
   const handleContainerRef = useCallback((node: HTMLDivElement | null) => {
     scrollContainerRef.current = node;
-    setContainerReady(!!node);
+    if (node && !containerReadyRef.current) {
+      containerReadyRef.current = true;
+      // Use requestAnimationFrame to defer the state update to avoid React #185
+      requestAnimationFrame(() => {
+        setContainerReady(true);
+      });
+    } else if (!node) {
+      containerReadyRef.current = false;
+    }
   }, []);
 
   const currentCursor = cursors[pageIndex];
@@ -245,11 +255,17 @@ export function RequestsPage() {
       return;
     }
 
+    // Skip if already measuring this node
+    if (rowMeasureObserver.current?.element === node) return;
+
     const updateHeight = () => {
       const nextHeight = node.getBoundingClientRect().height;
       if (nextHeight > 0 && Math.abs(nextHeight - rowHeightRef.current) > 0.5) {
         rowHeightRef.current = nextHeight;
-        setRowHeight(nextHeight);
+        // Defer state update to avoid React #185
+        requestAnimationFrame(() => {
+          setRowHeight(nextHeight);
+        });
       }
     };
 
