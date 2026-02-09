@@ -77,3 +77,20 @@ func TestIsCodexResponseCompletedLine(t *testing.T) {
 		t.Fatal("expected invalid json line to be false")
 	}
 }
+
+func TestApplyCodexHeadersUsesDefaultUAForNonCLI(t *testing.T) {
+	a := &CodexAdapter{}
+	upstreamReq, _ := http.NewRequest("POST", "https://chatgpt.com/backend-api/codex/responses", nil)
+	clientReq, _ := http.NewRequest("POST", "http://localhost/responses", nil)
+	clientReq.Header.Set("User-Agent", "Mozilla/5.0")
+	clientReq.Header.Set("X-Custom", "ok")
+
+	a.applyCodexHeaders(upstreamReq, clientReq, "token-1", "acct-1", true, "")
+
+	if got := upstreamReq.Header.Get("User-Agent"); got != CodexUserAgent {
+		t.Fatalf("expected default Codex User-Agent for non-CLI client, got %q", got)
+	}
+	if got := upstreamReq.Header.Get("X-Custom"); got != "ok" {
+		t.Fatalf("expected X-Custom passthrough, got %q", got)
+	}
+}

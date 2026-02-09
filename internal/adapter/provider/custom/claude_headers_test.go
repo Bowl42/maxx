@@ -95,3 +95,23 @@ func TestApplyClaudeHeadersDefaults(t *testing.T) {
 		t.Error("X-Stainless-Runtime should be set")
 	}
 }
+
+func TestApplyClaudeHeadersUserAgentPassthroughOnlyForCLI(t *testing.T) {
+	cliReq, _ := http.NewRequest("POST", "https://api.anthropic.com/v1/messages", nil)
+	cliClientReq, _ := http.NewRequest("POST", "https://example.com", nil)
+	cliClientReq.Header.Set("User-Agent", "claude-cli/2.1.23 (external, cli)")
+
+	applyClaudeHeaders(cliReq, cliClientReq, "sk-test", true, nil, true)
+	if got := cliReq.Header.Get("User-Agent"); got != "claude-cli/2.1.23 (external, cli)" {
+		t.Fatalf("expected CLI User-Agent passthrough, got %q", got)
+	}
+
+	nonCLIReq, _ := http.NewRequest("POST", "https://api.anthropic.com/v1/messages", nil)
+	nonCLIClientReq, _ := http.NewRequest("POST", "https://example.com", nil)
+	nonCLIClientReq.Header.Set("User-Agent", "Mozilla/5.0")
+
+	applyClaudeHeaders(nonCLIReq, nonCLIClientReq, "sk-test", true, nil, true)
+	if got := nonCLIReq.Header.Get("User-Agent"); got != defaultClaudeUserAgent {
+		t.Fatalf("expected default User-Agent for non-CLI client, got %q", got)
+	}
+}

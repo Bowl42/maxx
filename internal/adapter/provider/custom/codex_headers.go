@@ -40,8 +40,22 @@ func applyCodexHeaders(upstreamReq, clientReq *http.Request, apiKey string) {
 	// 4. Set Codex-specific headers only if client didn't provide them
 	ensureCodexHeader(upstreamReq.Header, clientReq, "Version", codexVersion)
 	ensureCodexHeader(upstreamReq.Header, clientReq, "Openai-Beta", openAIBetaHeader)
-	ensureCodexHeader(upstreamReq.Header, clientReq, "User-Agent", codexUserAgent)
+	upstreamReq.Header.Set("User-Agent", resolveCodexUserAgent(clientReq))
 	ensureCodexHeader(upstreamReq.Header, clientReq, "Originator", codexOriginator)
+}
+
+func resolveCodexUserAgent(clientReq *http.Request) string {
+	if clientReq != nil {
+		if ua := strings.TrimSpace(clientReq.Header.Get("User-Agent")); isCodexCLIUserAgent(ua) {
+			return ua
+		}
+	}
+	return codexUserAgent
+}
+
+func isCodexCLIUserAgent(userAgent string) bool {
+	ua := strings.ToLower(strings.TrimSpace(userAgent))
+	return strings.HasPrefix(ua, "codex_cli_rs/") || strings.HasPrefix(ua, "codex-cli")
 }
 
 // copyCodexPassthroughHeaders copies headers from client request, excluding hop-by-hop, auth, and proxy headers
@@ -64,6 +78,9 @@ func copyCodexPassthroughHeaders(dst, src http.Header) {
 		// Headers set by HTTP client
 		"host":           true,
 		"content-length": true,
+
+		// Explicitly controlled headers
+		"user-agent": true,
 
 		// Proxy/forwarding headers (privacy protection)
 		"x-forwarded-for":    true,

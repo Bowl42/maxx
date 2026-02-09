@@ -80,7 +80,16 @@ func applyClaudeHeaders(req *http.Request, clientReq *http.Request, apiKey strin
 	ensureHeader(req.Header, clientHeaders, "X-Stainless-Arch", "arm64")
 	ensureHeader(req.Header, clientHeaders, "X-Stainless-Os", "MacOS")
 	ensureHeader(req.Header, clientHeaders, "X-Stainless-Timeout", "60")
-	ensureHeader(req.Header, clientHeaders, "User-Agent", defaultClaudeUserAgent)
+
+	clientUA := ""
+	if clientHeaders != nil {
+		clientUA = strings.TrimSpace(clientHeaders.Get("User-Agent"))
+	}
+	if isClaudeCodeClient(clientUA) {
+		req.Header.Set("User-Agent", clientUA)
+	} else {
+		req.Header.Set("User-Agent", defaultClaudeUserAgent)
+	}
 
 	// 6. Set connection and encoding headers (always override)
 	req.Header.Set("Connection", "keep-alive")
