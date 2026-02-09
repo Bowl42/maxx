@@ -259,6 +259,17 @@
   --input: oklch(0.35 0.025 52);
   --ring: oklch(0.72 0.16 50);
 
+  /* Chart colors - Dark Hermès palette */
+  --chart-1: oklch(0.58 0.18 250); /* Blue */
+  --chart-2: oklch(0.72 0.16 150); /* Green */
+  --chart-3: oklch(0.75 0.18 320); /* Purple */
+  --chart-4: oklch(0.78 0.17 50); /* Orange */
+  --chart-5: oklch(0.68 0.2 190); /* Cyan */
+  --chart-6: oklch(0.68 0.22 25); /* Red */
+  --chart-7: oklch(0.78 0.14 270); /* Magenta */
+  --chart-8: oklch(0.76 0.16 80); /* Yellow */
+  --chart-9: oklch(0.6 0.18 175); /* Teal */
+
   /* Sidebar - Dark Hermès */
   --sidebar: oklch(0.2 0.02 50);
   --sidebar-foreground: oklch(0.95 0.01 55);
@@ -291,6 +302,17 @@
   --border: oklch(0.35 0.015 205);
   --input: oklch(0.35 0.015 205);
   --ring: oklch(0.72 0.12 192);
+
+  /* Chart colors - Dark Tiffany palette */
+  --chart-1: oklch(0.58 0.18 250); /* Blue */
+  --chart-2: oklch(0.72 0.16 150); /* Green */
+  --chart-3: oklch(0.75 0.18 320); /* Purple */
+  --chart-4: oklch(0.78 0.17 50); /* Orange */
+  --chart-5: oklch(0.68 0.2 190); /* Cyan */
+  --chart-6: oklch(0.68 0.22 25); /* Red */
+  --chart-7: oklch(0.78 0.14 270); /* Magenta */
+  --chart-8: oklch(0.76 0.16 80); /* Yellow */
+  --chart-9: oklch(0.6 0.18 175); /* Teal */
 
   /* Sidebar - Dark Tiffany */
   --sidebar: oklch(0.2 0.008 200);
