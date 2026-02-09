@@ -121,18 +121,24 @@ func TestShouldCloakModes(t *testing.T) {
 	if shouldCloak("never", "curl/7.68.0") {
 		t.Error("never mode should cloak none")
 	}
+	if !shouldCloak("", "claude-cli/dev") {
+		t.Error("default mode should cloak non-official claude-cli UA")
+	}
+	if shouldCloak("", "Claude-CLI/2.1.17 (external, cli)") {
+		t.Error("default mode should not cloak case-insensitive official claude-cli UA")
+	}
 }
 
-func TestSkipSystemInjectionForHaiku(t *testing.T) {
+func TestSystemInjectionForHaikuWhenCloaked(t *testing.T) {
 	body := []byte(`{"model":"claude-3-5-haiku-20241022","messages":[{"role":"user","content":"hello"}]}`)
 
 	result := applyCloaking(body, "curl/7.68.0", "claude-3-5-haiku-20241022", nil)
 
-	if gjson.GetBytes(result, "system").Exists() {
-		t.Error("system prompt should be skipped for claude-3-5-haiku models")
+	if !gjson.GetBytes(result, "system").Exists() {
+		t.Error("system prompt should be injected for cloaked haiku requests")
 	}
 	if !gjson.GetBytes(result, "metadata.user_id").Exists() {
-		t.Error("user_id should still be injected for haiku models")
+		t.Error("user_id should be injected for haiku models")
 	}
 }
 
@@ -367,7 +373,7 @@ func TestNoDuplicateSystemPromptInjection(t *testing.T) {
 	body := []byte(`{
 		"model":"claude-3-5-sonnet",
 		"messages":[{"role":"user","content":"hello"}],
-		"system":[{"type":"text","text":"You are Claude Code, Anthropic's official CLI for Claude."},{"type":"text","text":"Additional instructions"}]
+		"system":[{"type":"text","text":"Additional instructions"},{"type":"text","text":"You are Claude Code, Anthropic's official CLI for Claude."}]
 	}`)
 
 	result := injectClaudeCodeSystemPrompt(body)
