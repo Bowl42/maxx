@@ -21,7 +21,7 @@ export function PageHeader({
   children,
 }: PageHeaderProps) {
   return (
-    <header className="h-[73px] flex items-center justify-between px-6 border-b border-border bg-card shrink-0">
+    <header className="min-h-[73px] flex items-center justify-between px-4 md:px-6 gap-2 py-2 md:py-0 flex-wrap border-b border-border bg-card shrink-0">
       <div className="flex items-center gap-3">
         <SidebarTrigger className="-ml-2" />
         {Icon && (
@@ -35,7 +35,7 @@ export function PageHeader({
         </div>
       </div>
       {(actions || children) && (
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
           {actions}
           {children}
         </div>

@@ -7,7 +7,6 @@ import type { ProxyRequest, ClientType } from '@/lib/transport';
 import { ClientIcon, getClientName, getClientColor } from '@/components/icons/client-icons';
 import { formatDuration } from '@/lib/utils';
 import { useTranslation } from 'react-i18next';
-
 function formatCost(nanoUSD: number): string {
   if (nanoUSD === 0) return '-';
   // 向下取整到 6 位小数 (microUSD 精度)
@@ -41,10 +40,10 @@ export function RequestHeader({
 }: RequestHeaderProps) {
   const { t } = useTranslation();
   return (
-    <div className="h-[73px] border-b border-border bg-card px-6 flex items-center">
-      <div className="flex items-center justify-between gap-6 w-full">
+    <div className="border-b border-border bg-card px-4 md:px-6 py-2 md:py-0 shrink-0">
+      <div className="flex items-center gap-3 md:gap-6 w-full min-h-[56px] md:min-h-[73px]">
         {/* Left: Back + Main Info */}
-        <div className="flex items-center gap-3 min-w-0">
+        <div className="flex items-center gap-3 min-w-0 flex-1">
           <SidebarTrigger className="-ml-2" />
           <Button
             variant="ghost"
@@ -66,14 +65,14 @@ export function RequestHeader({
           </div>
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-2 flex-wrap">
-              <h2 className="text-lg font-semibold text-foreground tracking-tight leading-none">
+              <h2 className="text-lg font-semibold text-foreground tracking-tight leading-none truncate">
                 {request.requestModel || t('requests.unknownModel')}
               </h2>
-              <Badge variant={statusVariant[request.status]} className="capitalize">
+              <Badge variant={statusVariant[request.status]} className="capitalize shrink-0">
                 {request.status.toLowerCase().replace('_', ' ')}
               </Badge>
             </div>
-            <div className="flex items-center gap-3 mt-1.5 text-xs text-muted-foreground leading-none">
+            <div className="flex items-center gap-3 mt-1.5 text-xs text-muted-foreground leading-none flex-wrap">
               <span className="font-mono bg-muted px-1.5 py-0.5 rounded">#{request.id}</span>
               <span>{getClientName(request.clientType as ClientType)}</span>
               <span>·</span>
@@ -90,84 +89,55 @@ export function RequestHeader({
             </div>
           </div>
         </div>
+      </div>
 
-        {/* Right: Stats Grid */}
-        <div className="flex items-center gap-4 shrink-0">
-          <div className="text-center px-3">
-            <div className="text-[10px] uppercase tracking-wider text-muted-foreground mb-0.5">
-              TTFT
-            </div>
-            <div className="text-sm font-mono font-medium text-muted-foreground">
-              {request.ttft && request.ttft > 0 ? formatDuration(request.ttft) : '-'}
-            </div>
+      {/* Stats Grid - hidden on small, compact grid on medium, full row on xl */}
+      <div className="hidden md:flex items-center gap-1 lg:gap-4 flex-wrap pb-2 xl:pb-0 -mt-1 xl:mt-0">
+        <StatItem label="TTFT" value={request.ttft && request.ttft > 0 ? formatDuration(request.ttft) : '-'} />
+        <div className="w-px h-6 bg-border hidden lg:block" />
+        <StatItem label={t('requests.duration')} value={request.duration ? formatDuration(request.duration) : '-'} valueClassName="text-foreground" />
+        <div className="w-px h-6 bg-border hidden lg:block" />
+        <StatItem label={t('requests.input')} value={request.inputTokenCount > 0 ? request.inputTokenCount.toLocaleString() : '-'} />
+        <div className="w-px h-6 bg-border hidden lg:block" />
+        <StatItem label={t('requests.output')} value={request.outputTokenCount > 0 ? request.outputTokenCount.toLocaleString() : '-'} valueClassName="text-foreground" />
+        <div className="w-px h-6 bg-border hidden lg:block" />
+        <StatItem label={t('requests.cacheRead')} value={request.cacheReadCount > 0 ? request.cacheReadCount.toLocaleString() : '-'} valueClassName="text-violet-400" />
+        <div className="w-px h-6 bg-border hidden lg:block" />
+        <StatItem label={t('requests.cacheWrite')} value={request.cacheWriteCount > 0 ? request.cacheWriteCount.toLocaleString() : '-'} valueClassName="text-amber-400" />
+        <div className="w-px h-6 bg-border hidden lg:block" />
+        <div className="text-center px-2 lg:px-3">
+          <div className="text-[10px] uppercase tracking-wider text-muted-foreground mb-0.5">
+            {t('requests.cost')}
           </div>
-          <div className="w-px h-8 bg-border" />
-          <div className="text-center px-3">
-            <div className="text-[10px] uppercase tracking-wider text-muted-foreground mb-0.5">
-              {t('requests.duration')}
-            </div>
-            <div className="text-sm font-mono font-medium text-foreground">
-              {request.duration ? formatDuration(request.duration) : '-'}
-            </div>
-          </div>
-          <div className="w-px h-8 bg-border" />
-          <div className="text-center px-3">
-            <div className="text-[10px] uppercase tracking-wider text-muted-foreground mb-0.5">
-              {t('requests.input')}
-            </div>
-            <div className="text-sm font-mono font-medium text-muted-foreground">
-              {request.inputTokenCount > 0 ? request.inputTokenCount.toLocaleString() : '-'}
-            </div>
-          </div>
-          <div className="w-px h-8 bg-border" />
-          <div className="text-center px-3">
-            <div className="text-[10px] uppercase tracking-wider text-muted-foreground mb-0.5">
-              {t('requests.output')}
-            </div>
-            <div className="text-sm font-mono font-medium text-foreground">
-              {request.outputTokenCount > 0 ? request.outputTokenCount.toLocaleString() : '-'}
-            </div>
-          </div>
-          <div className="w-px h-8 bg-border" />
-          <div className="text-center px-3">
-            <div className="text-[10px] uppercase tracking-wider text-muted-foreground mb-0.5">
-              {t('requests.cacheRead')}
-            </div>
-            <div className="text-sm font-mono font-medium text-violet-400">
-              {request.cacheReadCount > 0 ? request.cacheReadCount.toLocaleString() : '-'}
-            </div>
-          </div>
-          <div className="w-px h-8 bg-border" />
-          <div className="text-center px-3">
-            <div className="text-[10px] uppercase tracking-wider text-muted-foreground mb-0.5">
-              {t('requests.cacheWrite')}
-            </div>
-            <div className="text-sm font-mono font-medium text-amber-400">
-              {request.cacheWriteCount > 0 ? request.cacheWriteCount.toLocaleString() : '-'}
-            </div>
-          </div>
-          <div className="w-px h-8 bg-border" />
-          <div className="text-center px-3">
-            <div className="text-[10px] uppercase tracking-wider text-muted-foreground mb-0.5">
-              {t('requests.cost')}
-            </div>
-            <div className="text-sm font-mono font-medium text-blue-400 flex items-center gap-1">
-              {formatCost(request.cost)}
-              {onRecalculateCost && (
-                <Tooltip>
-                  <TooltipTrigger
-                    className="inline-flex items-center justify-center h-5 w-5 rounded-md text-muted-foreground hover:text-foreground hover:bg-accent disabled:opacity-50"
-                    onClick={onRecalculateCost}
-                    disabled={isRecalculating}
-                  >
-                    <RefreshCw className={`h-3 w-3 ${isRecalculating ? 'animate-spin' : ''}`} />
-                  </TooltipTrigger>
-                  <TooltipContent>{t('requests.recalculateCost')}</TooltipContent>
-                </Tooltip>
-              )}
-            </div>
+          <div className="text-sm font-mono font-medium text-blue-400 flex items-center gap-1">
+            {formatCost(request.cost)}
+            {onRecalculateCost && (
+              <Tooltip>
+                <TooltipTrigger
+                  className="inline-flex items-center justify-center h-5 w-5 rounded-md text-muted-foreground hover:text-foreground hover:bg-accent disabled:opacity-50"
+                  onClick={onRecalculateCost}
+                  disabled={isRecalculating}
+                >
+                  <RefreshCw className={`h-3 w-3 ${isRecalculating ? 'animate-spin' : ''}`} />
+                </TooltipTrigger>
+                <TooltipContent>{t('requests.recalculateCost')}</TooltipContent>
+              </Tooltip>
+            )}
           </div>
         </div>
+      </div>
+    </div>
+  );
+}
+
+function StatItem({ label, value, valueClassName = 'text-muted-foreground' }: { label: string; value: string; valueClassName?: string }) {
+  return (
+    <div className="text-center px-2 lg:px-3">
+      <div className="text-[10px] uppercase tracking-wider text-muted-foreground mb-0.5">
+        {label}
+      </div>
+      <div className={`text-sm font-mono font-medium ${valueClassName}`}>
+        {value}
       </div>
     </div>
   );

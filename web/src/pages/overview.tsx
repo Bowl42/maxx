@@ -471,11 +471,13 @@ export function OverviewPage() {
                     {t('common.loading')}
                   </div>
                 ) : (
-                  <ActivityHeatmap
-                    data={heatmapData || []}
-                    colorScheme="green"
-                    timezone={heatmapTimezone}
-                  />
+                  <div className="overflow-x-auto">
+                    <ActivityHeatmap
+                      data={heatmapData || []}
+                      colorScheme="green"
+                      timezone={heatmapTimezone}
+                    />
+                  </div>
                 )}
               </CardContent>
             </Card>

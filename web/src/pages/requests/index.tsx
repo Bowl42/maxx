@@ -40,6 +40,7 @@ import {
 } from '@/components/ui';
 import { cn } from '@/lib/utils';
 import { PageHeader } from '@/components/layout/page-header';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 type ProviderTypeKey = 'antigravity' | 'kiro' | 'codex' | 'custom';
 
@@ -55,6 +56,7 @@ const PROVIDER_TYPE_LABELS: Record<ProviderTypeKey, string> = {
 const PAGE_SIZE = 50;
 const DEFAULT_ROW_HEIGHT = 36;
 const OVERSCAN = 8;
+const MOBILE_CARD_HEIGHT = 88;
 
 export const statusVariant: Record<
   ProxyRequestStatus,
@@ -71,6 +73,7 @@ export const statusVariant: Record<
 export function RequestsPage() {
   const { t } = useTranslation();
   const navigate = useNavigate();
+  const isMobile = useIsMobile();
   // 使用游标分页：存储每页的 lastId 用于向后翻页
   const [cursors, setCursors] = useState<(number | undefined)[]>([undefined]);
   const [pageIndex, setPageIndex] = useState(0);
@@ -225,16 +228,17 @@ export function RequestsPage() {
   };
 
   const totalRows = requests.length;
+  const effectiveRowHeight = isMobile ? MOBILE_CARD_HEIGHT : rowHeight;
   const shouldVirtualize = totalRows > 0 && viewportHeight > 0;
   const startIndex = shouldVirtualize
-    ? Math.max(0, Math.floor(scrollTop / rowHeight) - OVERSCAN)
+    ? Math.max(0, Math.floor(scrollTop / effectiveRowHeight) - OVERSCAN)
     : 0;
   const endIndex = shouldVirtualize
-    ? Math.min(totalRows, Math.ceil((scrollTop + viewportHeight) / rowHeight) + OVERSCAN)
+    ? Math.min(totalRows, Math.ceil((scrollTop + viewportHeight) / effectiveRowHeight) + OVERSCAN)
     : totalRows;
   const visibleRequests = shouldVirtualize ? requests.slice(startIndex, endIndex) : requests;
-  const paddingTop = shouldVirtualize ? startIndex * rowHeight : 0;
-  const paddingBottom = shouldVirtualize ? (totalRows - endIndex) * rowHeight : 0;
+  const paddingTop = shouldVirtualize ? startIndex * effectiveRowHeight : 0;
+  const paddingBottom = shouldVirtualize ? (totalRows - endIndex) * effectiveRowHeight : 0;
 
   const handleRowMeasure = useCallback((node: HTMLTableRowElement | null) => {
     if (!node) {
@@ -315,109 +319,124 @@ export function RequestsPage() {
           </div>
         ) : (
           <div className="flex-1 min-h-0 overflow-auto" ref={handleContainerRef}>
-            <Table>
-              <TableHeader className="bg-card/80 backdrop-blur-md sticky top-0 z-10 shadow-sm border-b border-border">
-                <TableRow className="hover:bg-transparent border-none text-sm">
-                  <TableHead className="w-[180px] font-medium">{t('requests.time')}</TableHead>
-                  <TableHead className="w-[120px] pr-4 font-medium">{t('requests.client')}</TableHead>
-                  <TableHead className="min-w-[250px] font-medium">{t('requests.model')}</TableHead>
-                  {hasProjects && (
-                    <TableHead className="w-[100px] font-medium">{t('requests.project')}</TableHead>
-                  )}
-                  {apiTokenAuthEnabled && (
-                    <TableHead className="w-[100px] font-medium">{t('requests.token')}</TableHead>
-                  )}
-                  <TableHead className="min-w-[100px] font-medium">
-                    {t('requests.provider')}
-                  </TableHead>
-                  <TableHead className="w-[100px] font-medium">{t('common.status')}</TableHead>
-                  <TableHead className="w-[60px] text-center font-medium">
-                    {t('requests.code')}
-                  </TableHead>
-                  <TableHead
-                    className="w-[60px] text-center font-medium"
-                    title={t('requests.ttft')}
-                  >
-                    TTFT
-                  </TableHead>
-                  <TableHead className="w-[80px] text-center font-medium">
-                    {t('requests.duration')}
-                  </TableHead>
-                  <TableHead
-                    className="w-[45px] text-center font-medium"
-                    title={t('requests.attempts')}
-                  >
-                    {t('requests.attShort')}
-                  </TableHead>
-                  <TableHead
-                    className="w-[65px] text-center font-medium"
-                    title={t('requests.inputTokens')}
-                  >
-                    {t('requests.inShort')}
-                  </TableHead>
-                  <TableHead
-                    className="w-[65px] text-center font-medium"
-                    title={t('requests.outputTokens')}
-                  >
-                    {t('requests.outShort')}
-                  </TableHead>
-                  <TableHead
-                    className="w-[65px] text-center font-medium"
-                    title={t('requests.cacheRead')}
-                  >
-                    {t('requests.cacheRShort')}
-                  </TableHead>
-                  <TableHead
-                    className="w-[65px] text-center font-medium"
-                    title={t('requests.cacheWrite')}
-                  >
-                    {t('requests.cacheWShort')}
-                  </TableHead>
-                  <TableHead className="w-[80px] text-center font-medium">
-                    {t('requests.cost')}
-                  </TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {paddingTop > 0 && (
-                  <TableRow
-                    style={{ height: paddingTop }}
-                    className="pointer-events-none hover:bg-transparent"
-                  >
-                    <TableCell colSpan={columnCount} className="p-0 border-0" />
-                  </TableRow>
-                )}
-                {visibleRequests.map((req, index) => (
-                  <LogRow
+            {isMobile ? (
+              <div>
+                {paddingTop > 0 && <div style={{ height: paddingTop }} />}
+                {visibleRequests.map((req) => (
+                  <MobileRequestCard
                     key={req.id}
                     request={req}
-                    index={startIndex + index}
                     providerName={providerMap.get(req.providerID)}
-                    projectName={projectMap.get(req.projectID)}
-                    tokenName={tokenMap.get(req.apiTokenID)}
-                    showProjectColumn={hasProjects}
-                    showTokenColumn={apiTokenAuthEnabled}
-                    forceProjectBinding={forceProjectBinding}
                     onClick={() => navigate(`/requests/${req.id}`)}
-                    rowRef={index === 0 ? handleRowMeasure : undefined}
                   />
                 ))}
-                {paddingBottom > 0 && (
-                  <TableRow
-                    style={{ height: paddingBottom }}
-                    className="pointer-events-none hover:bg-transparent"
-                  >
-                    <TableCell colSpan={columnCount} className="p-0 border-0" />
+                {paddingBottom > 0 && <div style={{ height: paddingBottom }} />}
+              </div>
+            ) : (
+              <Table>
+                <TableHeader className="bg-card/80 backdrop-blur-md sticky top-0 z-10 shadow-sm border-b border-border">
+                  <TableRow className="hover:bg-transparent border-none text-sm">
+                    <TableHead className="w-[180px] font-medium">{t('requests.time')}</TableHead>
+                    <TableHead className="w-[120px] pr-4 font-medium">{t('requests.client')}</TableHead>
+                    <TableHead className="min-w-[250px] font-medium">{t('requests.model')}</TableHead>
+                    {hasProjects && (
+                      <TableHead className="w-[100px] font-medium">{t('requests.project')}</TableHead>
+                    )}
+                    {apiTokenAuthEnabled && (
+                      <TableHead className="w-[100px] font-medium">{t('requests.token')}</TableHead>
+                    )}
+                    <TableHead className="min-w-[100px] font-medium">
+                      {t('requests.provider')}
+                    </TableHead>
+                    <TableHead className="w-[100px] font-medium">{t('common.status')}</TableHead>
+                    <TableHead className="w-[60px] text-center font-medium">
+                      {t('requests.code')}
+                    </TableHead>
+                    <TableHead
+                      className="w-[60px] text-center font-medium"
+                      title={t('requests.ttft')}
+                    >
+                      TTFT
+                    </TableHead>
+                    <TableHead className="w-[80px] text-center font-medium">
+                      {t('requests.duration')}
+                    </TableHead>
+                    <TableHead
+                      className="w-[45px] text-center font-medium"
+                      title={t('requests.attempts')}
+                    >
+                      {t('requests.attShort')}
+                    </TableHead>
+                    <TableHead
+                      className="w-[65px] text-center font-medium"
+                      title={t('requests.inputTokens')}
+                    >
+                      {t('requests.inShort')}
+                    </TableHead>
+                    <TableHead
+                      className="w-[65px] text-center font-medium"
+                      title={t('requests.outputTokens')}
+                    >
+                      {t('requests.outShort')}
+                    </TableHead>
+                    <TableHead
+                      className="w-[65px] text-center font-medium"
+                      title={t('requests.cacheRead')}
+                    >
+                      {t('requests.cacheRShort')}
+                    </TableHead>
+                    <TableHead
+                      className="w-[65px] text-center font-medium"
+                      title={t('requests.cacheWrite')}
+                    >
+                      {t('requests.cacheWShort')}
+                    </TableHead>
+                    <TableHead className="w-[80px] text-center font-medium">
+                      {t('requests.cost')}
+                    </TableHead>
                   </TableRow>
-                )}
-              </TableBody>
-            </Table>
+                </TableHeader>
+                <TableBody>
+                  {paddingTop > 0 && (
+                    <TableRow
+                      style={{ height: paddingTop }}
+                      className="pointer-events-none hover:bg-transparent"
+                    >
+                      <TableCell colSpan={columnCount} className="p-0 border-0" />
+                    </TableRow>
+                  )}
+                  {visibleRequests.map((req, index) => (
+                    <LogRow
+                      key={req.id}
+                      request={req}
+                      index={startIndex + index}
+                      providerName={providerMap.get(req.providerID)}
+                      projectName={projectMap.get(req.projectID)}
+                      tokenName={tokenMap.get(req.apiTokenID)}
+                      showProjectColumn={hasProjects}
+                      showTokenColumn={apiTokenAuthEnabled}
+                      forceProjectBinding={forceProjectBinding}
+                      onClick={() => navigate(`/requests/${req.id}`)}
+                      rowRef={index === 0 ? handleRowMeasure : undefined}
+                    />
+                  ))}
+                  {paddingBottom > 0 && (
+                    <TableRow
+                      style={{ height: paddingBottom }}
+                      className="pointer-events-none hover:bg-transparent"
+                    >
+                      <TableCell colSpan={columnCount} className="p-0 border-0" />
+                    </TableRow>
+                  )}
+                </TableBody>
+              </Table>
+            )}
           </div>
         )}
       </div>
 
       {/* Pagination */}
-      <div className="h-12 flex items-center justify-between px-6 border-t border-border bg-card/50 backdrop-blur-sm shrink-0">
+      <div className="h-12 flex items-center justify-between px-4 md:px-6 border-t border-border bg-card/50 backdrop-blur-sm shrink-0">
         <span className="text-xs text-muted-foreground">
           {total > 0
             ? t('requests.pageInfo', {
@@ -873,6 +892,77 @@ function LogRow({
   );
 }
 
+// Mobile Request Card Component
+function MobileRequestCard({
+  request,
+  providerName,
+  onClick,
+}: {
+  request: ProxyRequest;
+  providerName?: string;
+  onClick: () => void;
+}) {
+  const isPending = request.status === 'PENDING' || request.status === 'IN_PROGRESS';
+  const isFailed = request.status === 'FAILED';
+
+  const formatTime = (dateStr: string) => {
+    const date = new Date(dateStr);
+    const HH = String(date.getHours()).padStart(2, '0');
+    const MM = String(date.getMinutes()).padStart(2, '0');
+    const SS = String(date.getSeconds()).padStart(2, '0');
+    return `${HH}:${MM}:${SS}`;
+  };
+
+  const formatDurationMs = (ns?: number | null) => {
+    if (!ns) return '-';
+    const seconds = ns / 1_000_000_000;
+    return `${seconds.toFixed(2)}s`;
+  };
+
+  const formatCostShort = (nanoUSD: number) => {
+    if (nanoUSD === 0) return '-';
+    const usd = Math.floor(nanoUSD / 1000) / 1_000_000;
+    return `$${usd.toFixed(4)}`;
+  };
+
+  const timeStr = request.endTime && new Date(request.endTime).getTime() > 0
+    ? formatTime(request.endTime)
+    : formatTime(request.startTime || request.createdAt);
+
+  return (
+    <div
+      onClick={onClick}
+      className={cn(
+        'px-4 py-2.5 border-b border-border cursor-pointer active:bg-accent/50 transition-colors',
+        isFailed && 'bg-red-500/10',
+        isPending && 'bg-blue-500/5',
+      )}
+      style={{ height: MOBILE_CARD_HEIGHT }}
+    >
+      {/* Row 1: Client + Model + Status */}
+      <div className="flex items-center gap-2 mb-1">
+        <ClientIcon type={request.clientType} size={14} className="shrink-0" />
+        <span className="text-sm font-medium text-foreground truncate flex-1">
+          {request.requestModel || '-'}
+        </span>
+        <RequestStatusBadge status={request.status} />
+      </div>
+      {/* Row 2: Time + Duration + Cost */}
+      <div className="flex items-center gap-3 text-xs text-muted-foreground font-mono">
+        <span>{timeStr}</span>
+        <span>{formatDurationMs(request.duration)}</span>
+        <span className="ml-auto">{formatCostShort(request.cost)}</span>
+      </div>
+      {/* Row 3: Provider */}
+      {providerName && (
+        <div className="text-xs text-muted-foreground mt-1 truncate">
+          {providerName}
+        </div>
+      )}
+    </div>
+  );
+}
+
 // Provider Filter Component using Select
 function ProviderFilter({
   providers,
@@ -926,7 +1016,7 @@ function ProviderFilter({
         }
       }}
     >
-      <SelectTrigger className="w-48 h-8" size="sm">
+      <SelectTrigger className="w-32 md:w-48 h-8" size="sm">
         <SelectValue>{displayText}</SelectValue>
       </SelectTrigger>
       <SelectContent>
@@ -1001,7 +1091,7 @@ function StatusFilter({
         }
       }}
     >
-      <SelectTrigger className="w-32 h-8" size="sm">
+      <SelectTrigger className="w-24 md:w-32 h-8" size="sm">
         <SelectValue>{displayText}</SelectValue>
       </SelectTrigger>
       <SelectContent>

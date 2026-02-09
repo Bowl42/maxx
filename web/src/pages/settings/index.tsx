@@ -54,7 +54,7 @@ export function SettingsPage() {
         description={t('settings.description')}
       />
 
-      <div className="flex-1 overflow-y-auto p-6">
+      <div className="flex-1 overflow-y-auto p-4 md:p-6">
         <div className="space-y-6">
           <GeneralSection />
           <TimezoneSection />
@@ -178,7 +178,7 @@ function GeneralSection() {
 
         {/* Language Selection */}
         <div className="flex gap-6 pt-4 border-t border-border flex-col">
-          <div className="text-sm font-medium text-muted-foreground w-40 shrink-0">
+          <div className="text-sm font-medium text-muted-foreground w-full sm:w-40 shrink-0">
             {t('settings.languagePreference')}
           </div>
           <div className="flex flex-wrap gap-3">
@@ -255,7 +255,7 @@ function TimezoneSection() {
           onValueChange={(v) => v && handleTimezoneChange(v)}
           disabled={updateSetting.isPending}
         >
-          <SelectTrigger className="w-64">
+          <SelectTrigger className="w-full max-w-64">
             <SelectValue>{currentTimezone}</SelectValue>
           </SelectTrigger>
           <SelectContent>
@@ -340,7 +340,7 @@ function DataRetentionSection() {
         </div>
       </CardHeader>
       <CardContent className="space-y-4">
-        <div className="flex items-center gap-3">
+        <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3">
           <div className="text-sm font-medium text-muted-foreground shrink-0">
             {t('settings.requestRetentionHours')}
           </div>
@@ -355,7 +355,7 @@ function DataRetentionSection() {
           <span className="text-xs text-muted-foreground">{t('common.hours')}</span>
         </div>
 
-        <div className="flex items-center gap-3 pt-4 border-t border-border">
+        <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3 pt-4 border-t border-border">
           <div className="text-sm font-medium text-muted-foreground shrink-0">
             {t('settings.requestDetailRetention')}
           </div>
@@ -428,8 +428,8 @@ function ForceProjectSection() {
         </div>
 
         {forceProjectEnabled && (
-          <div className="flex items-center gap-6 pt-4 border-t border-border">
-            <div className="text-sm font-medium text-muted-foreground w-32 shrink-0">
+          <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-6 pt-4 border-t border-border">
+            <div className="text-sm font-medium text-muted-foreground w-full sm:w-32 shrink-0">
               {t('settings.waitTimeout')}
             </div>
             <Input
@@ -507,7 +507,7 @@ function AntigravitySection() {
         </div>
       </CardHeader>
       <CardContent className="p-6 space-y-4">
-        <div className="flex items-center gap-3">
+        <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3">
           <label className="text-sm font-medium text-muted-foreground shrink-0">
             {t('settings.quotaRefreshInterval')}
           </label>
@@ -722,8 +722,8 @@ function PprofSection() {
           <>
             {/* Port */}
             <div className="space-y-2 pt-4 border-t border-border">
-              <div className="flex items-center gap-3">
-                <label className="text-sm font-medium text-muted-foreground shrink-0 w-20">
+              <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3">
+                <label className="text-sm font-medium text-muted-foreground shrink-0 w-full sm:w-20">
                   {t('settings.pprofPort')}
                 </label>
                 <Input
@@ -765,8 +765,8 @@ function PprofSection() {
             {/* Password input (only shown when password protection is enabled) */}
             {usePasswordDraft && (
               <div className="space-y-2">
-                <div className="flex items-center gap-3">
-                  <label className="text-sm font-medium text-muted-foreground shrink-0 w-20">
+                <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3">
+                  <label className="text-sm font-medium text-muted-foreground shrink-0 w-full sm:w-20">
                     {t('settings.pprofPassword')}
                   </label>
                   <div className="flex-1 max-w-md relative">
