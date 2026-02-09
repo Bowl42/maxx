@@ -527,6 +527,12 @@ function RequestStatusBadge({
           label: t('requests.status.rejected'),
           icon: <Ban size={10} className="mr-1 flex-shrink-0" />,
         };
+      default:
+        return {
+          variant: 'default' as const,
+          label: status || 'Unknown',
+          icon: null,
+        };
     }
   };
 

@@ -142,12 +142,12 @@ function StatCard({
   return (
     <Card className="border-border/50 bg-card/50 backdrop-blur-sm">
       <CardContent className="p-4">
-        <div className="flex items-start justify-between">
-          <div className="space-y-1">
-            <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+        <div className="flex items-start justify-between gap-2">
+          <div className="space-y-1 min-w-0">
+            <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider truncate">
               {title}
             </p>
-            <p className="text-2xl font-bold text-foreground font-mono tracking-tight">{value}</p>
+            <p className="text-2xl font-bold text-foreground font-mono tracking-tight truncate">{value}</p>
             <div className="flex items-center gap-2">
               {subtitle && <span className="text-xs text-muted-foreground">{subtitle}</span>}
               {trend !== undefined && <TrendIndicator value={trend} />}
@@ -155,7 +155,7 @@ function StatCard({
           </div>
           <div
             className={cn(
-              'w-10 h-10 rounded-xl bg-muted flex items-center justify-center box-border border-2 border-transparent transition-shadow duration-300',
+              'w-10 h-10 rounded-xl bg-muted flex items-center justify-center box-border border-2 border-transparent transition-shadow duration-300 shrink-0',
               showBadge && 'animate-pulse-soft',
               iconClassName,
             )}
