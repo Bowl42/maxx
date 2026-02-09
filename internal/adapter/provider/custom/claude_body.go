@@ -362,6 +362,10 @@ func checkSystemInstructionsWithMode(body []byte, strictMode bool) []byte {
 		return body
 	}
 
+	if system.Type == gjson.String && strings.TrimSpace(system.String()) != "" {
+		existingBlock := `{"type":"text","text":` + system.Raw + `}`
+		claudeCodeInstructions, _ = sjson.SetRaw(claudeCodeInstructions, "-1", existingBlock)
+	}
 	body, _ = sjson.SetRawBytes(body, "system", []byte(claudeCodeInstructions))
 	return body
 }

@@ -730,7 +730,7 @@ func resolveCodexUserAgent(clientReq *http.Request) string {
 
 func isCodexCLIUserAgent(userAgent string) bool {
 	ua := strings.ToLower(strings.TrimSpace(userAgent))
-	return strings.HasPrefix(ua, "codex_cli_rs/") || strings.HasPrefix(ua, "codex-cli")
+	return strings.HasPrefix(ua, "codex_cli_rs/") || strings.HasPrefix(ua, "codex-cli/")
 }
 
 var codexFilteredHeaders = map[string]bool{

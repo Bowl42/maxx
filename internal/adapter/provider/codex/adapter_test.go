@@ -41,7 +41,7 @@ func TestApplyCodexHeadersFiltersSensitiveAndPreservesUA(t *testing.T) {
 	a := &CodexAdapter{}
 	upstreamReq, _ := http.NewRequest("POST", "https://chatgpt.com/backend-api/codex/responses", nil)
 	clientReq, _ := http.NewRequest("POST", "http://localhost/responses", nil)
-	clientReq.Header.Set("User-Agent", "codex-cli-custom/1.2.3")
+	clientReq.Header.Set("User-Agent", "codex-cli/1.2.3")
 	clientReq.Header.Set("X-Forwarded-For", "1.2.3.4")
 	clientReq.Header.Set("Traceparent", "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-00")
 	clientReq.Header.Set("X-Request-Id", "rid-1")
@@ -58,7 +58,7 @@ func TestApplyCodexHeadersFiltersSensitiveAndPreservesUA(t *testing.T) {
 	if got := upstreamReq.Header.Get("X-Request-Id"); got != "" {
 		t.Fatalf("expected X-Request-Id filtered, got %q", got)
 	}
-	if got := upstreamReq.Header.Get("User-Agent"); got != "codex-cli-custom/1.2.3" {
+	if got := upstreamReq.Header.Get("User-Agent"); got != "codex-cli/1.2.3" {
 		t.Fatalf("expected User-Agent passthrough, got %q", got)
 	}
 	if got := upstreamReq.Header.Get("X-Custom"); got != "ok" {
@@ -92,5 +92,16 @@ func TestApplyCodexHeadersUsesDefaultUAForNonCLI(t *testing.T) {
 	}
 	if got := upstreamReq.Header.Get("X-Custom"); got != "ok" {
 		t.Fatalf("expected X-Custom passthrough, got %q", got)
+	}
+}
+
+func TestApplyCodexHeadersUsesDefaultUAWhenClientReqNil(t *testing.T) {
+	a := &CodexAdapter{}
+	upstreamReq, _ := http.NewRequest("POST", "https://chatgpt.com/backend-api/codex/responses", nil)
+
+	a.applyCodexHeaders(upstreamReq, nil, "token-1", "acct-1", true, "")
+
+	if got := upstreamReq.Header.Get("User-Agent"); got != CodexUserAgent {
+		t.Fatalf("expected default Codex User-Agent when client request is nil, got %q", got)
 	}
 }

@@ -411,3 +411,20 @@ func TestEnsureMinThinkingBudget(t *testing.T) {
 		t.Fatalf("disabled thinking budget_tokens = %d, want 100 (unchanged)", got)
 	}
 }
+
+func TestCloakingPreservesSystemStringInNonStrictMode(t *testing.T) {
+	body := []byte(`{
+		"model":"claude-3-5-sonnet",
+		"system":"Keep this instruction",
+		"messages":[{"role":"user","content":"hello"}]
+	}`)
+	cfg := &domain.ProviderConfigCustomCloak{Mode: "always", StrictMode: false}
+
+	result := applyCloaking(body, "curl/7.68.0", "claude-3-5-sonnet", cfg)
+	if got := gjson.GetBytes(result, "system.0.text").String(); got != claudeCodeSystemPrompt {
+		t.Fatalf("expected Claude Code prompt prepended, got %q", got)
+	}
+	if got := gjson.GetBytes(result, "system.1.text").String(); got != "Keep this instruction" {
+		t.Fatalf("expected original system string preserved, got %q", got)
+	}
+}
