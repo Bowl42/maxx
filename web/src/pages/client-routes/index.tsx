@@ -161,9 +161,10 @@ export function ClientRoutesPage() {
               </div>
 
               {/* Sort Buttons - Only show when viewing Global routes */}
-              {selectedProjectId === '0' && (hasAntigravityRoutes || hasCodexRoutes) && (
+              {selectedProjectId === '0' && (
                 <div className="flex items-center gap-2">
-                  {hasAntigravityRoutes && (
+                  {/* Only show Antigravity sort button for antigravity client type */}
+                  {hasAntigravityRoutes && activeClientType === 'antigravity' && (
                     <Button
                       variant="outline"
                       size="sm"
@@ -176,7 +177,8 @@ export function ClientRoutesPage() {
                       {isSorting && <ArrowUpDown className="h-3.5 w-3.5 ml-1.5 animate-pulse" />}
                     </Button>
                   )}
-                  {hasCodexRoutes && (
+                  {/* Only show Codex sort button for codex client type */}
+                  {hasCodexRoutes && activeClientType === 'codex' && (
                     <Button
                       variant="outline"
                       size="sm"
