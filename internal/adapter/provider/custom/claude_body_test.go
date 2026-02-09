@@ -121,18 +121,24 @@ func TestShouldCloakModes(t *testing.T) {
 	if shouldCloak("never", "curl/7.68.0") {
 		t.Error("never mode should cloak none")
 	}
+	if !shouldCloak("", "claude-cli/dev") {
+		t.Error("default mode should cloak non-official claude-cli UA")
+	}
+	if shouldCloak("", "Claude-CLI/2.1.17 (external, cli)") {
+		t.Error("default mode should not cloak case-insensitive official claude-cli UA")
+	}
 }
 
-func TestSkipSystemInjectionForHaiku(t *testing.T) {
+func TestSystemInjectionForHaikuWhenCloaked(t *testing.T) {
 	body := []byte(`{"model":"claude-3-5-haiku-20241022","messages":[{"role":"user","content":"hello"}]}`)
 
 	result := applyCloaking(body, "curl/7.68.0", "claude-3-5-haiku-20241022", nil)
 
-	if gjson.GetBytes(result, "system").Exists() {
-		t.Error("system prompt should be skipped for claude-3-5-haiku models")
+	if !gjson.GetBytes(result, "system").Exists() {
+		t.Error("system prompt should be injected for cloaked haiku requests")
 	}
 	if !gjson.GetBytes(result, "metadata.user_id").Exists() {
-		t.Error("user_id should still be injected for haiku models")
+		t.Error("user_id should be injected for haiku models")
 	}
 }
 
@@ -367,7 +373,7 @@ func TestNoDuplicateSystemPromptInjection(t *testing.T) {
 	body := []byte(`{
 		"model":"claude-3-5-sonnet",
 		"messages":[{"role":"user","content":"hello"}],
-		"system":[{"type":"text","text":"You are Claude Code, Anthropic's official CLI for Claude."},{"type":"text","text":"Additional instructions"}]
+		"system":[{"type":"text","text":"Additional instructions"},{"type":"text","text":"You are Claude Code, Anthropic's official CLI for Claude."}]
 	}`)
 
 	result := injectClaudeCodeSystemPrompt(body)
@@ -403,5 +409,22 @@ func TestEnsureMinThinkingBudget(t *testing.T) {
 	updated = ensureMinThinkingBudget(body)
 	if got := gjson.GetBytes(updated, "thinking.budget_tokens").Int(); got != 100 {
 		t.Fatalf("disabled thinking budget_tokens = %d, want 100 (unchanged)", got)
+	}
+}
+
+func TestCloakingPreservesSystemStringInNonStrictMode(t *testing.T) {
+	body := []byte(`{
+		"model":"claude-3-5-sonnet",
+		"system":"Keep this instruction",
+		"messages":[{"role":"user","content":"hello"}]
+	}`)
+	cfg := &domain.ProviderConfigCustomCloak{Mode: "always", StrictMode: false}
+
+	result := applyCloaking(body, "curl/7.68.0", "claude-3-5-sonnet", cfg)
+	if got := gjson.GetBytes(result, "system.0.text").String(); got != claudeCodeSystemPrompt {
+		t.Fatalf("expected Claude Code prompt prepended, got %q", got)
+	}
+	if got := gjson.GetBytes(result, "system.1.text").String(); got != "Keep this instruction" {
+		t.Fatalf("expected original system string preserved, got %q", got)
 	}
 }

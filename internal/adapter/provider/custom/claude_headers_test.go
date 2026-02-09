@@ -2,8 +2,11 @@ package custom
 
 import (
 	"net/http"
+	"regexp"
 	"strings"
 	"testing"
+
+	"github.com/tidwall/gjson"
 )
 
 func TestApplyClaudeHeadersAccept(t *testing.T) {
@@ -93,5 +96,67 @@ func TestApplyClaudeHeadersDefaults(t *testing.T) {
 	}
 	if req.Header.Get("X-Stainless-Runtime") == "" {
 		t.Error("X-Stainless-Runtime should be set")
+	}
+}
+
+func TestApplyClaudeHeadersUserAgentPassthroughOnlyForCLI(t *testing.T) {
+	cliReq, _ := http.NewRequest("POST", "https://api.anthropic.com/v1/messages", nil)
+	cliClientReq, _ := http.NewRequest("POST", "https://example.com", nil)
+	cliClientReq.Header.Set("User-Agent", "claude-cli/2.1.23 (external, cli)")
+
+	applyClaudeHeaders(cliReq, cliClientReq, "sk-test", true, nil, true)
+	if got := cliReq.Header.Get("User-Agent"); got != "claude-cli/2.1.23 (external, cli)" {
+		t.Fatalf("expected CLI User-Agent passthrough, got %q", got)
+	}
+
+	nonCLIReq, _ := http.NewRequest("POST", "https://api.anthropic.com/v1/messages", nil)
+	nonCLIClientReq, _ := http.NewRequest("POST", "https://example.com", nil)
+	nonCLIClientReq.Header.Set("User-Agent", "Mozilla/5.0")
+
+	applyClaudeHeaders(nonCLIReq, nonCLIClientReq, "sk-test", true, nil, true)
+	if got := nonCLIReq.Header.Get("User-Agent"); got != defaultClaudeUserAgent {
+		t.Fatalf("expected default User-Agent for non-CLI client, got %q", got)
+	}
+
+	nonOfficialReq, _ := http.NewRequest("POST", "https://api.anthropic.com/v1/messages", nil)
+	nonOfficialClientReq, _ := http.NewRequest("POST", "https://example.com", nil)
+	nonOfficialClientReq.Header.Set("User-Agent", "claude-cli/dev")
+
+	applyClaudeHeaders(nonOfficialReq, nonOfficialClientReq, "sk-test", true, nil, true)
+	if got := nonOfficialReq.Header.Get("User-Agent"); got != defaultClaudeUserAgent {
+		t.Fatalf("expected default User-Agent for non-official CLI UA, got %q", got)
+	}
+}
+
+func TestCloakingBuildsSub2apiCompatibleClaudeShape(t *testing.T) {
+	clientReq, _ := http.NewRequest("POST", "https://example.com/v1/messages", nil)
+	clientReq.Header.Set("User-Agent", "curl/8.0.0")
+
+	body := []byte(`{"model":"claude-sonnet-4-5","messages":[{"role":"user","content":"hello"}]}`)
+	processedBody, extraBetas := processClaudeRequestBody(body, clientReq.Header.Get("User-Agent"), nil)
+
+	upstreamReq, _ := http.NewRequest("POST", "https://api.anthropic.com/v1/messages", nil)
+	applyClaudeHeaders(upstreamReq, clientReq, "sk-test", true, extraBetas, true)
+
+	uaPattern := regexp.MustCompile(`(?i)^claude-cli/\d+\.\d+\.\d+`)
+	if got := upstreamReq.Header.Get("User-Agent"); !uaPattern.MatchString(got) {
+		t.Fatalf("expected sub2api-compatible User-Agent, got %q", got)
+	}
+
+	for _, key := range []string{"X-App", "Anthropic-Beta", "Anthropic-Version"} {
+		if strings.TrimSpace(upstreamReq.Header.Get(key)) == "" {
+			t.Fatalf("expected %s to be set", key)
+		}
+	}
+
+	userID := gjson.GetBytes(processedBody, "metadata.user_id").String()
+	userIDPattern := regexp.MustCompile(`^user_[a-fA-F0-9]{64}_account__session_[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$`)
+	if !userIDPattern.MatchString(userID) {
+		t.Fatalf("expected sub2api-compatible metadata.user_id, got %q", userID)
+	}
+
+	systemText := gjson.GetBytes(processedBody, "system.0.text").String()
+	if !strings.Contains(systemText, "Claude Code, Anthropic's official CLI for Claude") {
+		t.Fatalf("expected cloaked system prompt, got %q", systemText)
 	}
 }

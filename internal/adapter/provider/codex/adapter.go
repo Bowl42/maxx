@@ -699,7 +699,7 @@ func (a *CodexAdapter) applyCodexHeaders(upstreamReq, clientReq *http.Request, a
 	} else {
 		ensureHeader(upstreamReq.Header, clientReq, "Session_id", uuid.NewString())
 	}
-	ensureHeader(upstreamReq.Header, clientReq, "User-Agent", CodexUserAgent)
+	upstreamReq.Header.Set("User-Agent", resolveCodexUserAgent(clientReq))
 	if hasAccessToken {
 		ensureHeader(upstreamReq.Header, clientReq, "Originator", CodexOriginator)
 	}
@@ -719,6 +719,20 @@ func ensureHeader(dst http.Header, clientReq *http.Request, key, defaultValue st
 	dst.Set(key, defaultValue)
 }
 
+func resolveCodexUserAgent(clientReq *http.Request) string {
+	if clientReq != nil {
+		if ua := strings.TrimSpace(clientReq.Header.Get("User-Agent")); isCodexCLIUserAgent(ua) {
+			return ua
+		}
+	}
+	return CodexUserAgent
+}
+
+func isCodexCLIUserAgent(userAgent string) bool {
+	ua := strings.ToLower(strings.TrimSpace(userAgent))
+	return strings.HasPrefix(ua, "codex_cli_rs/") || strings.HasPrefix(ua, "codex-cli/")
+}
+
 var codexFilteredHeaders = map[string]bool{
 	// Hop-by-hop headers
 	"connection":        true,
@@ -729,6 +743,9 @@ var codexFilteredHeaders = map[string]bool{
 	// Headers set by HTTP client
 	"host":           true,
 	"content-length": true,
+
+	// Explicitly controlled headers
+	"user-agent": true,
 
 	// Proxy/forwarding headers (privacy protection)
 	"x-forwarded-for":    true,

@@ -25,6 +25,10 @@ const claudeToolPrefix = "proxy_"
 // userIDPattern matches Claude Code format: user_[64-hex]_account__session_[uuid-v4]
 var userIDPattern = regexp.MustCompile(`^user_[a-fA-F0-9]{64}_account__session_[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$`)
 
+// claudeCLIUserAgentPattern matches official Claude CLI user agent pattern.
+// Aligns with sub2api/claude-relay-service detection: claude-cli/x.y.z
+var claudeCLIUserAgentPattern = regexp.MustCompile(`(?i)^claude-cli/\d+\.\d+\.\d+`)
+
 // processClaudeRequestBody processes Claude request body before sending to upstream.
 // Following CLIProxyAPI order:
 // 1. applyCloaking (system prompt injection, fake user_id, sensitive word obfuscation)
@@ -74,10 +78,9 @@ func applyCloaking(body []byte, clientUserAgent string, model string, cloakCfg *
 		return body
 	}
 
-	// Skip system instructions for claude-3-5-haiku models (CLIProxyAPI behavior)
-	if !strings.HasPrefix(model, "claude-3-5-haiku") {
-		body = checkSystemInstructionsWithMode(body, strictMode)
-	}
+	// Always ensure Claude Code system prompt for cloaked requests.
+	// This keeps messages-path requests compatible with strict Claude client validators.
+	body = checkSystemInstructionsWithMode(body, strictMode)
 
 	// Inject fake user_id
 	body = injectFakeUserID(body)
@@ -93,7 +96,7 @@ func applyCloaking(body []byte, clientUserAgent string, model string, cloakCfg *
 
 // isClaudeCodeClient checks if the User-Agent indicates a Claude Code client.
 func isClaudeCodeClient(userAgent string) bool {
-	return strings.HasPrefix(userAgent, "claude-cli")
+	return claudeCLIUserAgentPattern.MatchString(strings.TrimSpace(userAgent))
 }
 
 func isClaudeOAuthToken(apiKey string) bool {
@@ -273,7 +276,7 @@ func shouldCloak(cloakMode string, userAgent string) bool {
 	case "never":
 		return false
 	default: // "auto" or empty
-		return !strings.HasPrefix(userAgent, "claude-cli")
+		return !isClaudeCodeClient(userAgent)
 	}
 }
 
@@ -336,7 +339,10 @@ func extractAndRemoveBetas(body []byte) ([]string, []byte) {
 // In strict mode, it replaces all user system messages.
 // In non-strict mode (default), it prepends to existing system messages.
 func checkSystemInstructionsWithMode(body []byte, strictMode bool) []byte {
-	system := gjson.GetBytes(body, "system")
+	if hasClaudeCodeSystemPrompt(body) {
+		return body
+	}
+
 	claudeCodeInstructions := `[{"type":"text","text":"` + claudeCodeSystemPrompt + `"}]`
 
 	if strictMode {
@@ -344,20 +350,57 @@ func checkSystemInstructionsWithMode(body []byte, strictMode bool) []byte {
 		return body
 	}
 
+	system := gjson.GetBytes(body, "system")
 	if system.IsArray() {
-		if gjson.GetBytes(body, "system.0.text").String() != claudeCodeSystemPrompt {
-			system.ForEach(func(_, part gjson.Result) bool {
-				if part.Get("type").String() == "text" {
-					claudeCodeInstructions, _ = sjson.SetRaw(claudeCodeInstructions, "-1", part.Raw)
-				}
-				return true
-			})
-			body, _ = sjson.SetRawBytes(body, "system", []byte(claudeCodeInstructions))
-		}
-	} else {
+		system.ForEach(func(_, part gjson.Result) bool {
+			if part.Get("type").String() == "text" {
+				claudeCodeInstructions, _ = sjson.SetRaw(claudeCodeInstructions, "-1", part.Raw)
+			}
+			return true
+		})
 		body, _ = sjson.SetRawBytes(body, "system", []byte(claudeCodeInstructions))
+		return body
 	}
+
+	if system.Type == gjson.String && strings.TrimSpace(system.String()) != "" {
+		existingBlock := `{"type":"text","text":` + system.Raw + `}`
+		claudeCodeInstructions, _ = sjson.SetRaw(claudeCodeInstructions, "-1", existingBlock)
+	}
+	body, _ = sjson.SetRawBytes(body, "system", []byte(claudeCodeInstructions))
 	return body
+}
+
+func hasClaudeCodeSystemPrompt(body []byte) bool {
+	system := gjson.GetBytes(body, "system")
+	if !system.Exists() {
+		return false
+	}
+
+	if system.IsArray() {
+		found := false
+		system.ForEach(func(_, part gjson.Result) bool {
+			if strings.TrimSpace(part.Get("text").String()) == claudeCodeSystemPrompt {
+				found = true
+				return false
+			}
+			if part.Type == gjson.String && strings.TrimSpace(part.String()) == claudeCodeSystemPrompt {
+				found = true
+				return false
+			}
+			return true
+		})
+		return found
+	}
+
+	if system.Type == gjson.String {
+		return strings.TrimSpace(system.String()) == claudeCodeSystemPrompt
+	}
+
+	if system.IsObject() {
+		return strings.TrimSpace(system.Get("text").String()) == claudeCodeSystemPrompt
+	}
+
+	return false
 }
 
 // ===== Sensitive word obfuscation (CLIProxyAPI-aligned) =====
