@@ -235,6 +235,73 @@
   --sidebar-accent-foreground: oklch(0.62 0.22 264); /* Active state uses primary color */
   --sidebar-border: oklch(0.32 0.01 264);
   --sidebar-ring: oklch(0.62 0.22 264);
+}
+
+/* Hermès Theme Dark Mode - Warm dark mode with iconic orange */
+.dark.theme-hermes {
+  --background: oklch(0.18 0.02 50);
+  --foreground: oklch(0.95 0.01 55);
+  --card: oklch(0.22 0.02 50);
+  --card-foreground: oklch(0.95 0.01 55);
+  --popover: oklch(0.22 0.02 50);
+  --popover-foreground: oklch(0.95 0.01 55);
+  --primary: oklch(0.72 0.16 50);
+  --primary-foreground: oklch(0.18 0.02 50);
+  --secondary: oklch(0.32 0.03 55);
+  --secondary-foreground: oklch(0.95 0.01 55);
+  --muted: oklch(0.28 0.025 52);
+  --muted-foreground: oklch(0.7 0.03 50);
+  --accent: oklch(0.78 0.15 80);
+  --accent-foreground: oklch(0.2 0.02 50);
+  --destructive: oklch(0.65 0.24 25);
+  --destructive-foreground: oklch(1 0 0);
+  --border: oklch(0.35 0.025 52);
+  --input: oklch(0.35 0.025 52);
+  --ring: oklch(0.72 0.16 50);
+
+  /* Sidebar - Dark Hermès */
+  --sidebar: oklch(0.2 0.02 50);
+  --sidebar-foreground: oklch(0.95 0.01 55);
+  --sidebar-primary: oklch(0.72 0.16 50);
+  --sidebar-primary-foreground: oklch(0.18 0.02 50);
+  --sidebar-accent: oklch(0.32 0.03 55);
+  --sidebar-accent-foreground: oklch(0.72 0.16 50);
+  --sidebar-border: oklch(0.35 0.025 52);
+  --sidebar-ring: oklch(0.72 0.16 50);
+}
+
+/* Tiffany Theme Dark Mode - Elegant dark mode with robin's egg blue */
+.dark.theme-tiffany {
+  --background: oklch(0.18 0.008 200);
+  --foreground: oklch(0.95 0.005 205);
+  --card: oklch(0.22 0.008 200);
+  --card-foreground: oklch(0.95 0.005 205);
+  --popover: oklch(0.22 0.008 200);
+  --popover-foreground: oklch(0.95 0.005 205);
+  --primary: oklch(0.72 0.12 192);
+  --primary-foreground: oklch(0.18 0.008 200);
+  --secondary: oklch(0.32 0.01 205);
+  --secondary-foreground: oklch(0.95 0.005 205);
+  --muted: oklch(0.28 0.012 202);
+  --muted-foreground: oklch(0.7 0.02 195);
+  --accent: oklch(0.78 0.14 188);
+  --accent-foreground: oklch(0.2 0.008 200);
+  --destructive: oklch(0.65 0.24 25);
+  --destructive-foreground: oklch(1 0 0);
+  --border: oklch(0.35 0.015 205);
+  --input: oklch(0.35 0.015 205);
+  --ring: oklch(0.72 0.12 192);
+
+  /* Sidebar - Dark Tiffany */
+  --sidebar: oklch(0.2 0.008 200);
+  --sidebar-foreground: oklch(0.95 0.005 205);
+  --sidebar-primary: oklch(0.72 0.12 192);
+  --sidebar-primary-foreground: oklch(0.18 0.008 200);
+  --sidebar-accent: oklch(0.32 0.01 205);
+  --sidebar-accent-foreground: oklch(0.72 0.12 192);
+  --sidebar-border: oklch(0.35 0.015 205);
+  --sidebar-ring: oklch(0.72 0.12 192);
+}
 
   /* Fonts */
   --font-sans:

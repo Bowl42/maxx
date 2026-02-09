@@ -18,36 +18,47 @@ func NewAntigravityQuotaRepository(d *DB) *AntigravityQuotaRepository {
 func (r *AntigravityQuotaRepository) Upsert(quota *domain.AntigravityQuota) error {
 	now := time.Now()
 
-	// Try to update first
-	result := r.db.gorm.Model(&AntigravityQuota{}).
-		Where("email = ? AND deleted_at = 0", quota.Email).
-		Updates(map[string]any{
-			"updated_at":        toTimestamp(now),
-			"name":              quota.Name,
-			"picture":           quota.Picture,
-			"gcp_project_id":    quota.GCPProjectID,
-			"subscription_tier": quota.SubscriptionTier,
-			"is_forbidden":      quota.IsForbidden,
-			"models":            toJSON(quota.Models),
-		})
+	// Use FirstOrCreate to handle both insert and update properly
+	// This ensures all fields including zeros are saved correctly
+	model := &AntigravityQuota{
+		Email:            quota.Email,
+		Name:             quota.Name,
+		Picture:          LongText(quota.Picture),
+		GCPProjectID:     quota.GCPProjectID,
+		SubscriptionTier: quota.SubscriptionTier,
+		IsForbidden:      boolToInt(quota.IsForbidden),
+		Models:           LongText(toJSON(quota.Models)),
+		CreatedAt:        toTimestamp(now),
+		UpdatedAt:        toTimestamp(now),
+		DeletedAt:        0,
+	}
 
+	// FirstOrCreate with proper conflict handling
+	result := r.db.gorm.FirstOrCreate(model, &AntigravityQuota{Email: quota.Email})
 	if result.Error != nil {
 		return result.Error
 	}
 
-	// If no rows updated, insert new record
+	// If record already existed, update all fields explicitly (including zeros)
 	if result.RowsAffected == 0 {
-		model := r.toModel(quota)
-		model.CreatedAt = toTimestamp(now)
-		model.UpdatedAt = toTimestamp(now)
-		model.DeletedAt = 0
-
-		if err := r.db.gorm.Create(model).Error; err != nil {
+		updates := map[string]any{
+			"updated_at":        toTimestamp(now),
+			"name":              quota.Name,
+			"picture":           LongText(quota.Picture),
+			"gcp_project_id":    quota.GCPProjectID,
+			"subscription_tier": quota.SubscriptionTier,
+			"is_forbidden":      boolToInt(quota.IsForbidden),
+			"models":            LongText(toJSON(quota.Models)),
+		}
+		if err := r.db.gorm.Model(&AntigravityQuota{}).
+			Where("email = ? AND deleted_at = 0", quota.Email).
+			Updates(updates).Error; err != nil {
 			return err
 		}
-		quota.ID = model.ID
-		quota.CreatedAt = now
 	}
+
+	quota.ID = model.ID
+	quota.CreatedAt = fromTimestamp(model.CreatedAt)
 	quota.UpdatedAt = now
 
 	return nil
