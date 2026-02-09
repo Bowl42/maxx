@@ -34,7 +34,8 @@ func (r *AntigravityQuotaRepository) Upsert(quota *domain.AntigravityQuota) erro
 	}
 
 	// FirstOrCreate with proper conflict handling
-	result := r.db.gorm.FirstOrCreate(model, &AntigravityQuota{Email: quota.Email})
+	// Include deleted_at = 0 filter to exclude soft-deleted records
+	result := r.db.gorm.Where("deleted_at = 0").FirstOrCreate(model, &AntigravityQuota{Email: quota.Email})
 	if result.Error != nil {
 		return result.Error
 	}
