@@ -56,7 +56,7 @@ export function OverviewTab({ project }: OverviewTabProps) {
           <CardTitle className="text-base">{t('projects.information')}</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-2">
               <label htmlFor="name" className="text-sm font-medium text-text-primary">
                 {t('projects.name')}
@@ -83,7 +83,7 @@ export function OverviewTab({ project }: OverviewTabProps) {
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-4 text-sm">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
             <div>
               <span className="text-text-secondary">{t('projects.created')}</span>{' '}
               <span className="text-text-primary">
@@ -121,8 +121,8 @@ export function OverviewTab({ project }: OverviewTabProps) {
         <CardContent className="space-y-4">
           <p className="text-sm text-text-secondary">{t('projects.proxyConfigDesc')}</p>
 
-          <div className="flex items-center gap-3">
-            <span className="text-sm font-medium text-text-primary w-20">
+          <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+            <span className="text-sm font-medium text-text-primary w-full sm:w-20">
               {t('projects.baseUrl')}
             </span>
             <code className="flex-1 text-xs bg-surface-secondary px-3 py-2 rounded border border-border text-text-primary font-mono">

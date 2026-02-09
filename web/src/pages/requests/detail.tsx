@@ -17,6 +17,7 @@ import {
   useSettings,
   requestKeys,
 } from '@/hooks/queries';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui';
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from '@/components/ui/resizable';
 import { RequestHeader } from './detail/RequestHeader';
 import { RequestSidebar } from './detail/RequestSidebar';
@@ -26,12 +27,27 @@ import { cn } from '@/lib/utils';
 // Selection type: either the main request or an attempt
 type SelectionType = { type: 'request' } | { type: 'attempt'; attemptId: number };
 
+const NARROW_BREAKPOINT = 1024;
+
+function useIsNarrow() {
+  const [isNarrow, setIsNarrow] = useState(false);
+  useEffect(() => {
+    const mql = window.matchMedia(`(max-width: ${NARROW_BREAKPOINT - 1}px)`);
+    const onChange = () => setIsNarrow(window.innerWidth < NARROW_BREAKPOINT);
+    mql.addEventListener('change', onChange);
+    onChange();
+    return () => mql.removeEventListener('change', onChange);
+  }, []);
+  return isNarrow;
+}
+
 export function RequestDetailPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { t } = useTranslation();
   const { transport } = useTransport();
   const queryClient = useQueryClient();
+  const isNarrow = useIsNarrow();
   const { data: request, isLoading, error } = useProxyRequest(Number(id));
   const { data: attempts } = useProxyUpstreamAttempts(Number(id));
   const { data: providers } = useProviders();
@@ -47,6 +63,7 @@ export function RequestDetailPage() {
   const [activeTab, setActiveTab] = useState<'request' | 'response' | 'metadata'>('request');
   const [selectedProjectId, setSelectedProjectId] = useState<number>(0);
   const [bindSuccess, setBindSuccess] = useState(false);
+  const [mobileTab, setMobileTab] = useState<'attempts' | 'detail'>('attempts');
 
   // Check if force project binding is enabled
   const forceProjectBinding = settings?.force_project_binding === 'true';
@@ -70,6 +87,13 @@ export function RequestDetailPage() {
   const handleRecalculateCost = useCallback(() => {
     recalculateMutation.mutate();
   }, [recalculateMutation]);
+
+  const handleSelectionChange = useCallback((sel: SelectionType) => {
+    setSelection(sel);
+    if (isNarrow) {
+      setMobileTab('detail');
+    }
+  }, [isNarrow]);
 
   // Handle project binding - directly bind when project is selected
   const handleBindProject = useCallback(
@@ -187,7 +211,7 @@ export function RequestDetailPage() {
 
       {/* Error Banner */}
       {request.error && (
-        <div className="shrink-0 bg-red-400/10 border-b border-red-400/20 px-6 py-3 flex items-start gap-3">
+        <div className="shrink-0 bg-red-400/10 border-b border-red-400/20 px-4 md:px-6 py-3 flex items-start gap-3">
           <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-red-400" />
           <div className="flex-1">
             <h4 className="text-sm font-medium text-red-400 mb-1">{t('requests.requestFailed')}</h4>
@@ -200,7 +224,7 @@ export function RequestDetailPage() {
 
       {/* Project Binding Banner */}
       {needsProjectBinding && projects && projects.length > 0 && (
-        <div className="shrink-0 bg-amber-500/10 border-b border-amber-500/20 px-6 py-4">
+        <div className="shrink-0 bg-amber-500/10 border-b border-amber-500/20 px-4 md:px-6 py-4">
           <div className="flex items-center gap-4">
             <div className="flex items-center gap-2 text-amber-400">
               <FolderOpen className="h-5 w-5" />
@@ -243,40 +267,68 @@ export function RequestDetailPage() {
         </div>
       )}
 
-      {/* Main Content - Resizable Split View */}
+      {/* Main Content */}
       <div className="flex-1 overflow-hidden">
-        <ResizablePanelGroup direction="horizontal" id="request-detail-layout">
-          {/* Left Panel: Sidebar */}
-          <ResizablePanel defaultSize={20} minSize={20} maxSize={50}>
-            <RequestSidebar
-              request={request}
-              attempts={attempts}
-              selection={selection}
-              onSelectionChange={setSelection}
-              providerMap={providerMap}
-              projectMap={projectMap}
-              routeMap={routeMap}
-            />
-          </ResizablePanel>
-
-          {/* Resizable Handle */}
-          <ResizableHandle withHandle />
-
-          {/* Right Panel: Detail View */}
-          <ResizablePanel defaultSize={80} minSize={50}>
-            <RequestDetailPanel
-              request={request}
-              selection={selection}
-              attempts={attempts}
-              activeTab={activeTab}
-              setActiveTab={setActiveTab}
-              providerMap={providerMap}
-              projectMap={projectMap}
-              sessionMap={sessionMap}
-              tokenMap={tokenMap}
-            />
-          </ResizablePanel>
-        </ResizablePanelGroup>
+        {isNarrow ? (
+          <Tabs value={mobileTab} onValueChange={(v) => setMobileTab(v as 'attempts' | 'detail')} className="flex flex-col h-full">
+            <TabsList className="shrink-0 mx-4 mt-2">
+              <TabsTrigger value="attempts">{t('requests.tabs.attempts', 'Attempts')}</TabsTrigger>
+              <TabsTrigger value="detail">{t('requests.tabs.detail', 'Detail')}</TabsTrigger>
+            </TabsList>
+            <TabsContent value="attempts" className="flex-1 overflow-hidden mt-0">
+              <RequestSidebar
+                request={request}
+                attempts={attempts}
+                selection={selection}
+                onSelectionChange={handleSelectionChange}
+                providerMap={providerMap}
+                projectMap={projectMap}
+                routeMap={routeMap}
+              />
+            </TabsContent>
+            <TabsContent value="detail" className="flex-1 overflow-hidden mt-0">
+              <RequestDetailPanel
+                request={request}
+                selection={selection}
+                attempts={attempts}
+                activeTab={activeTab}
+                setActiveTab={setActiveTab}
+                providerMap={providerMap}
+                projectMap={projectMap}
+                sessionMap={sessionMap}
+                tokenMap={tokenMap}
+              />
+            </TabsContent>
+          </Tabs>
+        ) : (
+          <ResizablePanelGroup direction="horizontal" id="request-detail-layout">
+            <ResizablePanel defaultSize={20} minSize={20} maxSize={50}>
+              <RequestSidebar
+                request={request}
+                attempts={attempts}
+                selection={selection}
+                onSelectionChange={handleSelectionChange}
+                providerMap={providerMap}
+                projectMap={projectMap}
+                routeMap={routeMap}
+              />
+            </ResizablePanel>
+            <ResizableHandle withHandle />
+            <ResizablePanel defaultSize={80} minSize={50}>
+              <RequestDetailPanel
+                request={request}
+                selection={selection}
+                attempts={attempts}
+                activeTab={activeTab}
+                setActiveTab={setActiveTab}
+                providerMap={providerMap}
+                projectMap={projectMap}
+                sessionMap={sessionMap}
+                tokenMap={tokenMap}
+              />
+            </ResizablePanel>
+          </ResizablePanelGroup>
+        )}
       </div>
     </div>
   );

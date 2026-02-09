@@ -626,9 +626,9 @@ export function StatsPage() {
         </div>
       )}
 
-      <div className="flex-1 flex overflow-hidden">
+      <div className="flex-1 flex flex-col md:flex-row overflow-hidden">
         {/* 左侧筛选栏 */}
-        <div className="w-72 border-r border-border/40 flex-shrink-0">
+        <div className="md:w-72 border-b md:border-b-0 md:border-r border-border/40 flex-shrink-0 max-h-[35vh] md:max-h-none overflow-y-auto">
           <div className="h-full overflow-y-auto p-4 space-y-6">
             {/* 标题 */}
             <div className="flex items-center pb-2 border-b border-border/40">

@@ -3,6 +3,7 @@
 import { Moon, Sun, Laptop, Languages, Sparkles, Gem } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '@/components/theme-provider';
+import type { Theme } from '@/lib/theme';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import {
   DropdownMenu,
@@ -16,6 +17,8 @@ import {
   DropdownMenuSubTrigger,
   DropdownMenuSubContent,
   DropdownMenuPortal,
+  DropdownMenuRadioGroup,
+  DropdownMenuRadioItem,
 } from '@/components/ui/dropdown-menu';
 import {
   SidebarMenu,
@@ -93,33 +96,35 @@ export function NavUser() {
                 </DropdownMenuSubTrigger>
                 <DropdownMenuPortal>
                   <DropdownMenuSubContent>
-                    <DropdownMenuLabel className="text-xs text-muted-foreground">
-                      {t('settings.themeDefault')}
-                    </DropdownMenuLabel>
-                    <DropdownMenuItem onClick={() => setTheme('light')}>
-                      <Sun />
-                      <span>{t('settings.theme.light')}</span>
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => setTheme('dark')}>
-                      <Moon />
-                      <span>{t('settings.theme.dark')}</span>
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => setTheme('system')}>
-                      <Laptop />
-                      <span>{t('settings.theme.system')}</span>
-                    </DropdownMenuItem>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuLabel className="text-xs text-muted-foreground">
-                      {t('settings.themeLuxury')}
-                    </DropdownMenuLabel>
-                    <DropdownMenuItem onClick={() => setTheme('hermes')}>
-                      <Sparkles className="text-orange-500" />
-                      <span>{t('settings.theme.hermes')}</span>
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => setTheme('tiffany')}>
-                      <Gem className="text-cyan-500" />
-                      <span>{t('settings.theme.tiffany')}</span>
-                    </DropdownMenuItem>
+                    <DropdownMenuRadioGroup value={theme} onValueChange={(v) => setTheme(v as Theme)}>
+                      <DropdownMenuLabel className="text-xs text-muted-foreground">
+                        {t('settings.themeDefault')}
+                      </DropdownMenuLabel>
+                      <DropdownMenuRadioItem value="light" closeOnClick>
+                        <Sun />
+                        <span>{t('settings.theme.light')}</span>
+                      </DropdownMenuRadioItem>
+                      <DropdownMenuRadioItem value="dark" closeOnClick>
+                        <Moon />
+                        <span>{t('settings.theme.dark')}</span>
+                      </DropdownMenuRadioItem>
+                      <DropdownMenuRadioItem value="system" closeOnClick>
+                        <Laptop />
+                        <span>{t('settings.theme.system')}</span>
+                      </DropdownMenuRadioItem>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuLabel className="text-xs text-muted-foreground">
+                        {t('settings.themeLuxury')}
+                      </DropdownMenuLabel>
+                      <DropdownMenuRadioItem value="hermes" closeOnClick>
+                        <Sparkles className="text-orange-500" />
+                        <span>{t('settings.theme.hermes')}</span>
+                      </DropdownMenuRadioItem>
+                      <DropdownMenuRadioItem value="tiffany" closeOnClick>
+                        <Gem className="text-cyan-500" />
+                        <span>{t('settings.theme.tiffany')}</span>
+                      </DropdownMenuRadioItem>
+                    </DropdownMenuRadioGroup>
                   </DropdownMenuSubContent>
                 </DropdownMenuPortal>
               </DropdownMenuSub>

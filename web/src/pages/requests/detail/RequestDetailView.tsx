@@ -61,10 +61,10 @@ export function RequestDetailView({
       className="flex flex-col h-full w-full min-w-0"
     >
       {/* Detail Header */}
-      <div className="h-16 border-b border-border bg-muted/20 px-6 flex items-center justify-between shrink-0 backdrop-blur-sm sticky top-0 z-10">
-        <div className="flex items-center gap-4">
+      <div className="min-h-[56px] border-b border-border bg-muted/20 px-4 md:px-6 flex flex-col md:flex-row md:items-center justify-between shrink-0 backdrop-blur-sm sticky top-0 z-10 py-2 md:py-0 gap-2 md:gap-0">
+        <div className="flex items-center gap-4 min-w-0">
           <div
-            className="w-10 h-10 rounded-lg flex items-center justify-center shadow-sm border border-border"
+            className="w-10 h-10 rounded-lg flex items-center justify-center shadow-sm border border-border shrink-0"
             style={
               {
                 backgroundColor: `${getClientColor(request.clientType as ClientType)}15`,
@@ -73,16 +73,16 @@ export function RequestDetailView({
           >
             <ClientIcon type={request.clientType as ClientType} size={20} />
           </div>
-          <div>
-            <h3 className="text-sm font-medium text-foreground">
+          <div className="min-w-0">
+            <h3 className="text-sm font-medium text-foreground truncate">
               {t('requests.clientTypeRequest', {
                 client: getClientName(request.clientType as ClientType),
               })}
             </h3>
-            <div className="flex items-center gap-3 text-xs text-text-secondary mt-0.5">
+            <div className="flex items-center gap-3 text-xs text-text-secondary mt-0.5 flex-wrap">
               <span>{t('requests.requestId', { id: request.id })}</span>
               <span className="text-text-muted">·</span>
-              <span>{request.requestModel}</span>
+              <span className="truncate">{request.requestModel}</span>
               {request.cost > 0 && (
                 <span className="text-blue-400 font-medium">
                   {t('requests.cost')}: {formatCost(request.cost)}
@@ -109,12 +109,12 @@ export function RequestDetailView({
       {/* Detail Content */}
       <TabsContent value="request" className="flex-1 overflow-hidden flex flex-col min-w-0 mt-0">
         {request.requestInfo ? (
-          <div className="flex-1 flex flex-col overflow-hidden p-6 gap-6 animate-fade-in min-w-0">
-            <div className="flex items-center gap-3 p-3 bg-muted/30 rounded-lg border border-border shrink-0">
-              <Badge variant="info" className="font-mono text-xs">
+          <div className="flex-1 flex flex-col overflow-hidden p-4 md:p-6 gap-4 md:gap-6 animate-fade-in min-w-0">
+            <div className="flex items-center gap-2 md:gap-3 p-3 bg-muted/30 rounded-lg border border-border shrink-0 overflow-x-auto">
+              <Badge variant="info" className="font-mono text-xs shrink-0">
                 {request.requestInfo.method}
               </Badge>
-              <code className="flex-1 font-mono text-xs text-foreground break-all">
+              <code className="flex-1 font-mono text-xs text-foreground break-all min-w-0">
                 {request.requestInfo.url}
               </code>
               <CopyAsCurlButton requestInfo={request.requestInfo} />
@@ -187,7 +187,7 @@ export function RequestDetailView({
 
       <TabsContent value="response" className="flex-1 overflow-hidden flex flex-col min-w-0 mt-0">
         {request.responseInfo ? (
-          <div className="flex-1 flex flex-col overflow-hidden p-6 gap-6 animate-fade-in min-w-0">
+          <div className="flex-1 flex flex-col overflow-hidden p-4 md:p-6 gap-4 md:gap-6 animate-fade-in min-w-0">
             <div className="flex items-center gap-3 p-3 bg-muted/30 rounded-lg border border-border shrink-0">
               <div
                 className={cn(
@@ -269,7 +269,7 @@ export function RequestDetailView({
         )}
       </TabsContent>
 
-      <TabsContent value="metadata" className="flex-1 overflow-y-auto p-6 mt-0">
+      <TabsContent value="metadata" className="flex-1 overflow-y-auto p-4 md:p-6 mt-0">
         <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
           <Card className="bg-card border-border">
             <CardHeader className="pb-2 border-b border-border/50">
