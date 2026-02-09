@@ -17,7 +17,6 @@ import {
   useSettings,
   requestKeys,
 } from '@/hooks/queries';
-import { useIsMobile } from '@/hooks/use-mobile';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui';
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from '@/components/ui/resizable';
 import { RequestHeader } from './detail/RequestHeader';
@@ -28,13 +27,27 @@ import { cn } from '@/lib/utils';
 // Selection type: either the main request or an attempt
 type SelectionType = { type: 'request' } | { type: 'attempt'; attemptId: number };
 
+const NARROW_BREAKPOINT = 1024;
+
+function useIsNarrow() {
+  const [isNarrow, setIsNarrow] = useState(false);
+  useEffect(() => {
+    const mql = window.matchMedia(`(max-width: ${NARROW_BREAKPOINT - 1}px)`);
+    const onChange = () => setIsNarrow(window.innerWidth < NARROW_BREAKPOINT);
+    mql.addEventListener('change', onChange);
+    onChange();
+    return () => mql.removeEventListener('change', onChange);
+  }, []);
+  return isNarrow;
+}
+
 export function RequestDetailPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { t } = useTranslation();
   const { transport } = useTransport();
   const queryClient = useQueryClient();
-  const isMobile = useIsMobile();
+  const isNarrow = useIsNarrow();
   const { data: request, isLoading, error } = useProxyRequest(Number(id));
   const { data: attempts } = useProxyUpstreamAttempts(Number(id));
   const { data: providers } = useProviders();
@@ -77,10 +90,10 @@ export function RequestDetailPage() {
 
   const handleSelectionChange = useCallback((sel: SelectionType) => {
     setSelection(sel);
-    if (isMobile) {
+    if (isNarrow) {
       setMobileTab('detail');
     }
-  }, [isMobile]);
+  }, [isNarrow]);
 
   // Handle project binding - directly bind when project is selected
   const handleBindProject = useCallback(
@@ -256,7 +269,7 @@ export function RequestDetailPage() {
 
       {/* Main Content */}
       <div className="flex-1 overflow-hidden">
-        {isMobile ? (
+        {isNarrow ? (
           <Tabs value={mobileTab} onValueChange={(v) => setMobileTab(v as 'attempts' | 'detail')} className="flex flex-col h-full">
             <TabsList className="shrink-0 mx-4 mt-2">
               <TabsTrigger value="attempts">{t('requests.tabs.attempts', 'Attempts')}</TabsTrigger>

@@ -251,7 +251,7 @@ export function ProviderRow({ provider, stats, streamingCount, onClick }: Provid
       )}
 
       {/* Supported Clients - 左侧一排重叠居中 */}
-      <div className="relative z-10 flex shrink-0 items-center justify-center w-[80px]">
+      <div className="relative z-10 flex shrink-0 items-center justify-center w-[50px] md:w-[80px]">
         {provider.supportedClientTypes?.length > 0 ? (
           <div
             className="relative flex items-center h-7"
@@ -484,16 +484,16 @@ export function ProviderRow({ provider, stats, streamingCount, onClick }: Provid
       )}
 
       {/* Stats Grid */}
-      <div className="relative z-10 flex items-center gap-px bg-muted/50 rounded-xl border border-border/60 p-0.5 backdrop-blur-sm">
+      <div className="relative z-10 flex items-center gap-px bg-muted/50 rounded-xl border border-border/60 p-0.5 backdrop-blur-sm shrink-0">
         {stats && stats.totalRequests > 0 ? (
           <>
-            <div className="flex flex-col items-center min-w-[45px] px-2 py-1">
+            <div className="flex flex-col items-center min-w-[36px] md:min-w-[45px] px-1 md:px-2 py-1">
               <span className="text-[8px] font-bold text-muted-foreground uppercase tracking-tight">
                 SR
               </span>
               <span
                 className={cn(
-                  'font-mono font-black text-[12px]',
+                  'font-mono font-black text-[11px] md:text-[12px]',
                   stats.successRate >= 95
                     ? 'text-emerald-500'
                     : stats.successRate >= 90
@@ -505,29 +505,29 @@ export function ProviderRow({ provider, stats, streamingCount, onClick }: Provid
               </span>
             </div>
             <div className="w-[1px] h-6 bg-border/40" />
-            <div className="flex flex-col items-center min-w-[45px] px-2 py-1">
+            <div className="flex flex-col items-center min-w-[36px] md:min-w-[45px] px-1 md:px-2 py-1">
               <span className="text-[8px] font-bold text-muted-foreground uppercase tracking-tight">
                 REQ
               </span>
-              <span className="font-mono font-black text-[12px] text-foreground">
+              <span className="font-mono font-black text-[11px] md:text-[12px] text-foreground">
                 {stats.totalRequests}
               </span>
             </div>
             <div className="w-[1px] h-6 bg-border/40" />
-            <div className="flex flex-col items-center min-w-[45px] px-2 py-1">
+            <div className="flex flex-col items-center min-w-[36px] md:min-w-[45px] px-1 md:px-2 py-1">
               <span className="text-[8px] font-bold text-muted-foreground uppercase tracking-tight">
                 TKN
               </span>
-              <span className="font-mono font-black text-[12px] text-blue-400">
+              <span className="font-mono font-black text-[11px] md:text-[12px] text-blue-400">
                 {formatTokens(stats.totalInputTokens + stats.totalOutputTokens)}
               </span>
             </div>
             <div className="w-[1px] h-6 bg-border/40" />
-            <div className="flex flex-col items-center min-w-[55px] px-2 py-1">
+            <div className="flex flex-col items-center min-w-[40px] md:min-w-[55px] px-1 md:px-2 py-1">
               <span className="text-[8px] font-bold text-muted-foreground uppercase tracking-tight">
                 {t('common.cost')}
               </span>
-              <span className="font-mono font-black text-[12px] text-purple-400">
+              <span className="font-mono font-black text-[11px] md:text-[12px] text-purple-400">
                 {formatCost(stats.totalCost)}
               </span>
             </div>
