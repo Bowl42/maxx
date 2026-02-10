@@ -138,6 +138,7 @@
     "description": "{{count}} total requests",
     "noRequests": "No requests recorded",
     "noRequestsHint": "Requests will appear here automatically",
+    "noMoreData": "No more data",
     "refresh": "Refresh",
     "allProviders": "All Providers",
     "allStatuses": "All Statuses",

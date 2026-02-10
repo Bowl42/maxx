@@ -1,8 +1,8 @@
-import { useState, useEffect, useMemo, useRef, useCallback, type Ref } from 'react';
+import { useState, useMemo, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import {
-  useProxyRequests,
+  useInfiniteProxyRequests,
   useProxyRequestUpdates,
   useProxyRequestsCount,
   useProviders,
@@ -10,16 +10,7 @@ import {
   useAPITokens,
   useSettings,
 } from '@/hooks/queries';
-import {
-  Activity,
-  RefreshCw,
-  ChevronLeft,
-  ChevronRight,
-  Loader2,
-  CheckCircle,
-  AlertTriangle,
-  Ban,
-} from 'lucide-react';
+import { Activity, RefreshCw, Loader2, CheckCircle, AlertTriangle, Ban } from 'lucide-react';
 import type { ProxyRequest, ProxyRequestStatus, Provider } from '@/lib/transport';
 import { ClientIcon } from '@/components/icons/client-icons';
 import {
@@ -53,11 +44,6 @@ const PROVIDER_TYPE_LABELS: Record<ProviderTypeKey, string> = {
   custom: 'Custom',
 };
 
-const PAGE_SIZE = 50;
-const DEFAULT_ROW_HEIGHT = 36;
-const OVERSCAN = 8;
-const MOBILE_CARD_HEIGHT = 88;
-
 export const statusVariant: Record<
   ProxyRequestStatus,
   'default' | 'success' | 'warning' | 'danger' | 'info'
@@ -74,33 +60,19 @@ export function RequestsPage() {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const isMobile = useIsMobile();
-  // 使用游标分页：存储每页的 lastId 用于向后翻页
-  const [cursors, setCursors] = useState<(number | undefined)[]>([undefined]);
-  const [pageIndex, setPageIndex] = useState(0);
+
   // Provider 过滤器
   const [selectedProviderId, setSelectedProviderId] = useState<number | undefined>(undefined);
   // Status 过滤器
   const [selectedStatus, setSelectedStatus] = useState<string | undefined>(undefined);
+
   const scrollContainerRef = useRef<HTMLDivElement | null>(null);
-  const [containerReady, setContainerReady] = useState(false);
-  const [scrollTop, setScrollTop] = useState(0);
-  const [viewportHeight, setViewportHeight] = useState(0);
-  const [rowHeight, setRowHeight] = useState(DEFAULT_ROW_HEIGHT);
-  const rowHeightRef = useRef(DEFAULT_ROW_HEIGHT);
-  const rowMeasureObserver = useRef<ResizeObserver | null>(null);
+  const loadMoreRef = useRef<HTMLDivElement | null>(null);
 
-  const handleContainerRef = useCallback((node: HTMLDivElement | null) => {
-    scrollContainerRef.current = node;
-    setContainerReady(!!node);
-  }, []);
+  // 使用 Infinite Query
+  const { data, fetchNextPage, hasNextPage, isFetchingNextPage, isLoading, refetch } =
+    useInfiniteProxyRequests(selectedProviderId, selectedStatus);
 
-  const currentCursor = cursors[pageIndex];
-  const { data, isLoading, refetch } = useProxyRequests({
-    limit: PAGE_SIZE,
-    before: currentCursor,
-    providerId: selectedProviderId,
-    status: selectedStatus,
-  });
   const { data: totalCount, refetch: refetchCount } = useProxyRequestsCount(
     selectedProviderId,
     selectedStatus,
@@ -122,9 +94,6 @@ export function RequestsPage() {
   // Subscribe to real-time updates
   useProxyRequestUpdates();
 
-  const requests = data?.items ?? [];
-  const hasMore = data?.hasMore ?? false;
-
   // Create provider ID to name mapping
   const providerMap = useMemo(() => new Map(providers.map((p) => [p.id, p.name])), [providers]);
   // Create project ID to name mapping
@@ -134,141 +103,48 @@ export function RequestsPage() {
 
   // 使用 totalCount
   const total = typeof totalCount === 'number' ? totalCount : 0;
-  const columnCount = 14 + (hasProjects ? 1 : 0) + (apiTokenAuthEnabled ? 1 : 0);
 
+  // 合并所有页的数据
+  const allRequests = useMemo(() => {
+    return data?.pages.flatMap((page) => page.items) ?? [];
+  }, [data]);
+
+  // IntersectionObserver 触底检测
   useEffect(() => {
-    const node = scrollContainerRef.current;
-    if (!node) return;
+    const loadMoreEl = loadMoreRef.current;
+    if (!loadMoreEl) return;
 
-    let rafId = 0;
-    const updateScrollTop = () => {
-      if (rafId) return;
-      rafId = window.requestAnimationFrame(() => {
-        rafId = 0;
-        setScrollTop(node.scrollTop);
-      });
-    };
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting && hasNextPage && !isFetchingNextPage) {
+          fetchNextPage();
+        }
+      },
+      { rootMargin: '200px' }, // 提前 200px 触发
+    );
 
-    const updateViewport = () => {
-      setViewportHeight(node.clientHeight);
-    };
+    observer.observe(loadMoreEl);
+    return () => observer.disconnect();
+  }, [hasNextPage, isFetchingNextPage, fetchNextPage]);
 
-    updateScrollTop();
-    updateViewport();
-    node.addEventListener('scroll', updateScrollTop, { passive: true });
-
-    let resizeObserver: ResizeObserver | null = null;
-    if (typeof ResizeObserver !== 'undefined') {
-      resizeObserver = new ResizeObserver(() => {
-        updateViewport();
-      });
-      resizeObserver.observe(node);
-    } else {
-      window.addEventListener('resize', updateViewport);
-    }
-
-    return () => {
-      node.removeEventListener('scroll', updateScrollTop);
-      if (resizeObserver) {
-        resizeObserver.disconnect();
-      } else {
-        window.removeEventListener('resize', updateViewport);
-      }
-      if (rafId) {
-        window.cancelAnimationFrame(rafId);
-      }
-    };
-  }, [containerReady]);
-
-  // 下一页
-  const goToNextPage = () => {
-    if (hasMore && data?.lastId) {
-      const nextCursors = [...cursors];
-      if (pageIndex + 1 >= nextCursors.length) {
-        nextCursors.push(data.lastId);
-      }
-      setCursors(nextCursors);
-      setPageIndex(pageIndex + 1);
-    }
-  };
-
-  // 上一页
-  const goToPrevPage = () => {
-    if (pageIndex > 0) {
-      setPageIndex(pageIndex - 1);
-    }
-  };
-
-  // 刷新时重置到第一页
+  // 刷新
   const handleRefresh = () => {
-    setCursors([undefined]);
-    setPageIndex(0);
     scrollContainerRef.current?.scrollTo({ top: 0 });
-    setScrollTop(0);
     refetch();
     refetchCount();
   };
 
-  // Provider 过滤器变化时重置分页
+  // Provider 过滤器变化时重置
   const handleProviderFilterChange = (providerId: number | undefined) => {
     setSelectedProviderId(providerId);
-    setCursors([undefined]);
-    setPageIndex(0);
     scrollContainerRef.current?.scrollTo({ top: 0 });
-    setScrollTop(0);
   };
 
-  // Status 过滤器变化时重置分页
+  // Status 过滤器变化时重置
   const handleStatusFilterChange = (status: string | undefined) => {
     setSelectedStatus(status);
-    setCursors([undefined]);
-    setPageIndex(0);
     scrollContainerRef.current?.scrollTo({ top: 0 });
-    setScrollTop(0);
   };
-
-  const totalRows = requests.length;
-  const effectiveRowHeight = isMobile ? MOBILE_CARD_HEIGHT : rowHeight;
-  const shouldVirtualize = totalRows > 0 && viewportHeight > 0;
-  const startIndex = shouldVirtualize
-    ? Math.max(0, Math.floor(scrollTop / effectiveRowHeight) - OVERSCAN)
-    : 0;
-  const endIndex = shouldVirtualize
-    ? Math.min(totalRows, Math.ceil((scrollTop + viewportHeight) / effectiveRowHeight) + OVERSCAN)
-    : totalRows;
-  const visibleRequests = shouldVirtualize ? requests.slice(startIndex, endIndex) : requests;
-  const paddingTop = shouldVirtualize ? startIndex * effectiveRowHeight : 0;
-  const paddingBottom = shouldVirtualize ? (totalRows - endIndex) * effectiveRowHeight : 0;
-
-  const handleRowMeasure = useCallback((node: HTMLTableRowElement | null) => {
-    if (!node) {
-      if (rowMeasureObserver.current) {
-        rowMeasureObserver.current.disconnect();
-        rowMeasureObserver.current = null;
-      }
-      return;
-    }
-
-    const updateHeight = () => {
-      const nextHeight = node.getBoundingClientRect().height;
-      if (nextHeight > 0 && Math.abs(nextHeight - rowHeightRef.current) > 0.5) {
-        rowHeightRef.current = nextHeight;
-        setRowHeight(nextHeight);
-      }
-    };
-
-    updateHeight();
-
-    if (rowMeasureObserver.current) {
-      rowMeasureObserver.current.disconnect();
-    }
-
-    if (typeof ResizeObserver !== 'undefined') {
-      const observer = new ResizeObserver(updateHeight);
-      observer.observe(node);
-      rowMeasureObserver.current = observer;
-    }
-  }, []);
 
   return (
     <div className="flex flex-col h-full bg-background">
@@ -305,11 +181,11 @@ export function RequestsPage() {
 
       {/* Content */}
       <div className="flex-1 min-h-0 flex flex-col">
-        {isLoading && requests.length === 0 ? (
+        {isLoading && allRequests.length === 0 ? (
           <div className="flex-1 flex items-center justify-center">
             <Loader2 className="w-8 h-8 animate-spin text-accent" />
           </div>
-        ) : requests.length === 0 ? (
+        ) : allRequests.length === 0 ? (
           <div className="flex-1 flex flex-col items-center justify-center text-text-muted">
             <div className="p-4 bg-muted rounded-full mb-4">
               <Activity size={32} className="opacity-50" />
@@ -318,11 +194,10 @@ export function RequestsPage() {
             <p className="text-caption mt-1">{t('requests.noRequestsHint')}</p>
           </div>
         ) : (
-          <div className="flex-1 min-h-0 overflow-auto" ref={handleContainerRef}>
+          <div className="flex-1 min-h-0 overflow-auto" ref={scrollContainerRef}>
             {isMobile ? (
               <div>
-                {paddingTop > 0 && <div style={{ height: paddingTop }} />}
-                {visibleRequests.map((req) => (
+                {allRequests.map((req) => (
                   <MobileRequestCard
                     key={req.id}
                     request={req}
@@ -330,155 +205,123 @@ export function RequestsPage() {
                     onClick={() => navigate(`/requests/${req.id}`)}
                   />
                 ))}
-                {paddingBottom > 0 && <div style={{ height: paddingBottom }} />}
+                {/* 触底加载指示器 */}
+                <div ref={loadMoreRef} className="py-4 flex justify-center">
+                  {isFetchingNextPage && (
+                    <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
+                  )}
+                  {!hasNextPage && allRequests.length > 0 && (
+                    <span className="text-xs text-muted-foreground">
+                      {t('requests.noMoreData')}
+                    </span>
+                  )}
+                </div>
               </div>
             ) : (
-              <Table>
-                <TableHeader className="bg-card/80 backdrop-blur-md sticky top-0 z-10 shadow-sm border-b border-border">
-                  <TableRow className="hover:bg-transparent border-none text-sm">
-                    <TableHead className="w-[180px] font-medium">{t('requests.time')}</TableHead>
-                    <TableHead className="w-[120px] pr-4 font-medium">{t('requests.client')}</TableHead>
-                    <TableHead className="min-w-[250px] font-medium">{t('requests.model')}</TableHead>
-                    {hasProjects && (
-                      <TableHead className="w-[100px] font-medium">{t('requests.project')}</TableHead>
-                    )}
-                    {apiTokenAuthEnabled && (
-                      <TableHead className="w-[100px] font-medium">{t('requests.token')}</TableHead>
-                    )}
-                    <TableHead className="min-w-[100px] font-medium">
-                      {t('requests.provider')}
-                    </TableHead>
-                    <TableHead className="w-[100px] font-medium">{t('common.status')}</TableHead>
-                    <TableHead className="w-[60px] text-center font-medium">
-                      {t('requests.code')}
-                    </TableHead>
-                    <TableHead
-                      className="w-[60px] text-center font-medium"
-                      title={t('requests.ttft')}
-                    >
-                      TTFT
-                    </TableHead>
-                    <TableHead className="w-[80px] text-center font-medium">
-                      {t('requests.duration')}
-                    </TableHead>
-                    <TableHead
-                      className="w-[45px] text-center font-medium"
-                      title={t('requests.attempts')}
-                    >
-                      {t('requests.attShort')}
-                    </TableHead>
-                    <TableHead
-                      className="w-[65px] text-center font-medium"
-                      title={t('requests.inputTokens')}
-                    >
-                      {t('requests.inShort')}
-                    </TableHead>
-                    <TableHead
-                      className="w-[65px] text-center font-medium"
-                      title={t('requests.outputTokens')}
-                    >
-                      {t('requests.outShort')}
-                    </TableHead>
-                    <TableHead
-                      className="w-[65px] text-center font-medium"
-                      title={t('requests.cacheRead')}
-                    >
-                      {t('requests.cacheRShort')}
-                    </TableHead>
-                    <TableHead
-                      className="w-[65px] text-center font-medium"
-                      title={t('requests.cacheWrite')}
-                    >
-                      {t('requests.cacheWShort')}
-                    </TableHead>
-                    <TableHead className="w-[80px] text-center font-medium">
-                      {t('requests.cost')}
-                    </TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {paddingTop > 0 && (
-                    <TableRow
-                      style={{ height: paddingTop }}
-                      className="pointer-events-none hover:bg-transparent"
-                    >
-                      <TableCell colSpan={columnCount} className="p-0 border-0" />
+              <>
+                <Table>
+                  <TableHeader className="bg-card/80 backdrop-blur-md sticky top-0 z-10 shadow-sm border-b border-border">
+                    <TableRow className="hover:bg-transparent border-none text-sm">
+                      <TableHead className="w-[180px] font-medium">{t('requests.time')}</TableHead>
+                      <TableHead className="w-[120px] pr-4 font-medium">
+                        {t('requests.client')}
+                      </TableHead>
+                      <TableHead className="min-w-[250px] font-medium">
+                        {t('requests.model')}
+                      </TableHead>
+                      {hasProjects && (
+                        <TableHead className="w-[100px] font-medium">
+                          {t('requests.project')}
+                        </TableHead>
+                      )}
+                      {apiTokenAuthEnabled && (
+                        <TableHead className="w-[100px] font-medium">
+                          {t('requests.token')}
+                        </TableHead>
+                      )}
+                      <TableHead className="min-w-[100px] font-medium">
+                        {t('requests.provider')}
+                      </TableHead>
+                      <TableHead className="w-[100px] font-medium">{t('common.status')}</TableHead>
+                      <TableHead className="w-[60px] text-center font-medium">
+                        {t('requests.code')}
+                      </TableHead>
+                      <TableHead
+                        className="w-[60px] text-center font-medium"
+                        title={t('requests.ttft')}
+                      >
+                        TTFT
+                      </TableHead>
+                      <TableHead className="w-[80px] text-center font-medium">
+                        {t('requests.duration')}
+                      </TableHead>
+                      <TableHead
+                        className="w-[45px] text-center font-medium"
+                        title={t('requests.attempts')}
+                      >
+                        {t('requests.attShort')}
+                      </TableHead>
+                      <TableHead
+                        className="w-[65px] text-center font-medium"
+                        title={t('requests.inputTokens')}
+                      >
+                        {t('requests.inShort')}
+                      </TableHead>
+                      <TableHead
+                        className="w-[65px] text-center font-medium"
+                        title={t('requests.outputTokens')}
+                      >
+                        {t('requests.outShort')}
+                      </TableHead>
+                      <TableHead
+                        className="w-[65px] text-center font-medium"
+                        title={t('requests.cacheRead')}
+                      >
+                        {t('requests.cacheRShort')}
+                      </TableHead>
+                      <TableHead
+                        className="w-[65px] text-center font-medium"
+                        title={t('requests.cacheWrite')}
+                      >
+                        {t('requests.cacheWShort')}
+                      </TableHead>
+                      <TableHead className="w-[80px] text-center font-medium">
+                        {t('requests.cost')}
+                      </TableHead>
                     </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {allRequests.map((req, index) => (
+                      <LogRow
+                        key={req.id}
+                        request={req}
+                        index={index}
+                        providerName={providerMap.get(req.providerID)}
+                        projectName={projectMap.get(req.projectID)}
+                        tokenName={tokenMap.get(req.apiTokenID)}
+                        showProjectColumn={hasProjects}
+                        showTokenColumn={apiTokenAuthEnabled}
+                        forceProjectBinding={forceProjectBinding}
+                        onClick={() => navigate(`/requests/${req.id}`)}
+                      />
+                    ))}
+                  </TableBody>
+                </Table>
+                {/* 触底加载指示器 */}
+                <div ref={loadMoreRef} className="py-4 flex justify-center">
+                  {isFetchingNextPage && (
+                    <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
                   )}
-                  {visibleRequests.map((req, index) => (
-                    <LogRow
-                      key={req.id}
-                      request={req}
-                      index={startIndex + index}
-                      providerName={providerMap.get(req.providerID)}
-                      projectName={projectMap.get(req.projectID)}
-                      tokenName={tokenMap.get(req.apiTokenID)}
-                      showProjectColumn={hasProjects}
-                      showTokenColumn={apiTokenAuthEnabled}
-                      forceProjectBinding={forceProjectBinding}
-                      onClick={() => navigate(`/requests/${req.id}`)}
-                      rowRef={index === 0 ? handleRowMeasure : undefined}
-                    />
-                  ))}
-                  {paddingBottom > 0 && (
-                    <TableRow
-                      style={{ height: paddingBottom }}
-                      className="pointer-events-none hover:bg-transparent"
-                    >
-                      <TableCell colSpan={columnCount} className="p-0 border-0" />
-                    </TableRow>
+                  {!hasNextPage && allRequests.length > 0 && (
+                    <span className="text-xs text-muted-foreground">
+                      {t('requests.noMoreData')}
+                    </span>
                   )}
-                </TableBody>
-              </Table>
+                </div>
+              </>
             )}
           </div>
         )}
-      </div>
-
-      {/* Pagination */}
-      <div className="h-12 flex items-center justify-between px-4 md:px-6 border-t border-border bg-card/50 backdrop-blur-sm shrink-0">
-        <span className="text-xs text-muted-foreground">
-          {total > 0
-            ? t('requests.pageInfo', {
-                page: pageIndex + 1,
-                count: requests.length,
-                total,
-              })
-            : t('requests.noItems')}
-        </span>
-        <div className="flex items-center gap-2">
-          <button
-            onClick={goToPrevPage}
-            disabled={pageIndex === 0}
-            className={cn(
-              'w-8 h-8 rounded-lg flex items-center justify-center transition-all',
-              pageIndex === 0
-                ? 'text-muted-foreground/30 cursor-not-allowed'
-                : 'text-muted-foreground hover:text-foreground hover:bg-accent',
-            )}
-          >
-            <ChevronLeft size={18} />
-          </button>
-          <div className="flex items-center justify-center min-w-[48px] h-8 px-3 rounded-lg bg-muted/50 border border-border/50">
-            <span className="text-sm font-bold text-foreground tabular-nums">{pageIndex + 1}</span>
-            <span className="text-sm text-muted-foreground mx-1">/</span>
-            <span className="text-sm text-muted-foreground tabular-nums">
-              {Math.ceil(total / PAGE_SIZE) || 1}
-            </span>
-          </div>
-          <button
-            onClick={goToNextPage}
-            disabled={!hasMore}
-            className={cn(
-              'w-8 h-8 rounded-lg flex items-center justify-center transition-all',
-              !hasMore
-                ? 'text-muted-foreground/30 cursor-not-allowed'
-                : 'text-muted-foreground hover:text-foreground hover:bg-accent',
-            )}
-          >
-            <ChevronRight size={18} />
-          </button>
-        </div>
       </div>
     </div>
   );
@@ -575,10 +418,10 @@ function TokenCell({ count, color }: { count: number; color: string }) {
   }
 
   const formatTokens = (n: number) => {
-    // >= 5位数 (10000+) 使用 K/M 格式
+    // >= 5 位数 (10000+) 使用 K/M 格式
     if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
     if (n >= 10_000) return `${(n / 1000).toFixed(1)}K`;
-    // 4位数及以下使用千分位分隔符
+    // 4 位数及以下使用千分位分隔符
     return n.toLocaleString();
   };
 
@@ -624,7 +467,6 @@ function LogRow({
   showTokenColumn,
   forceProjectBinding,
   onClick,
-  rowRef,
 }: {
   request: ProxyRequest;
   index: number;
@@ -635,7 +477,6 @@ function LogRow({
   showTokenColumn?: boolean;
   forceProjectBinding?: boolean;
   onClick: () => void;
-  rowRef?: Ref<HTMLTableRowElement>;
 }) {
   const isPending = request.status === 'PENDING' || request.status === 'IN_PROGRESS';
   const isFailed = request.status === 'FAILED';
@@ -716,7 +557,6 @@ function LogRow({
 
   return (
     <TableRow
-      ref={rowRef}
       onClick={onClick}
       className={cn(
         'cursor-pointer group transition-colors',
@@ -925,9 +765,10 @@ function MobileRequestCard({
     return `$${usd.toFixed(4)}`;
   };
 
-  const timeStr = request.endTime && new Date(request.endTime).getTime() > 0
-    ? formatTime(request.endTime)
-    : formatTime(request.startTime || request.createdAt);
+  const timeStr =
+    request.endTime && new Date(request.endTime).getTime() > 0
+      ? formatTime(request.endTime)
+      : formatTime(request.startTime || request.createdAt);
 
   return (
     <div
@@ -937,7 +778,6 @@ function MobileRequestCard({
         isFailed && 'bg-red-500/10',
         isPending && 'bg-blue-500/5',
       )}
-      style={{ height: MOBILE_CARD_HEIGHT }}
     >
       {/* Row 1: Client + Model + Status */}
       <div className="flex items-center gap-2 mb-1">
@@ -955,9 +795,7 @@ function MobileRequestCard({
       </div>
       {/* Row 3: Provider */}
       {providerName && (
-        <div className="text-xs text-muted-foreground mt-1 truncate">
-          {providerName}
-        </div>
+        <div className="text-xs text-muted-foreground mt-1 truncate">{providerName}</div>
       )}
     </div>
   );

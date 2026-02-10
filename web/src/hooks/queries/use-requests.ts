@@ -2,7 +2,7 @@
  * ProxyRequest React Query Hooks
  */
 
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useQueryClient, useInfiniteQuery } from '@tanstack/react-query';
 import { useEffect } from 'react';
 import {
   getTransport,
@@ -17,6 +17,8 @@ export const requestKeys = {
   all: ['requests'] as const,
   lists: () => [...requestKeys.all, 'list'] as const,
   list: (params?: CursorPaginationParams) => [...requestKeys.lists(), params] as const,
+  infinite: (providerId?: number, status?: string) =>
+    [...requestKeys.all, 'infinite', providerId, status] as const,
   details: () => [...requestKeys.all, 'detail'] as const,
   detail: (id: number) => [...requestKeys.details(), id] as const,
   attempts: (id: number) => [...requestKeys.detail(id), 'attempts'] as const,
@@ -27,6 +29,22 @@ export function useProxyRequests(params?: CursorPaginationParams) {
   return useQuery({
     queryKey: requestKeys.list(params),
     queryFn: () => getTransport().getProxyRequests(params),
+  });
+}
+
+// 获取 ProxyRequests (无限滚动)
+export function useInfiniteProxyRequests(providerId?: number, status?: string) {
+  return useInfiniteQuery({
+    queryKey: requestKeys.infinite(providerId, status),
+    queryFn: ({ pageParam }) =>
+      getTransport().getProxyRequests({
+        limit: 100,
+        before: pageParam,
+        providerId,
+        status,
+      }),
+    getNextPageParam: (lastPage) => (lastPage.hasMore ? lastPage.lastId : undefined),
+    initialPageParam: undefined as number | undefined,
   });
 }
 
@@ -149,6 +167,61 @@ export function useProxyRequestUpdates() {
             }
 
             return normalizePage([updatedRequest, ...old.items]);
+          });
+        }
+
+        // 更新 Infinite Queries 缓存
+        const infiniteQueries = queryCache.findAll({
+          queryKey: [...requestKeys.all, 'infinite'],
+        });
+
+        for (const query of infiniteQueries) {
+          const queryKey = query.queryKey as ReturnType<typeof requestKeys.infinite>;
+          // queryKey: ['requests', 'infinite', providerId, status]
+          const filterProviderId = queryKey[2] as number | undefined;
+          const filterStatus = queryKey[3] as string | undefined;
+
+          const matchesFilter = (request: ProxyRequest) => {
+            if (filterProviderId !== undefined && request.providerID !== filterProviderId) {
+              return false;
+            }
+            if (filterStatus !== undefined && request.status !== filterStatus) {
+              return false;
+            }
+            return true;
+          };
+
+          queryClient.setQueryData<{
+            pages: CursorPaginationResult<ProxyRequest>[];
+            pageParams: (number | undefined)[];
+          }>(queryKey, (old) => {
+            if (!old || !old.pages || old.pages.length === 0) return old;
+
+            const updatedPages = old.pages.map((page, pageIndex) => {
+              const index = page.items.findIndex((r) => r.id === updatedRequest.id);
+
+              if (index >= 0) {
+                // 已存在的请求：检查是否仍然匹配过滤条件
+                if (!matchesFilter(updatedRequest)) {
+                  // 不再匹配，从列表中移除
+                  const newItems = page.items.filter((r) => r.id !== updatedRequest.id);
+                  return { ...page, items: newItems };
+                }
+                // 仍然匹配，更新
+                const newItems = [...page.items];
+                newItems[index] = updatedRequest;
+                return { ...page, items: newItems };
+              }
+
+              // 只在第一页添加新请求
+              if (pageIndex === 0 && isNewRequest && matchesFilter(updatedRequest)) {
+                return { ...page, items: [updatedRequest, ...page.items] };
+              }
+
+              return page;
+            });
+
+            return { ...old, pages: updatedPages };
           });
         }
 
