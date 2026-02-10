@@ -118,27 +118,35 @@ func main() {
 
 	// Generate instance ID and mark stale requests as failed
 	instanceID := generateInstanceID()
+	startupStep := time.Now()
+	log.Printf("[Startup] Marking stale requests as failed...")
 	if count, err := proxyRequestRepo.MarkStaleAsFailed(instanceID); err != nil {
 		log.Printf("Warning: Failed to mark stale requests: %v", err)
-	} else if count > 0 {
-		log.Printf("Marked %d stale requests as failed", count)
+	} else {
+		log.Printf("[Startup] Marked %d stale requests as failed (%v)", count, time.Since(startupStep))
 	}
 	// Also mark stale upstream attempts as failed
+	startupStep = time.Now()
+	log.Printf("[Startup] Marking stale upstream attempts as failed...")
 	if count, err := attemptRepo.MarkStaleAttemptsFailed(); err != nil {
 		log.Printf("Warning: Failed to mark stale attempts: %v", err)
-	} else if count > 0 {
-		log.Printf("Marked %d stale upstream attempts as failed", count)
+	} else {
+		log.Printf("[Startup] Marked %d stale upstream attempts as failed (%v)", count, time.Since(startupStep))
 	}
 	// Fix legacy failed requests/attempts without end_time
+	startupStep = time.Now()
+	log.Printf("[Startup] Fixing failed requests without end_time...")
 	if count, err := proxyRequestRepo.FixFailedRequestsWithoutEndTime(); err != nil {
 		log.Printf("Warning: Failed to fix failed requests without end_time: %v", err)
-	} else if count > 0 {
-		log.Printf("Fixed %d failed requests without end_time", count)
+	} else {
+		log.Printf("[Startup] Fixed %d failed requests without end_time (%v)", count, time.Since(startupStep))
 	}
+	startupStep = time.Now()
+	log.Printf("[Startup] Fixing failed attempts without end_time...")
 	if count, err := attemptRepo.FixFailedAttemptsWithoutEndTime(); err != nil {
 		log.Printf("Warning: Failed to fix failed attempts without end_time: %v", err)
-	} else if count > 0 {
-		log.Printf("Fixed %d failed attempts without end_time", count)
+	} else {
+		log.Printf("[Startup] Fixed %d failed attempts without end_time (%v)", count, time.Since(startupStep))
 	}
 
 	// Create cached repositories
@@ -152,6 +160,8 @@ func main() {
 	cachedModelMappingRepo := cached.NewModelMappingRepository(modelMappingRepo)
 
 	// Load cached data
+	startupStep = time.Now()
+	log.Printf("[Startup] Loading caches...")
 	if err := cachedProviderRepo.Load(); err != nil {
 		log.Printf("Warning: Failed to load providers cache: %v", err)
 	}
@@ -173,14 +183,18 @@ func main() {
 	if err := cachedModelMappingRepo.Load(); err != nil {
 		log.Printf("Warning: Failed to load model mappings cache: %v", err)
 	}
+	log.Printf("[Startup] Caches loaded (%v)", time.Since(startupStep))
 
 	// Create router
 	r := router.NewRouter(cachedRouteRepo, cachedProviderRepo, cachedRoutingStrategyRepo, cachedRetryConfigRepo, cachedProjectRepo)
 
 	// Initialize provider adapters
+	startupStep = time.Now()
+	log.Printf("[Startup] Initializing provider adapters...")
 	if err := r.InitAdapters(); err != nil {
 		log.Printf("Warning: Failed to initialize adapters: %v", err)
 	}
+	log.Printf("[Startup] Provider adapters initialized (%v)", time.Since(startupStep))
 
 	// Start cooldown cleanup goroutine with graceful shutdown support
 	cleanupCtx, cleanupCancel := context.WithCancel(context.Background())

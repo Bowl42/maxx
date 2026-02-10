@@ -203,10 +203,10 @@ type ProxyRequest struct {
 	RequestModel                string `gorm:"size:128"`
 	ResponseModel               string `gorm:"size:128"`
 	StartTime                   int64
-	EndTime                     int64 `gorm:"index"`
+	EndTime                     int64 `gorm:"index;index:idx_requests_status_endtime"`
 	DurationMs                  int64
 	TTFTMs                      int64
-	Status                      string `gorm:"size:64"`
+	Status                      string `gorm:"size:64;index;index:idx_requests_status_endtime"`
 	RequestInfo                 LongText
 	ResponseInfo                LongText
 	Error                       LongText
@@ -234,7 +234,7 @@ func (ProxyRequest) TableName() string { return "proxy_requests" }
 // ProxyUpstreamAttempt model
 type ProxyUpstreamAttempt struct {
 	BaseModel
-	Status            string `gorm:"size:64"`
+	Status            string `gorm:"size:64;index:idx_attempts_status_endtime;index"`
 	ProxyRequestID    uint64 `gorm:"index"`
 	RequestInfo       LongText
 	ResponseInfo      LongText
@@ -251,7 +251,7 @@ type ProxyUpstreamAttempt struct {
 	Cost              uint64
 	IsStream          int
 	StartTime         int64
-	EndTime           int64
+	EndTime           int64  `gorm:"index:idx_attempts_status_endtime"`
 	DurationMs        int64
 	TTFTMs            int64
 	RequestModel      string `gorm:"size:128"`
