@@ -23,17 +23,20 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       fork_changed: ${{ steps.sync.outputs.fork_changed }}
+      sync_conflict: ${{ steps.sync.outputs.sync_conflict }}
     steps:
       - name: Checkout awsl-project/CLIProxyAPI
         uses: actions/checkout@v4
         with:
           repository: awsl-project/CLIProxyAPI
           token: ${{ secrets.HOMEBREW_TAP_TOKEN }}
+          fetch-depth: 0
 
       - name: Rebase with base/main and push
         id: sync
         run: |
           TARGET_BRANCH="main"
+          echo "sync_conflict=false" >> "$GITHUB_OUTPUT"
 
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
@@ -42,9 +45,25 @@ jobs:
           git checkout -B "$TARGET_BRANCH" "origin/$TARGET_BRANCH"
           BEFORE_ORIGIN=$(git rev-parse HEAD)
 
-          git remote add base https://github.com/router-for-me/CLIProxyAPI.git
+          if git remote get-url base >/dev/null 2>&1; then
+            git remote set-url base https://github.com/router-for-me/CLIProxyAPI.git
+          else
+            git remote add base https://github.com/router-for-me/CLIProxyAPI.git
+          fi
           git fetch base "$TARGET_BRANCH"
-          git pull base "$TARGET_BRANCH" --rebase
+
+          if ! git pull base "$TARGET_BRANCH" --rebase; then
+            echo "Rebase conflict detected; aborting and skipping downstream update."
+            git rebase --abort || true
+            {
+              echo "### CLIProxyAPI sync skipped"
+              echo "- Reason: rebase conflict while applying fork-only commit(s)"
+              echo "- Action: resolve in awsl-project/CLIProxyAPI then rerun"
+            } >> "$GITHUB_STEP_SUMMARY"
+            echo "fork_changed=false" >> "$GITHUB_OUTPUT"
+            echo "sync_conflict=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
 
           AFTER_SHA=$(git rev-parse HEAD)
           if [ "$AFTER_SHA" = "$BEFORE_ORIGIN" ]; then
