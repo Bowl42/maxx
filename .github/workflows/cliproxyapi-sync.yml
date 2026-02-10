@@ -30,7 +30,7 @@ jobs:
           repository: awsl-project/CLIProxyAPI
           token: ${{ secrets.HOMEBREW_TAP_TOKEN }}
 
-      - name: Rebase with upstream and push
+      - name: Rebase with base/main and push
         id: sync
         run: |
           TARGET_BRANCH="main"
@@ -40,21 +40,20 @@ jobs:
 
           git fetch origin "$TARGET_BRANCH"
           git checkout -B "$TARGET_BRANCH" "origin/$TARGET_BRANCH"
+          BEFORE_ORIGIN=$(git rev-parse HEAD)
 
-          git remote add upstream https://github.com/router-for-me/CLIProxyAPI.git
-          git fetch upstream "$TARGET_BRANCH"
+          git remote add base https://github.com/router-for-me/CLIProxyAPI.git
+          git fetch base "$TARGET_BRANCH"
+          git pull base "$TARGET_BRANCH" --rebase
 
-          BEFORE=$(git rev-parse HEAD)
-          UPSTREAM_SHA=$(git rev-parse "upstream/$TARGET_BRANCH")
-
-          if [ "$BEFORE" = "$UPSTREAM_SHA" ]; then
-            echo "No upstream changes"
+          AFTER_SHA=$(git rev-parse HEAD)
+          if [ "$AFTER_SHA" = "$BEFORE_ORIGIN" ]; then
+            echo "Result is identical to current origin/$TARGET_BRANCH"
             echo "fork_changed=false" >> "$GITHUB_OUTPUT"
             exit 0
           fi
 
-          git pull --rebase upstream "$TARGET_BRANCH"
-          git push origin "$TARGET_BRANCH"
+          git push -f origin "$TARGET_BRANCH"
           echo "fork_changed=true" >> "$GITHUB_OUTPUT"
 
   deps-update:
