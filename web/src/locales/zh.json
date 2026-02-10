@@ -138,6 +138,7 @@
     "description": "共 {{count}} 个请求",
     "noRequests": "暂无请求记录",
     "noRequestsHint": "请求将自动显示在这里",
+    "noMoreData": "没有更多数据了",
     "refresh": "刷新",
     "allProviders": "全部供应商",
     "allStatuses": "全部状态",

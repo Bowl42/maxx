@@ -73,6 +73,7 @@ export {
 export {
   requestKeys,
   useProxyRequests,
+  useInfiniteProxyRequests,
   useProxyRequestsCount,
   useProxyRequest,
   useProxyUpstreamAttempts,
