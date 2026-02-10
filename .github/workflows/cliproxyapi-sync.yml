@@ -91,7 +91,7 @@ jobs:
 
       - name: Create PR with gh
         env:
-          GH_TOKEN: ${{ github.token }}
+          GH_TOKEN: ${{ secrets.HOMEBREW_TAP_TOKEN }}
         run: |
           BASE_BRANCH="main"
           BRANCH="chore/cliproxyapi-replace-update"
@@ -127,8 +127,16 @@ jobs:
             exit 0
           fi
 
-          gh pr create \
+          if ! gh pr create \
             --base "$BASE_BRANCH" \
             --head "$BRANCH" \
             --title "chore: update CLIProxyAPI replace" \
-            --body "Automated dependency update by CLIProxyAPI Sync workflow."
+            --body "Automated dependency update by CLIProxyAPI Sync workflow."; then
+            {
+              echo "### PR creation skipped"
+              echo "- Branch pushed: $BRANCH"
+              echo "- Reason: token/repository policy denied automatic PR creation"
+              echo "- Action: open PR manually from $BRANCH to $BASE_BRANCH"
+            } >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
