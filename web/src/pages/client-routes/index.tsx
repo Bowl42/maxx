@@ -24,6 +24,8 @@ export function ClientRoutesPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedProjectId, setSelectedProjectId] = useState<string>('0'); // '0' = Global
   const [isSorting, setIsSorting] = useState(false);
+  const isClaudePage = activeClientType === 'claude';
+  const isCodexPage = activeClientType === 'codex';
 
   const { data: projects } = useProjects();
   const { data: allRoutes } = useRoutes();
@@ -162,11 +164,10 @@ export function ClientRoutesPage() {
 
               {/* Sort Buttons - Only show when viewing Global routes and on appropriate pages */}
               {selectedProjectId === '0' &&
-                ((hasAntigravityRoutes && activeClientType === 'antigravity') ||
-                  (hasCodexRoutes && activeClientType === 'codex')) && (
+                ((hasAntigravityRoutes && isClaudePage) || (hasCodexRoutes && isCodexPage)) && (
                 <div className="flex items-center gap-2">
-                  {/* Only show Antigravity sort button for antigravity client type */}
-                  {hasAntigravityRoutes && activeClientType === 'antigravity' && (
+                  {/* Only show Antigravity sort button for Claude page */}
+                  {hasAntigravityRoutes && isClaudePage && (
                     <Button
                       variant="outline"
                       size="sm"
@@ -179,8 +180,8 @@ export function ClientRoutesPage() {
                       {isSorting && <ArrowUpDown className="h-3.5 w-3.5 ml-1.5 animate-pulse" />}
                     </Button>
                   )}
-                  {/* Only show Codex sort button for codex client type */}
-                  {hasCodexRoutes && activeClientType === 'codex' && (
+                  {/* Only show Codex sort button for Codex page */}
+                  {hasCodexRoutes && isCodexPage && (
                     <Button
                       variant="outline"
                       size="sm"
