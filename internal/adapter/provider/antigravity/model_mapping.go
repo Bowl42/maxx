@@ -28,10 +28,8 @@ var defaultModelMappingRules = []ModelMappingRule{
 	// Claude 模型 - 具体模式优先
 	{"claude-3-5-sonnet-*", "claude-sonnet-4-5"},    // Claude 3.5 Sonnet
 	{"claude-3-opus-*", "claude-opus-4-6-thinking"}, // Claude 3 Opus
-	{"claude-opus-4-6", "claude-opus-4-6-thinking"},          // Claude Opus 4.6 精确映射
-	{"claude-opus-4-6-thinking", "claude-opus-4-6-thinking"}, // Claude Opus 4.6 Thinking 精确映射
-	{"claude-opus-4-5", "claude-opus-4-5-thinking"},          // Claude Opus 4.5 精确映射
-	{"claude-opus-4-5-thinking", "claude-opus-4-5-thinking"}, // Claude Opus 4.5 Thinking 精确映射
+	{"claude-opus-4-6*", "claude-opus-4-6-thinking"}, // Claude Opus 4.6 通配符
+	{"claude-opus-4-5*", "claude-opus-4-5-thinking"}, // Claude Opus 4.5 通配符
 	{"claude-opus-4-*", "claude-opus-4-6-thinking"}, // Claude 4 Opus
 	{"claude-haiku-*", "gemini-2.5-flash-lite"},     // Claude Haiku
 	{"claude-3-haiku-*", "gemini-2.5-flash-lite"},   // Claude 3 Haiku

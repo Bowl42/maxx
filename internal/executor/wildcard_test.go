@@ -77,6 +77,8 @@ func TestMatchModelMapping(t *testing.T) {
 		// Wildcard matches
 		{"claude-sonnet-4-20250514", "gemini-2.5-pro"},
 		{"claude-3-5-sonnet-20241022", "gemini-2.5-pro"},
+		{"claude-opus-4-6", "claude-opus-4-6-thinking"},
+		{"claude-opus-4-6-thinking", "claude-opus-4-6-thinking"},
 		{"claude-opus-4-20250514", "claude-opus-4-6-thinking"},
 		{"claude-3-5-haiku-20241022", "gemini-2.5-flash-lite"},
 		{"gpt-4-turbo", "gemini-2.5-pro"},
