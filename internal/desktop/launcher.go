@@ -6,8 +6,11 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"net/url"
 	"os"
 	"path/filepath"
+	"strconv"
+	"strings"
 	"sync"
 	"time"
 
@@ -372,6 +375,72 @@ func (a *LauncherApp) ShowWindow() {
 		runtime.WindowShow(a.ctx)
 		runtime.WindowUnminimise(a.ctx)
 	}
+}
+
+// OpenHome 打开应用首页（供菜单/托盘调用）
+func (a *LauncherApp) OpenHome() {
+	a.OpenRoute("/")
+}
+
+// OpenSettings 打开应用设置页（供菜单/托盘调用）
+func (a *LauncherApp) OpenSettings() {
+	a.OpenRoute("/settings")
+}
+
+// OpenRoute 打开应用内路由
+// - 服务已就绪：直接跳转到 http://localhost:<port>/<route>
+// - 服务未就绪：跳转到 launcher，并携带 target 参数等待启动完成后自动跳转
+func (a *LauncherApp) OpenRoute(route string) {
+	if a.ctx == nil {
+		log.Printf("[Launcher] Skip OpenRoute(%q): context not ready", route)
+		return
+	}
+
+	normalizedRoute := normalizeRoutePath(route)
+	a.ShowWindow()
+
+	status := a.CheckServerStatus()
+	if status.Ready {
+		targetURL := joinRouteURL(a.GetServerAddress(), normalizedRoute)
+		runtime.WindowExecJS(a.ctx, buildLocationScript(targetURL))
+		return
+	}
+
+	launcherURL := buildLauncherURLWithTarget(normalizedRoute)
+	runtime.WindowExecJS(a.ctx, buildLocationScript(launcherURL))
+}
+
+func normalizeRoutePath(route string) string {
+	trimmed := strings.TrimSpace(route)
+	if trimmed == "" || trimmed == "/" {
+		return "/"
+	}
+
+	if !strings.HasPrefix(trimmed, "/") {
+		return "/" + trimmed
+	}
+
+	return trimmed
+}
+
+func joinRouteURL(baseURL string, route string) string {
+	if route == "/" {
+		return strings.TrimRight(baseURL, "/")
+	}
+
+	return strings.TrimRight(baseURL, "/") + route
+}
+
+func buildLauncherURLWithTarget(route string) string {
+	if route == "/" {
+		return "wails://wails/index.html"
+	}
+
+	return "wails://wails/index.html?target=" + url.QueryEscape(route)
+}
+
+func buildLocationScript(targetURL string) string {
+	return "window.location.href = " + strconv.Quote(targetURL) + ";"
 }
 
 // HideWindow 隐藏窗口（供托盘调用）

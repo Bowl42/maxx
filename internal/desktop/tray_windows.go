@@ -7,6 +7,7 @@ import (
 	_ "embed"
 	"fmt"
 	"log"
+	"time"
 
 	"github.com/getlantern/systray"
 	"github.com/wailsapp/wails/v2/pkg/runtime"
@@ -108,27 +109,48 @@ func (t *TrayManager) handleMenuEvents() {
 
 // showWindow 显示窗口
 func (t *TrayManager) showWindow() {
+	if t.app != nil {
+		t.app.ShowWindow()
+		return
+	}
+
 	runtime.WindowShow(t.ctx)
 	runtime.WindowUnminimise(t.ctx)
 }
 
 // openSettings 打开设置页面
 func (t *TrayManager) openSettings() {
+	if t.app != nil {
+		t.app.OpenSettings()
+		return
+	}
+
 	runtime.WindowShow(t.ctx)
 	runtime.WindowUnminimise(t.ctx)
 	// 通过 JS 导航到设置页面
-	runtime.WindowExecJS(t.ctx, `window.location.href = 'wails://wails/index.html?page=settings';`)
+	runtime.WindowExecJS(t.ctx, `window.location.href = 'wails://wails/index.html?target=%2Fsettings';`)
 }
 
 // restartServer 重启服务器
 func (t *TrayManager) restartServer() {
 	if t.app != nil {
 		log.Println("[Tray] Restarting server...")
-		t.app.RestartServer()
-		// 延迟更新状态
+		if err := t.app.RestartServer(); err != nil {
+			log.Printf("[Tray] Restart server failed: %v", err)
+			t.menuServerStatus.SetTitle("服务器状态: 重启失败")
+			return
+		}
+
+		// 延迟更新状态，避免重启期间显示异常状态
 		go func() {
-			// 等待服务器重启
-			t.UpdateStatus()
+			for range 20 {
+				t.UpdateStatus()
+				status := t.app.CheckServerStatus()
+				if status.Ready || status.Error != "" {
+					return
+				}
+				time.Sleep(500 * time.Millisecond)
+			}
 		}()
 	}
 }
