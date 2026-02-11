@@ -42,6 +42,40 @@
     let checkTimer = null;
     let startTime = Date.now();
 
+    function normalizeTargetPath(path) {
+        if (!path || path === '/') {
+            return '/';
+        }
+        return path.startsWith('/') ? path : `/${path}`;
+    }
+
+    function getTargetPathFromUrl() {
+        const params = new URLSearchParams(window.location.search);
+        const queryTarget = params.get('target');
+        if (queryTarget) {
+            return normalizeTargetPath(queryTarget);
+        }
+
+        if (window.location.hash && window.location.hash.startsWith('#target=')) {
+            const hashTarget = decodeURIComponent(window.location.hash.slice('#target='.length));
+            return normalizeTargetPath(hashTarget);
+        }
+
+        return '/';
+    }
+
+    function clearTargetPathInUrl() {
+        const params = new URLSearchParams(window.location.search);
+        if (!params.has('target')) {
+            return;
+        }
+
+        params.delete('target');
+        const query = params.toString();
+        const next = query ? `?${query}` : window.location.pathname;
+        history.replaceState(null, '', next);
+    }
+
     // ==================== Page Navigation ====================
 
     function showPage(name) {
@@ -137,7 +171,14 @@
 
             if (status.Ready && status.RedirectURL) {
                 clearInterval(checkTimer);
-                redirectTo(status.RedirectURL);
+                const targetPath = getTargetPathFromUrl();
+                if (targetPath && targetPath !== '/') {
+                    clearTargetPathInUrl();
+                }
+                const targetURL = targetPath === '/'
+                    ? status.RedirectURL
+                    : `${status.RedirectURL}${targetPath}`;
+                redirectTo(targetURL);
                 return;
             }
 

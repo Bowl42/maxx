@@ -62,14 +62,10 @@ func main() {
 		// File Menu
 		fileMenu := appMenu.AddSubmenu("File")
 		fileMenu.AddText("Home", keys.CmdOrCtrl("h"), func(_ *menu.CallbackData) {
-			if appCtx != nil {
-				runtime.WindowExecJS(appCtx, `window.location.href = 'wails://wails/index.html';`)
-			}
+			app.OpenHome()
 		})
 		fileMenu.AddText("Settings", keys.CmdOrCtrl(","), func(_ *menu.CallbackData) {
-			if appCtx != nil {
-				runtime.WindowExecJS(appCtx, `window.location.href = 'wails://wails/index.html?page=settings';`)
-			}
+			app.OpenSettings()
 		})
 		fileMenu.AddSeparator()
 		fileMenu.AddText("Quit", keys.CmdOrCtrl("q"), func(_ *menu.CallbackData) {
