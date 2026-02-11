@@ -65,14 +65,37 @@
     }
 
     function clearTargetPathInUrl() {
-        const params = new URLSearchParams(window.location.search);
-        if (!params.has('target')) {
+        const queryParams = new URLSearchParams(window.location.search);
+        const hasQueryTarget = queryParams.has('target');
+        if (hasQueryTarget) {
+            queryParams.delete('target');
+        }
+
+        const rawHash = window.location.hash.startsWith('#')
+            ? window.location.hash.slice(1)
+            : window.location.hash;
+
+        let cleanHash = '';
+        let hasHashTarget = false;
+        if (rawHash) {
+            const hashParams = new URLSearchParams(rawHash);
+            hasHashTarget = hashParams.has('target');
+
+            if (hasHashTarget) {
+                hashParams.delete('target');
+                const rebuiltHash = hashParams.toString();
+                cleanHash = rebuiltHash ? `#${rebuiltHash}` : '';
+            } else {
+                cleanHash = `#${rawHash}`;
+            }
+        }
+
+        if (!hasQueryTarget && !hasHashTarget) {
             return;
         }
 
-        params.delete('target');
-        const query = params.toString();
-        const next = query ? `?${query}` : window.location.pathname;
+        const query = queryParams.toString();
+        const next = `${window.location.pathname}${query ? `?${query}` : ''}${cleanHash}`;
         history.replaceState(null, '', next);
     }
 
