@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { Card, CardContent, Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui';
 import { ClientIcon } from '@/components/icons/client-icons';
 import { PageHeader } from '@/components/layout/page-header';
+import { useProxyStatus } from '@/hooks/queries';
 
 interface CodeBlockProps {
   code: string;
@@ -56,6 +57,9 @@ export function DocumentationPage() {
 function DocumentationSection() {
   const { t } = useTranslation();
   const [copiedCode, setCopiedCode] = useState<string | null>(null);
+  const { data: proxyStatus } = useProxyStatus();
+  const proxyAddress = proxyStatus?.address ?? 'localhost:9880';
+  const baseUrl = `http://${proxyAddress}`;
 
   const copyToClipboard = (text: string, id: string) => {
     navigator.clipboard.writeText(text);
@@ -111,7 +115,7 @@ function DocumentationSection() {
                 code={`{
   "env": {
     "ANTHROPIC_AUTH_TOKEN": "your-api-key-here",
-    "ANTHROPIC_BASE_URL": "http://localhost:9880"
+    "ANTHROPIC_BASE_URL": "${baseUrl}"
   }
 }`}
                 id="claude-settings"
@@ -127,7 +131,7 @@ function DocumentationSection() {
               </p>
               <CodeBlock
                 code={`claude_maxx() {
-    export ANTHROPIC_BASE_URL="http://localhost:9880"
+    export ANTHROPIC_BASE_URL="${baseUrl}"
     export ANTHROPIC_AUTH_TOKEN="your-api-key-here"
     claude "$@"
 }`}
@@ -182,7 +186,7 @@ function DocumentationSection() {
                 <h3 className="text-sm font-semibold">{t('documentation.apiEndpoint')}</h3>
               </div>
               <CodeBlock
-                code="POST http://localhost:9880/v1/chat/completions"
+                code={`POST ${baseUrl}/v1/chat/completions`}
                 id="openai-endpoint"
                 copiedCode={copiedCode}
                 onCopy={copyToClipboard}
@@ -192,7 +196,7 @@ function DocumentationSection() {
             <div className="space-y-3">
               <h3 className="text-sm font-semibold">{t('documentation.requestExample')}</h3>
               <CodeBlock
-                code={`curl -X POST http://localhost:9880/v1/chat/completions \\
+                code={`curl -X POST ${baseUrl}/v1/chat/completions \\
   -H "Content-Type: application/json" \\
   -H "Authorization: Bearer maxx_your_token_here" \\
   -d '{
@@ -211,7 +215,7 @@ function DocumentationSection() {
               <h3 className="text-sm font-semibold">{t('documentation.projectProxy')}</h3>
               <p className="text-xs text-muted-foreground">{t('documentation.projectProxyDesc')}</p>
               <CodeBlock
-                code="POST http://localhost:9880/project/{project-slug}/v1/chat/completions"
+                code={`POST ${baseUrl}/project/{project-slug}/v1/chat/completions`}
                 id="openai-project"
                 copiedCode={copiedCode}
                 onCopy={copyToClipboard}
@@ -279,7 +283,7 @@ model_provider = "maxx"
 
 [model_providers.maxx]
 name = "maxx"
-base_url = "http://localhost:9880"
+base_url = "${baseUrl}"
 wire_api = "responses"
 request_max_retries = 4
 stream_max_retries = 10
@@ -365,7 +369,7 @@ codex`}
                 <h3 className="text-sm font-semibold">{t('documentation.apiEndpoint')}</h3>
               </div>
               <CodeBlock
-                code="POST http://localhost:9880/v1beta/models/{model}:generateContent"
+                code={`POST ${baseUrl}/v1beta/models/{model}:generateContent`}
                 id="gemini-endpoint"
                 copiedCode={copiedCode}
                 onCopy={copyToClipboard}
@@ -375,7 +379,7 @@ codex`}
             <div className="space-y-3">
               <h3 className="text-sm font-semibold">{t('documentation.requestExample')}</h3>
               <CodeBlock
-                code={`curl -X POST http://localhost:9880/v1beta/models/gemini-pro:generateContent \\
+                code={`curl -X POST ${baseUrl}/v1beta/models/gemini-pro:generateContent \\
   -H "Content-Type: application/json" \\
   -H "x-goog-api-key: maxx_your_token_here" \\
   -d '{
@@ -393,7 +397,7 @@ codex`}
               <h3 className="text-sm font-semibold">{t('documentation.projectProxy')}</h3>
               <p className="text-xs text-muted-foreground">{t('documentation.projectProxyDesc')}</p>
               <CodeBlock
-                code="POST http://localhost:9880/{project-slug}/v1beta/models/{model}:generateContent"
+                code={`POST ${baseUrl}/{project-slug}/v1beta/models/{model}:generateContent`}
                 id="gemini-project"
                 copiedCode={copiedCode}
                 onCopy={copyToClipboard}
