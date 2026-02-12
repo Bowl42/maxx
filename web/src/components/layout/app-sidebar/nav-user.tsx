@@ -1,6 +1,6 @@
-'use client';
+﻿'use client';
 
-import { Moon, Sun, Laptop, Languages, Sparkles, Gem, Github, ChevronsUp } from 'lucide-react';
+import { Moon, Sun, Laptop, Sparkles, Gem, Github, ChevronsUp } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '@/components/theme-provider';
 import type { Theme } from '@/lib/theme';
@@ -80,7 +80,6 @@ export function NavUser() {
               </span>
             ) : (
               <>
-                <Languages className="h-3.5 w-3.5 text-sidebar-foreground/80" />
                 <span className="inline-flex items-center rounded-full bg-sidebar/70 p-0.5">
                   <span
                     className={cn(
@@ -124,7 +123,8 @@ export function NavUser() {
               )}
             />
             <DropdownMenuContent
-              className="w-64 rounded-lg max-w-xs"
+              className="!w-40 rounded-lg max-w-xs !min-w-0"
+              style={{ width: '10rem' }}
               side={isMobile ? 'bottom' : 'right'}
               align="end"
               sideOffset={4}
