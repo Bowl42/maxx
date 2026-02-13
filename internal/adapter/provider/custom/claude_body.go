@@ -29,35 +29,66 @@ var userIDPattern = regexp.MustCompile(`^user_[a-fA-F0-9]{64}_account__session_[
 // Aligns with sub2api/claude-relay-service detection: claude-cli/x.y.z
 var claudeCLIUserAgentPattern = regexp.MustCompile(`(?i)^claude-cli/\d+\.\d+\.\d+`)
 
+// claudeBillingCCHPattern matches volatile cch fields injected in billing header text.
+var claudeBillingCCHPattern = regexp.MustCompile(`(?i)\bcch=[^;]*;\s*`)
+
 // processClaudeRequestBody processes Claude request body before sending to upstream.
 // Following CLIProxyAPI order:
-// 1. applyCloaking (system prompt injection, fake user_id, sensitive word obfuscation)
-// 2. disableThinkingIfToolChoiceForced
-// 3. ensureCacheControl (auto-inject if missing)
-// 4. extractAndRemoveBetas
+// 1. strip volatile billing cch fields from system text
+// 2. applyCloaking (system prompt injection, fake user_id, sensitive word obfuscation)
+// 3. disableThinkingIfToolChoiceForced
+// 4. ensureCacheControl (auto-inject if missing)
+// 5. extractAndRemoveBetas
 // Returns processed body and extra betas for header.
 func processClaudeRequestBody(body []byte, clientUserAgent string, cloakCfg *domain.ProviderConfigCustomCloak) ([]byte, []string) {
 	modelName := gjson.GetBytes(body, "model").String()
 
-	// 1. Apply cloaking (system prompt injection, fake user_id, sensitive word obfuscation)
+	// 1. Strip volatile billing cch fields to keep cache keys stable.
+	body = stripVolatileClaudeBillingCCH(body)
+
+	// 2. Apply cloaking (system prompt injection, fake user_id, sensitive word obfuscation)
 	body = applyCloaking(body, clientUserAgent, modelName, cloakCfg)
 
-	// 2. Disable thinking if tool_choice forces tool use
+	// 3. Disable thinking if tool_choice forces tool use
 	body = disableThinkingIfToolChoiceForced(body)
 
-	// 3. Ensure minimum thinking budget if present
+	// 4. Ensure minimum thinking budget if present
 	body = ensureMinThinkingBudget(body)
 
-	// 4. Auto-inject cache_control if missing (CLIProxyAPI behavior)
+	// 5. Auto-inject cache_control if missing (CLIProxyAPI behavior)
 	if countCacheControls(body) == 0 {
 		body = ensureCacheControl(body)
 	}
 
-	// 5. Extract betas from body (to be added to header)
+	// 6. Extract betas from body (to be added to header)
 	var extraBetas []string
 	extraBetas, body = extractAndRemoveBetas(body)
 
 	return body, extraBetas
+}
+
+func stripVolatileClaudeBillingCCH(body []byte) []byte {
+	body = stripVolatileClaudeBillingCCHAtPath(body, "system.0.text")
+	body = stripVolatileClaudeBillingCCHAtPath(body, "message.system.0.text")
+	return body
+}
+
+func stripVolatileClaudeBillingCCHAtPath(body []byte, path string) []byte {
+	current := gjson.GetBytes(body, path)
+	if current.Type != gjson.String {
+		return body
+	}
+
+	updatedText := claudeBillingCCHPattern.ReplaceAllString(current.String(), "")
+	if updatedText == current.String() {
+		return body
+	}
+
+	updatedBody, err := sjson.SetBytes(body, path, updatedText)
+	if err != nil {
+		return body
+	}
+	return updatedBody
 }
 
 // applyCloaking applies cloaking transformations based on config and client.
