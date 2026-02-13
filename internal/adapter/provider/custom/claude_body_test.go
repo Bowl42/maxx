@@ -428,3 +428,47 @@ func TestCloakingPreservesSystemStringInNonStrictMode(t *testing.T) {
 		t.Fatalf("expected original system string preserved, got %q", got)
 	}
 }
+
+func TestProcessClaudeRequestBodyStripsVolatileBillingCCH(t *testing.T) {
+	body := []byte(`{
+		"model":"claude-3-5-sonnet",
+		"system":[{"type":"text","text":"x-anthropic-billing-header: cc_version=20250219; cc_entrypoint=cli; cch=abc123; cc_env=prod; cch=def456;"}],
+		"messages":[
+			{"role":"user","content":"hello"},
+			{"role":"assistant","content":"ok"},
+			{"role":"user","content":"again"}
+		]
+	}`)
+
+	cfg := &domain.ProviderConfigCustomCloak{Mode: "never"}
+	result, _ := processClaudeRequestBody(body, "claude-cli/2.1.23 (external, cli)", cfg)
+
+	systemText := gjson.GetBytes(result, "system.0.text").String()
+	if strings.Contains(systemText, "cch=") {
+		t.Fatalf("expected volatile cch fields removed, got %q", systemText)
+	}
+	for _, key := range []string{"cc_version=20250219;", "cc_entrypoint=cli;", "cc_env=prod;"} {
+		if !strings.Contains(systemText, key) {
+			t.Fatalf("expected %s to be preserved, got %q", key, systemText)
+		}
+	}
+}
+
+func TestStripVolatileClaudeBillingCCHSupportsMessageEnvelope(t *testing.T) {
+	body := []byte(`{
+		"message":{
+			"system":[
+				{"type":"text","text":"cc_version=20250219; cch=r1; cc_entrypoint=cli;"}
+			]
+		}
+	}`)
+
+	result := stripVolatileClaudeBillingCCH(body)
+	systemText := gjson.GetBytes(result, "message.system.0.text").String()
+	if strings.Contains(systemText, "cch=") {
+		t.Fatalf("expected envelope message.system billing cch removed, got %q", systemText)
+	}
+	if !strings.Contains(systemText, "cc_version=20250219;") || !strings.Contains(systemText, "cc_entrypoint=cli;") {
+		t.Fatalf("expected stable billing keys preserved, got %q", systemText)
+	}
+}
