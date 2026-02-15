@@ -44,7 +44,7 @@ function ProjectClientTypeWrapper({
   return (
     <div className="flex flex-col h-full">
       {/* Header with Toggle */}
-      <div className="flex items-center justify-between px-lg p-4 border-b border-border bg-card">
+      <div className="flex flex-col gap-y-2 px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:gap-y-0 sm:px-6 border-b border-border bg-card">
         <div className="flex items-center gap-4">
           <ClientIcon type={clientType} size={32} />
           <div>
@@ -66,7 +66,7 @@ function ProjectClientTypeWrapper({
 
       {/* Content */}
       {!isCustomRoutesEnabled ? (
-        <div className="flex-1 flex flex-col items-center justify-center py-24 text-center space-y-6 px-lg">
+        <div className="flex-1 flex flex-col items-center justify-center py-24 text-center space-y-6 px-4 sm:px-6">
           <div className="p-6 rounded-full bg-muted/50">
             <ClientIcon type={clientType} size={48} className="opacity-30" />
           </div>
@@ -171,34 +171,45 @@ export function RoutesTab({ project }: RoutesTabProps) {
   return (
     <div className="flex flex-col h-full overflow-hidden">
       {/* ClientType Tabs */}
-      <div className="flex items-center gap-2 px-lg py-4 border-b border-border bg-card shrink-0">
-        {CLIENT_TYPES.map((clientType) => {
-          const isActive = activeClientType === clientType;
-          const routeCount = getRouteCount(clientType);
-          const streamingCount = getStreamingCount(clientType);
-          const color = getClientColor(clientType);
-          const clientLabel = getClientTypeLabel(t, clientType);
+      <div className="px-4 py-4 sm:px-6 border-b border-border bg-card/80 backdrop-blur-xs shrink-0 overflow-x-auto">
+        <div className="flex items-center gap-2 min-w-max">
+          {CLIENT_TYPES.map((clientType) => {
+            const isActive = activeClientType === clientType;
+            const routeCount = getRouteCount(clientType);
+            const streamingCount = getStreamingCount(clientType);
+            const color = getClientColor(clientType);
+            const clientLabel = getClientTypeLabel(t, clientType);
 
-          return (
-            <button
-              key={clientType}
-              onClick={() => setActiveClientType(clientType)}
-              className={cn(
-                'relative flex items-center gap-2 px-4 py-2 rounded-lg transition-all',
-                isActive
-                  ? 'bg-accent/10 text-accent border border-accent/20'
-                  : 'bg-muted text-muted-foreground hover:bg-accent border border-transparent',
-              )}
-            >
-              <ClientIcon type={clientType} size={16} />
-              <span className="text-sm font-medium">{clientLabel}</span>
-              {routeCount > 0 && (
-                <span className="text-[10px] font-mono text-muted-foreground">{routeCount}</span>
-              )}
-              {streamingCount > 0 && <StreamingBadge count={streamingCount} color={color} />}
-            </button>
-          );
-        })}
+            return (
+              <button
+                key={clientType}
+                type="button"
+                onClick={() => setActiveClientType(clientType)}
+                aria-pressed={isActive}
+                className={cn(
+                  'relative flex items-center gap-2 px-4 py-2 rounded-lg border transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50',
+                  isActive
+                    ? 'bg-primary text-primary-foreground border-primary shadow-sm'
+                    : 'bg-muted text-muted-foreground border-transparent hover:bg-accent hover:text-accent-foreground',
+                )}
+              >
+                <ClientIcon type={clientType} size={16} />
+                <span className="text-sm font-medium">{clientLabel}</span>
+                {routeCount > 0 && (
+                  <span
+                    className={cn(
+                      'text-[10px] font-mono',
+                      isActive ? 'text-primary-foreground/85' : 'text-muted-foreground',
+                    )}
+                  >
+                    {routeCount}
+                  </span>
+                )}
+                {streamingCount > 0 && <StreamingBadge count={streamingCount} color={color} />}
+              </button>
+            );
+          })}
+        </div>
       </div>
 
       {/* Content */}
