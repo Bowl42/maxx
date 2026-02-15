@@ -108,8 +108,8 @@ export function ProjectDetailPage() {
         onValueChange={(v: string) => setActiveTab(v as TabId)}
         className="flex-1 flex flex-col overflow-hidden"
       >
-        <div className="px-6 py-4 border-b border-border bg-card/50">
-          <TabsList>
+        <div className="px-4 py-4 sm:px-6 border-b border-border bg-card/50 overflow-x-auto">
+          <TabsList className="min-w-max">
             <TabsTrigger value="overview">
               <LayoutGrid className="h-4 w-4 mr-2" />
               {t('projects.tabs.overview')}
