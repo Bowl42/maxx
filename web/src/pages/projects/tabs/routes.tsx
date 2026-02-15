@@ -183,6 +183,7 @@ export function RoutesTab({ project }: RoutesTabProps) {
             return (
               <button
                 key={clientType}
+                type="button"
                 onClick={() => setActiveClientType(clientType)}
                 aria-pressed={isActive}
                 className={cn(
