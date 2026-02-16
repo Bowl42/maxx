@@ -1,6 +1,6 @@
 module github.com/awsl-project/maxx
 
-go 1.25
+go 1.26.0
 
 require (
 	github.com/andybalholm/brotli v1.2.0
@@ -104,4 +104,4 @@ require (
 	modernc.org/sqlite v1.23.1 // indirect
 )
 
-replace github.com/router-for-me/CLIProxyAPI/v6 => github.com/awsl-project/CLIProxyAPI/v6 v6.0.0-20260214040426-bd4092863c33
+replace github.com/router-for-me/CLIProxyAPI/v6 => github.com/awsl-project/CLIProxyAPI/v6 v6.0.0-20260216041831-0b08114d895a
