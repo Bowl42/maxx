@@ -101,9 +101,17 @@ func (r *ProxyRequestRepository) ListCursor(limit int, before, after uint64, fil
 	}
 
 	var models []ProxyRequest
-	// 按结束时间排序：未完成的请求（end_time=0）在最前面，已完成的按 end_time DESC 排序
-	// SQLite 不支持 NULLS FIRST，使用 CASE WHEN 实现
-	if err := query.Order("CASE WHEN end_time = 0 THEN 0 ELSE 1 END, end_time DESC, id DESC").Limit(limit).Find(&models).Error; err != nil {
+	// 注意：这里使用基于主键 id 的稳定排序（与 before/after 游标保持一致），避免复杂 ORDER BY
+	// 导致 SQLite 无法利用索引、在大数据量下触发全表排序，从而出现“limit=100 仍需数分钟”的性能问题。
+	//
+	// 约定：
+	// - 默认/向后翻页(before)：按 id DESC（最新在前）
+	// - 向前翻页/获取新数据(after)：按 id ASC（较旧的新数据在前，便于按时间顺序追加）
+	orderBy := "id DESC"
+	if after > 0 {
+		orderBy = "id ASC"
+	}
+	if err := query.Order(orderBy).Limit(limit).Find(&models).Error; err != nil {
 		return nil, err
 	}
 	return r.toDomainList(models), nil

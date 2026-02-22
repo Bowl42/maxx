@@ -1,4 +1,4 @@
-/**
+﻿/**
  * ProxyRequest React Query Hooks
  */
 
@@ -80,31 +80,54 @@ export function useProxyRequestUpdates() {
 
   useEffect(() => {
     const transport = getTransport();
+    const queryCache = queryClient.getQueryCache();
 
-    // 订阅 ProxyRequest 更新事件 (连接由 main.tsx 统一管理)
-    const unsubscribeRequest = transport.subscribe<ProxyRequest>(
-      'proxy_request_update',
-      (updatedRequest) => {
-        // 检查是否是新请求（通过详情缓存判断）
-        const existingDetail = queryClient.getQueryData(requestKeys.detail(updatedRequest.id));
-        const isNewRequest = !existingDetail;
+    const flushIntervalMs = 250;
+    const pendingRequests = new Map<number, ProxyRequest>();
+    const knownRequestIds = new Set<number>();
+    let flushTimer: ReturnType<typeof setTimeout> | null = null;
 
-        // 更新单个请求的缓存
-        queryClient.setQueryData(requestKeys.detail(updatedRequest.id), updatedRequest);
+    const flush = () => {
+      if (pendingRequests.size === 0) {
+        return;
+      }
 
-        // 更新列表缓存（乐观更新）- 适配 CursorPaginationResult 结构
-        // 使用 queryCache 遍历所有匹配的查询，以获取每个查询的过滤参数
-        const queryCache = queryClient.getQueryCache();
-        const listQueries = queryCache.findAll({ queryKey: requestKeys.lists() });
+      const updates = Array.from(pendingRequests.values());
+      pendingRequests.clear();
 
+      const listQueries = queryCache
+        .findAll({ queryKey: requestKeys.lists() })
+        .filter((q) => q.getObserversCount() > 0);
+      const infiniteQueries = queryCache
+        .findAll({ queryKey: [...requestKeys.all, 'infinite'] })
+        .filter((q) => q.getObserversCount() > 0);
+      const countQueries = queryCache
+        .findAll({ queryKey: ['requestsCount'] })
+        .filter((q) => q.getObserversCount() > 0);
+
+      let invalidateDashboard = false;
+      let invalidateProviderStats = false;
+      let invalidateCooldowns = false;
+
+      for (const updatedRequest of updates) {
+        const requestId = updatedRequest.id;
+        let isKnown = knownRequestIds.has(requestId);
+
+        // 仅当详情查询正在被观察时才更新详情缓存，避免列表页“写缓存造内存”
+        const detailKey = requestKeys.detail(requestId);
+        const detailQuery = queryCache.find({ queryKey: detailKey, exact: true });
+        if (detailQuery && detailQuery.getObserversCount() > 0) {
+          queryClient.setQueryData(detailKey, updatedRequest);
+          isKnown = true;
+        }
+
+        // 更新 Cursor 列表查询（仅更新正在被观察的 query）
         for (const query of listQueries) {
           const queryKey = query.queryKey as ReturnType<typeof requestKeys.list>;
-          // 从 queryKey 中提取过滤参数: ['requests', 'list', params]
           const params = queryKey[2] as CursorPaginationParams | undefined;
           const filterProviderId = params?.providerId;
           const filterStatus = params?.status;
 
-          // 检查是否匹配过滤条件的辅助函数
           const matchesFilter = (request: ProxyRequest) => {
             if (filterProviderId !== undefined && request.providerID !== filterProviderId) {
               return false;
@@ -140,29 +163,23 @@ export function useProxyRequestUpdates() {
               };
             };
 
-            const index = old.items.findIndex((r) => r.id === updatedRequest.id);
+            const index = old.items.findIndex((r) => r.id === requestId);
             if (index >= 0) {
-              // 已存在的请求：检查是否仍然匹配过滤条件
+              isKnown = true;
               if (!matchesFilter(updatedRequest)) {
-                // 不再匹配过滤条件，从列表中移除
-                const newItems = old.items.filter((r) => r.id !== updatedRequest.id);
+                const newItems = old.items.filter((r) => r.id !== requestId);
                 return normalizePage(newItems);
               }
-              // 仍然匹配，更新
               const newItems = [...old.items];
               newItems[index] = updatedRequest;
               return normalizePage(newItems);
             }
 
-            // 新请求：检查是否匹配过滤条件
             if (!matchesFilter(updatedRequest)) {
-              // 不匹配过滤条件，不添加
               return old;
             }
 
-            // 新请求添加到列表开头（只在首页，即没有 before 参数的查询）
             if (params?.before) {
-              // 不是首页，不添加新请求
               return old;
             }
 
@@ -170,14 +187,9 @@ export function useProxyRequestUpdates() {
           });
         }
 
-        // 更新 Infinite Queries 缓存
-        const infiniteQueries = queryCache.findAll({
-          queryKey: [...requestKeys.all, 'infinite'],
-        });
-
+        // 更新 Infinite Queries（仅更新正在被观察的 query）
         for (const query of infiniteQueries) {
           const queryKey = query.queryKey as ReturnType<typeof requestKeys.infinite>;
-          // queryKey: ['requests', 'infinite', providerId, status]
           const filterProviderId = queryKey[2] as number | undefined;
           const filterStatus = queryKey[3] as string | undefined;
 
@@ -197,72 +209,119 @@ export function useProxyRequestUpdates() {
           }>(queryKey, (old) => {
             if (!old || !old.pages || old.pages.length === 0) return old;
 
-            const updatedPages = old.pages.map((page, pageIndex) => {
-              const index = page.items.findIndex((r) => r.id === updatedRequest.id);
+            let hasExisting = false;
 
-              if (index >= 0) {
-                // 已存在的请求：检查是否仍然匹配过滤条件
-                if (!matchesFilter(updatedRequest)) {
-                  // 不再匹配，从列表中移除
-                  const newItems = page.items.filter((r) => r.id !== updatedRequest.id);
-                  return { ...page, items: newItems };
-                }
-                // 仍然匹配，更新
-                const newItems = [...page.items];
-                newItems[index] = updatedRequest;
+            const updatedPages = old.pages.map((page) => {
+              const index = page.items.findIndex((r) => r.id === requestId);
+              if (index < 0) {
+                return page;
+              }
+
+              hasExisting = true;
+
+              if (!matchesFilter(updatedRequest)) {
+                const newItems = page.items.filter((r) => r.id !== requestId);
                 return { ...page, items: newItems };
               }
 
-              // 只在第一页添加新请求
-              if (pageIndex === 0 && isNewRequest && matchesFilter(updatedRequest)) {
-                return { ...page, items: [updatedRequest, ...page.items] };
-              }
-
-              return page;
+              const newItems = [...page.items];
+              newItems[index] = updatedRequest;
+              return { ...page, items: newItems };
             });
 
-            return { ...old, pages: updatedPages };
+            if (hasExisting) {
+              isKnown = true;
+              return { ...old, pages: updatedPages };
+            }
+
+            if (!matchesFilter(updatedRequest)) {
+              return { ...old, pages: updatedPages };
+            }
+
+            // 仅在第一页插入“新请求”，避免重复插入导致列表膨胀
+            const firstPage = updatedPages[0];
+            if (!firstPage) {
+              return { ...old, pages: updatedPages };
+            }
+
+            return {
+              ...old,
+              pages: [{ ...firstPage, items: [updatedRequest, ...firstPage.items] }, ...updatedPages.slice(1)],
+            };
           });
         }
 
-        // 新请求时乐观更新 count（需要考虑每个 count 查询的过滤条件）
-        if (isNewRequest) {
-          // 遍历所有 requestsCount 缓存
-          const countQueries = queryCache.findAll({ queryKey: ['requestsCount'] });
-          for (const query of countQueries) {
-            // queryKey: ['requestsCount', providerId, status]
-            const filterProviderId = query.queryKey[1] as number | undefined;
-            const filterStatus = query.queryKey[2] as string | undefined;
-            // 如果有过滤条件且不匹配，不更新计数
-            if (filterProviderId !== undefined && updatedRequest.providerID !== filterProviderId) {
-              continue;
+        // 新请求时乐观更新 count（增加保护：避免因“未观察详情缓存”导致重复 +1）
+        if (!isKnown) {
+          const startTimeMs = new Date(updatedRequest.startTime).getTime();
+          const looksLikeNewRequest =
+            updatedRequest.status === 'PENDING' &&
+            Number.isFinite(startTimeMs) &&
+            Date.now() - startTimeMs < 15_000;
+
+          if (looksLikeNewRequest) {
+            for (const query of countQueries) {
+              const filterProviderId = query.queryKey[1] as number | undefined;
+              const filterStatus = query.queryKey[2] as string | undefined;
+              if (filterProviderId !== undefined && updatedRequest.providerID !== filterProviderId) {
+                continue;
+              }
+              if (filterStatus !== undefined && updatedRequest.status !== filterStatus) {
+                continue;
+              }
+              queryClient.setQueryData<number>(query.queryKey, (old) => (old ?? 0) + 1);
             }
-            if (filterStatus !== undefined && updatedRequest.status !== filterStatus) {
-              continue;
-            }
-            queryClient.setQueryData<number>(query.queryKey, (old) => (old ?? 0) + 1);
           }
         }
 
-        // 请求完成或失败时刷新相关数据
+        knownRequestIds.add(requestId);
+
         if (updatedRequest.status === 'COMPLETED' || updatedRequest.status === 'FAILED') {
-          // 刷新 dashboard 数据
-          queryClient.invalidateQueries({ queryKey: ['dashboard'] });
-          // 刷新 provider stats（因为统计数据变化了）
-          queryClient.invalidateQueries({ queryKey: ['providers', 'stats'] });
-          // 刷新 cooldowns（请求可能触发了冷却，即使最终成功也可能有 provider 进入冷却）
-          queryClient.invalidateQueries({ queryKey: ['cooldowns'] });
+          invalidateDashboard = true;
+          invalidateProviderStats = true;
+          invalidateCooldowns = true;
         }
-      },
-    );
+      }
+
+      if (invalidateDashboard) {
+        queryClient.invalidateQueries({ queryKey: ['dashboard'] });
+      }
+      if (invalidateProviderStats) {
+        queryClient.invalidateQueries({ queryKey: ['providers', 'stats'] });
+      }
+      if (invalidateCooldowns) {
+        queryClient.invalidateQueries({ queryKey: ['cooldowns'] });
+      }
+    };
+
+    const scheduleFlush = () => {
+      if (flushTimer) {
+        return;
+      }
+      flushTimer = setTimeout(() => {
+        flushTimer = null;
+        flush();
+      }, flushIntervalMs);
+    };
+
+    const unsubscribeRequest = transport.subscribe<ProxyRequest>('proxy_request_update', (updatedRequest) => {
+      pendingRequests.set(updatedRequest.id, updatedRequest);
+      scheduleFlush();
+    });
 
     // 订阅 ProxyUpstreamAttempt 更新事件
     const unsubscribeAttempt = transport.subscribe<ProxyUpstreamAttempt>(
       'proxy_upstream_attempt_update',
       (updatedAttempt) => {
-        // 更新 Attempts 缓存
+        // 仅当 attempts 查询正在被观察时才更新，避免列表页“写缓存造内存”
+        const attemptsKey = requestKeys.attempts(updatedAttempt.proxyRequestID);
+        const attemptsQuery = queryCache.find({ queryKey: attemptsKey, exact: true });
+        if (!attemptsQuery || attemptsQuery.getObserversCount() === 0) {
+          return;
+        }
+
         queryClient.setQueryData<ProxyUpstreamAttempt[]>(
-          requestKeys.attempts(updatedAttempt.proxyRequestID),
+          attemptsKey,
           (old) => {
             if (!old) return [updatedAttempt];
             const index = old.findIndex((a) => a.id === updatedAttempt.id);
@@ -278,6 +337,11 @@ export function useProxyRequestUpdates() {
     );
 
     return () => {
+      if (flushTimer) {
+        clearTimeout(flushTimer);
+        flushTimer = null;
+      }
+      pendingRequests.clear();
       unsubscribeRequest();
       unsubscribeAttempt();
     };
