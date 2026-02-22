@@ -2,6 +2,7 @@ package handler
 
 import (
 	"bytes"
+	"encoding/json"
 	"log"
 	"strings"
 	"testing"
@@ -119,5 +120,39 @@ func TestWebSocketHub_BroadcastProxyRequest_LogsWhenDropped(t *testing.T) {
 	}
 	if !strings.Contains(out, "req_1") {
 		t.Fatalf("expected requestID in log, got: %q", out)
+	}
+}
+
+func TestWebSocketHub_BroadcastMessage_SendsSnapshot(t *testing.T) {
+	hub := &WebSocketHub{
+		broadcast: make(chan WSMessage, 1),
+	}
+
+	type payload struct {
+		A int `json:"a"`
+	}
+
+	p := &payload{A: 1}
+	hub.BroadcastMessage("custom_event", p)
+
+	// 如果 BroadcastMessage 直接把指针放进队列，这里修改会污染后续消费者看到的数据。
+	p.A = 2
+
+	msg := <-hub.broadcast
+	if msg.Type != "custom_event" {
+		t.Fatalf("unexpected message type: %s", msg.Type)
+	}
+
+	raw, ok := msg.Data.(json.RawMessage)
+	if !ok {
+		t.Fatalf("expected Data to be json.RawMessage snapshot, got %T", msg.Data)
+	}
+
+	var got payload
+	if err := json.Unmarshal(raw, &got); err != nil {
+		t.Fatalf("failed to unmarshal snapshot: %v", err)
+	}
+	if got.A != 1 {
+		t.Fatalf("expected snapshot A=1, got %d", got.A)
 	}
 }

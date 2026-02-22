@@ -2,6 +2,7 @@ package handler
 
 import (
 	"bufio"
+	"encoding/json"
 	"io"
 	"log"
 	"net/http"
@@ -167,9 +168,28 @@ func (h *WebSocketHub) BroadcastProxyUpstreamAttempt(attempt *domain.ProxyUpstre
 
 // BroadcastMessage sends a custom message with specified type to all connected clients
 func (h *WebSocketHub) BroadcastMessage(messageType string, data interface{}) {
+	// 约定：BroadcastMessage 允许调用方传入 map/struct/指针等可变对象。
+	//
+	// 但由于实际发送是异步的（入队后由 run() 写到各连接），如果这里直接把可变指针放进 channel，
+	// 调用方在入队后继续修改数据，会导致与 BroadcastProxyRequest 类似的数据竞态。
+	//
+	// 因此这里先把 data 预先序列化为 json.RawMessage，形成不可变快照；后续 WriteJSON 会直接写入该快照。
+	var snapshot interface{} = data
+	if data != nil {
+		if raw, ok := data.(json.RawMessage); ok {
+			snapshot = raw
+		} else {
+			b, err := json.Marshal(data)
+			if err != nil {
+				log.Printf("[WebSocket] drop broadcast message type=%s: marshal snapshot failed: %v", messageType, err)
+				return
+			}
+			snapshot = json.RawMessage(b)
+		}
+	}
 	msg := WSMessage{
 		Type: messageType,
-		Data: data,
+		Data: snapshot,
 	}
 	h.tryEnqueueBroadcast(msg, "")
 }

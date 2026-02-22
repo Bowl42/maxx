@@ -320,11 +320,10 @@ export function RequestsPage() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {allRequests.map((req, index) => (
+                    {allRequests.map((req) => (
                       <MemoLogRow
                         key={req.id}
                         request={req}
-                        index={index}
                         providerName={providerMap.get(req.providerID)}
                         projectName={projectMap.get(req.projectID)}
                         tokenName={tokenMap.get(req.apiTokenID)}
@@ -490,7 +489,6 @@ function CostCell({ cost }: { cost: number }) {
 // Log Row Component
 type LogRowProps = {
   request: ProxyRequest;
-  index: number;
   providerName?: string;
   projectName?: string;
   tokenName?: string;
@@ -504,7 +502,6 @@ type LogRowProps = {
 
 function LogRow({
   request,
-  index,
   providerName,
   projectName,
   tokenName,
@@ -573,8 +570,6 @@ function LogRow({
   // Get HTTP status code (use denormalized field for list performance)
   const statusCode = request.statusCode || request.responseInfo?.status;
 
-  // Zebra striping base class
-  const zebraClass = index % 2 === 1 ? 'bg-foreground/[0.03]' : '';
   const handleClick = () => onOpenRequest(request.id);
 
   return (
@@ -582,18 +577,18 @@ function LogRow({
       onClick={handleClick}
       className={cn(
         'cursor-pointer group transition-colors',
-        // Zebra striping - applies to all rows as base layer
-        zebraClass,
+        // Zebra striping - use CSS selector to avoid passing index (inserts won't invalidate memo)
+        'even:bg-foreground/[0.03]',
         // Base hover effect (stronger background change)
         !isRecent && !isFailed && !isPending && !isPendingBinding && 'hover:bg-accent/50',
 
         // Failed state - Red background only (testing without border)
-        isFailed && cn(index % 2 === 1 ? 'bg-red-500/25' : 'bg-red-500/20', 'hover:bg-red-500/40'),
+        isFailed && cn('bg-red-500/20 even:bg-red-500/25', 'hover:bg-red-500/40'),
 
         // Pending binding state - Amber background with left border
         isPendingBinding &&
           cn(
-            index % 2 === 1 ? 'bg-amber-500/15' : 'bg-amber-500/10',
+            'bg-amber-500/10 even:bg-amber-500/15',
             'hover:bg-amber-500/25',
             'border-l-2 border-l-amber-500',
           ),
@@ -604,7 +599,7 @@ function LogRow({
           (enableMarquee
             ? 'animate-marquee-row'
             : cn(
-                index % 2 === 1 ? 'bg-blue-500/10' : 'bg-blue-500/5',
+                'bg-blue-500/5 even:bg-blue-500/10',
                 'border-l-2 border-l-blue-500/50',
               )),
 
@@ -765,7 +760,6 @@ const MemoLogRow = memo(
   LogRow,
   (prev: Readonly<LogRowProps>, next: Readonly<LogRowProps>) => {
     if (prev.request !== next.request) return false;
-    if (prev.index !== next.index) return false;
     if (prev.providerName !== next.providerName) return false;
     if (prev.projectName !== next.projectName) return false;
     if (prev.tokenName !== next.tokenName) return false;

@@ -150,6 +150,10 @@ func (d *DB) getCurrentVersion() int {
 
 // runMigration 在事务中运行单个迁移
 func (d *DB) runMigration(m Migration) error {
+	// 注意：MySQL 的 DDL（如 CREATE/DROP INDEX）会触发隐式提交（implicit commit），
+	// 这意味着即使这里用 gorm.Transaction 包裹，MySQL 路径也无法提供严格的“DDL + 迁移记录”原子性。
+	//
+	// 因此迁移实现必须尽量幂等：例如重复执行 CREATE INDEX 时，仅在 ER_DUP_KEYNAME(1061) 场景下视为成功。
 	return d.gorm.Transaction(func(tx *gorm.DB) error {
 		// 运行迁移
 		if m.Up != nil {
@@ -207,6 +211,8 @@ func (d *DB) RollbackMigration(targetVersion int) error {
 
 // rollbackMigration 在事务中回滚单个迁移
 func (d *DB) rollbackMigration(m Migration) error {
+	// 同 runMigration：MySQL DDL 在回滚路径同样可能发生隐式提交，因此这里的事务主要用于把“回滚逻辑”
+	// 与“删除迁移记录”尽量绑定在一起，但不应假设 MySQL 上能做到严格原子回滚。
 	return d.gorm.Transaction(func(tx *gorm.DB) error {
 		// 运行回滚
 		if m.Down != nil {
