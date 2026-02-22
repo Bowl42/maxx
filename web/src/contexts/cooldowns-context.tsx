@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Cooldowns Context
  * 提供共享的 Cooldowns 数据，减少重复请求
  */
@@ -7,6 +7,7 @@ import { createContext, useContext, useEffect, useCallback, type ReactNode } fro
 import { useQuery, useQueryClient, useMutation } from '@tanstack/react-query';
 import { getTransport } from '@/lib/transport';
 import type { Cooldown } from '@/lib/transport';
+import { subscribeCooldownUpdates } from '@/lib/cooldown-update-subscription';
 
 interface CooldownsContextValue {
   cooldowns: Cooldown[];
@@ -38,14 +39,7 @@ export function CooldownsProvider({ children }: CooldownsProviderProps) {
 
   // Subscribe to cooldown_update WebSocket event
   useEffect(() => {
-    const transport = getTransport();
-    const unsubscribe = transport.subscribe('cooldown_update', () => {
-      queryClient.invalidateQueries({ queryKey: ['cooldowns'] });
-    });
-
-    return () => {
-      unsubscribe();
-    };
+    return subscribeCooldownUpdates(queryClient);
   }, [queryClient]);
 
   // Mutation for clearing cooldown

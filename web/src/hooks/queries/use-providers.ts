@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Provider React Query Hooks
  */
 
@@ -98,6 +98,7 @@ export function useAllProviderStats() {
     queryKey: [...providerKeys.stats(), 'all'],
     queryFn: () => getTransport().getProviderStats(),
     // 不再轮询，改为通过 WebSocket 事件触发刷新 (useProxyRequestUpdates)
+    staleTime: 5000,
   });
 }
 

@@ -1,4 +1,4 @@
-package handler
+﻿package handler
 
 import (
 	"bufio"
@@ -10,6 +10,7 @@ import (
 	"sync"
 
 	"github.com/awsl-project/maxx/internal/domain"
+	"github.com/awsl-project/maxx/internal/event"
 	"github.com/gorilla/websocket"
 )
 
@@ -41,15 +42,29 @@ func NewWebSocketHub() *WebSocketHub {
 
 func (h *WebSocketHub) run() {
 	for msg := range h.broadcast {
+		// 避免在持锁状态下进行网络写入；同时修复 RLock 下 delete map 的数据竞争风险
 		h.mu.RLock()
+		clients := make([]*websocket.Conn, 0, len(h.clients))
 		for client := range h.clients {
-			err := client.WriteJSON(msg)
-			if err != nil {
-				client.Close()
-				delete(h.clients, client)
-			}
+			clients = append(clients, client)
 		}
 		h.mu.RUnlock()
+
+		var toRemove []*websocket.Conn
+		for _, client := range clients {
+			if err := client.WriteJSON(msg); err != nil {
+				_ = client.Close()
+				toRemove = append(toRemove, client)
+			}
+		}
+
+		if len(toRemove) > 0 {
+			h.mu.Lock()
+			for _, client := range toRemove {
+				delete(h.clients, client)
+			}
+			h.mu.Unlock()
+		}
 	}
 }
 
@@ -81,32 +96,51 @@ func (h *WebSocketHub) HandleWebSocket(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *WebSocketHub) BroadcastProxyRequest(req *domain.ProxyRequest) {
-	h.broadcast <- WSMessage{
+	req = event.SanitizeProxyRequestForBroadcast(req)
+	msg := WSMessage{
 		Type: "proxy_request_update",
 		Data: req,
+	}
+	select {
+	case h.broadcast <- msg:
+	default:
+		// Channel 满时丢弃，避免阻塞 executor/请求处理链路
 	}
 }
 
 func (h *WebSocketHub) BroadcastProxyUpstreamAttempt(attempt *domain.ProxyUpstreamAttempt) {
-	h.broadcast <- WSMessage{
+	attempt = event.SanitizeProxyUpstreamAttemptForBroadcast(attempt)
+	msg := WSMessage{
 		Type: "proxy_upstream_attempt_update",
 		Data: attempt,
+	}
+	select {
+	case h.broadcast <- msg:
+	default:
 	}
 }
 
 // BroadcastMessage sends a custom message with specified type to all connected clients
 func (h *WebSocketHub) BroadcastMessage(messageType string, data interface{}) {
-	h.broadcast <- WSMessage{
+	msg := WSMessage{
 		Type: messageType,
 		Data: data,
+	}
+	select {
+	case h.broadcast <- msg:
+	default:
 	}
 }
 
 // BroadcastLog sends a log message to all connected clients
 func (h *WebSocketHub) BroadcastLog(message string) {
-	h.broadcast <- WSMessage{
+	msg := WSMessage{
 		Type: "log_message",
 		Data: message,
+	}
+	select {
+	case h.broadcast <- msg:
+	default:
 	}
 }
 

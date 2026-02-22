@@ -1,4 +1,5 @@
 ﻿import { useState, useMemo, useRef, useEffect } from 'react';
+import { useCallback, memo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import {
@@ -167,6 +168,13 @@ export function RequestsPage() {
     scrollContainerRef.current?.scrollTo({ top: 0 });
   };
 
+  const handleOpenRequest = useCallback(
+    (id: number) => {
+      navigate(`/requests/${id}`);
+    },
+    [navigate],
+  );
+
   return (
     <div className="flex flex-col h-full bg-background">
       <PageHeader
@@ -219,11 +227,11 @@ export function RequestsPage() {
             {isMobile ? (
               <div>
                 {allRequests.map((req) => (
-                  <MobileRequestCard
+                  <MemoMobileRequestCard
                     key={req.id}
                     request={req}
                     providerName={providerMap.get(req.providerID)}
-                    onClick={() => navigate(`/requests/${req.id}`)}
+                    onOpenRequest={handleOpenRequest}
                   />
                 ))}
                 {/* 触底加载指示器 */}
@@ -313,7 +321,7 @@ export function RequestsPage() {
                   </TableHeader>
                   <TableBody>
                     {allRequests.map((req, index) => (
-                  <LogRow
+                      <MemoLogRow
                         key={req.id}
                         request={req}
                         index={index}
@@ -325,7 +333,7 @@ export function RequestsPage() {
                         forceProjectBinding={forceProjectBinding}
                         nowMs={nowMs}
                         enableMarquee={enableMarquee}
-                        onClick={() => navigate(`/requests/${req.id}`)}
+                        onOpenRequest={handleOpenRequest}
                       />
                     ))}
                   </TableBody>
@@ -480,6 +488,20 @@ function CostCell({ cost }: { cost: number }) {
 }
 
 // Log Row Component
+type LogRowProps = {
+  request: ProxyRequest;
+  index: number;
+  providerName?: string;
+  projectName?: string;
+  tokenName?: string;
+  showProjectColumn?: boolean;
+  showTokenColumn?: boolean;
+  forceProjectBinding?: boolean;
+  nowMs: number;
+  enableMarquee: boolean;
+  onOpenRequest: (id: number) => void;
+};
+
 function LogRow({
   request,
   index,
@@ -491,20 +513,8 @@ function LogRow({
   forceProjectBinding,
   nowMs,
   enableMarquee,
-  onClick,
-}: {
-  request: ProxyRequest;
-  index: number;
-  providerName?: string;
-  projectName?: string;
-  tokenName?: string;
-  showProjectColumn?: boolean;
-  showTokenColumn?: boolean;
-  forceProjectBinding?: boolean;
-  nowMs: number;
-  enableMarquee: boolean;
-  onClick: () => void;
-}) {
+  onOpenRequest,
+}: LogRowProps) {
   const isPending = request.status === 'PENDING' || request.status === 'IN_PROGRESS';
   const isFailed = request.status === 'FAILED';
   const isPendingBinding =
@@ -565,10 +575,11 @@ function LogRow({
 
   // Zebra striping base class
   const zebraClass = index % 2 === 1 ? 'bg-foreground/[0.03]' : '';
+  const handleClick = useCallback(() => onOpenRequest(request.id), [onOpenRequest, request.id]);
 
   return (
     <TableRow
-      onClick={onClick}
+      onClick={handleClick}
       className={cn(
         'cursor-pointer group transition-colors',
         // Zebra striping - applies to all rows as base layer
@@ -750,18 +761,41 @@ function LogRow({
   );
 }
 
+const MemoLogRow = memo(
+  LogRow,
+  (prev: Readonly<LogRowProps>, next: Readonly<LogRowProps>) => {
+    if (prev.request !== next.request) return false;
+    if (prev.index !== next.index) return false;
+    if (prev.providerName !== next.providerName) return false;
+    if (prev.projectName !== next.projectName) return false;
+    if (prev.tokenName !== next.tokenName) return false;
+    if (prev.showProjectColumn !== next.showProjectColumn) return false;
+    if (prev.showTokenColumn !== next.showTokenColumn) return false;
+    if (prev.forceProjectBinding !== next.forceProjectBinding) return false;
+    if (prev.enableMarquee !== next.enableMarquee) return false;
+    if (prev.onOpenRequest !== next.onOpenRequest) return false;
+
+    const prevPending = prev.request.status === 'PENDING' || prev.request.status === 'IN_PROGRESS';
+    const nextPending = next.request.status === 'PENDING' || next.request.status === 'IN_PROGRESS';
+    if (prevPending || nextPending) {
+      return prev.nowMs === next.nowMs;
+    }
+
+    return true;
+  },
+);
+
 // Mobile Request Card Component
-function MobileRequestCard({
-  request,
-  providerName,
-  onClick,
-}: {
+type MobileRequestCardProps = {
   request: ProxyRequest;
   providerName?: string;
-  onClick: () => void;
-}) {
+  onOpenRequest: (id: number) => void;
+};
+
+function MobileRequestCard({ request, providerName, onOpenRequest }: MobileRequestCardProps) {
   const isPending = request.status === 'PENDING' || request.status === 'IN_PROGRESS';
   const isFailed = request.status === 'FAILED';
+  const handleClick = useCallback(() => onOpenRequest(request.id), [onOpenRequest, request.id]);
 
   const formatTime = (dateStr: string) => {
     const date = new Date(dateStr);
@@ -790,7 +824,7 @@ function MobileRequestCard({
 
   return (
     <div
-      onClick={onClick}
+      onClick={handleClick}
       className={cn(
         'px-4 py-2.5 border-b border-border cursor-pointer active:bg-accent/50 transition-colors',
         isFailed && 'bg-red-500/10',
@@ -818,6 +852,16 @@ function MobileRequestCard({
     </div>
   );
 }
+
+const MemoMobileRequestCard = memo(
+  MobileRequestCard,
+  (prev: Readonly<MobileRequestCardProps>, next: Readonly<MobileRequestCardProps>) => {
+    if (prev.request !== next.request) return false;
+    if (prev.providerName !== next.providerName) return false;
+    if (prev.onOpenRequest !== next.onOpenRequest) return false;
+    return true;
+  },
+);
 
 // Provider Filter Component using Select
 function ProviderFilter({

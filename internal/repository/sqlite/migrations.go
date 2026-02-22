@@ -1,8 +1,9 @@
-package sqlite
+﻿package sqlite
 
 import (
 	"log"
 	"sort"
+	"strings"
 	"time"
 
 	"gorm.io/gorm"
@@ -49,6 +50,34 @@ var migrations = []Migration{
 				return err
 			}
 			return nil
+		},
+	},
+	{
+		Version:     2,
+		Description: "Add index on proxy_requests.provider_id",
+		Up: func(db *gorm.DB) error {
+			// 说明：这是高频列表/过滤路径的关键优化点。
+			// 不同数据库方言对 IF NOT EXISTS 的支持不同，这里做最小兼容处理。
+			switch db.Dialector.Name() {
+			case "mysql":
+				err := db.Exec("CREATE INDEX idx_proxy_requests_provider_id ON proxy_requests(provider_id)").Error
+				if err != nil && strings.Contains(strings.ToLower(err.Error()), "duplicate") {
+					return nil
+				}
+				return err
+			default:
+				return db.Exec("CREATE INDEX IF NOT EXISTS idx_proxy_requests_provider_id ON proxy_requests(provider_id)").Error
+			}
+		},
+		Down: func(db *gorm.DB) error {
+			switch db.Dialector.Name() {
+			case "mysql":
+				// MySQL 不支持 DROP INDEX IF EXISTS；这里尽量执行，失败则忽略（回滚不是主路径）。
+				_ = db.Exec("DROP INDEX idx_proxy_requests_provider_id ON proxy_requests").Error
+				return nil
+			default:
+				return db.Exec("DROP INDEX IF EXISTS idx_proxy_requests_provider_id").Error
+			}
 		},
 	},
 }

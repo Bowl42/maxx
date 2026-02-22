@@ -1,4 +1,4 @@
-package sqlite
+﻿package sqlite
 
 import (
 	"time"
@@ -222,7 +222,7 @@ type ProxyRequest struct {
 	Multiplier                  uint64 // 倍率（10000=1倍）
 	Cost                        uint64
 	RouteID                     uint64
-	ProviderID                  uint64
+	ProviderID                  uint64 `gorm:"index"`
 	IsStream                    int
 	StatusCode                  int
 	ProjectID                   uint64

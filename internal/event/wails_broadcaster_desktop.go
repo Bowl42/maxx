@@ -1,4 +1,4 @@
-//go:build desktop
+﻿//go:build desktop
 
 package event
 
@@ -47,6 +47,7 @@ func (w *WailsBroadcaster) emitWailsEvent(eventType string, data interface{}) {
 
 // BroadcastProxyRequest broadcasts a proxy request update
 func (w *WailsBroadcaster) BroadcastProxyRequest(req *domain.ProxyRequest) {
+	req = SanitizeProxyRequestForBroadcast(req)
 	// Broadcast via inner broadcaster (WebSocket)
 	if w.inner != nil {
 		w.inner.BroadcastProxyRequest(req)
@@ -57,6 +58,7 @@ func (w *WailsBroadcaster) BroadcastProxyRequest(req *domain.ProxyRequest) {
 
 // BroadcastProxyUpstreamAttempt broadcasts a proxy upstream attempt update
 func (w *WailsBroadcaster) BroadcastProxyUpstreamAttempt(attempt *domain.ProxyUpstreamAttempt) {
+	attempt = SanitizeProxyUpstreamAttemptForBroadcast(attempt)
 	if w.inner != nil {
 		w.inner.BroadcastProxyUpstreamAttempt(attempt)
 	}
