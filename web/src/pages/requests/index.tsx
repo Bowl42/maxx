@@ -1,4 +1,4 @@
-import { useState, useMemo, useRef, useEffect } from 'react';
+﻿import { useState, useMemo, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import {
@@ -108,6 +108,27 @@ export function RequestsPage() {
   const allRequests = useMemo(() => {
     return data?.pages.flatMap((page) => page.items) ?? [];
   }, [data]);
+
+  const activeCount = useMemo(() => {
+    return allRequests.reduce((count, req) => {
+      return req.status === 'PENDING' || req.status === 'IN_PROGRESS' ? count + 1 : count;
+    }, 0);
+  }, [allRequests]);
+  const hasActiveRequests = activeCount > 0;
+  const enableMarquee = activeCount <= 10;
+
+  const [nowMs, setNowMs] = useState(() => Date.now());
+
+  // 全局 tick：仅在有“传输中”请求时更新，避免每行一个定时器导致重渲染风暴
+  useEffect(() => {
+    if (!hasActiveRequests) {
+      return;
+    }
+
+    setNowMs(Date.now());
+    const interval = window.setInterval(() => setNowMs(Date.now()), 1000);
+    return () => window.clearInterval(interval);
+  }, [hasActiveRequests]);
 
   // IntersectionObserver 触底检测
   useEffect(() => {
@@ -292,7 +313,7 @@ export function RequestsPage() {
                   </TableHeader>
                   <TableBody>
                     {allRequests.map((req, index) => (
-                      <LogRow
+                  <LogRow
                         key={req.id}
                         request={req}
                         index={index}
@@ -302,6 +323,8 @@ export function RequestsPage() {
                         showProjectColumn={hasProjects}
                         showTokenColumn={apiTokenAuthEnabled}
                         forceProjectBinding={forceProjectBinding}
+                        nowMs={nowMs}
+                        enableMarquee={enableMarquee}
                         onClick={() => navigate(`/requests/${req.id}`)}
                       />
                     ))}
@@ -466,6 +489,8 @@ function LogRow({
   showProjectColumn,
   showTokenColumn,
   forceProjectBinding,
+  nowMs,
+  enableMarquee,
   onClick,
 }: {
   request: ProxyRequest;
@@ -476,6 +501,8 @@ function LogRow({
   showProjectColumn?: boolean;
   showTokenColumn?: boolean;
   forceProjectBinding?: boolean;
+  nowMs: number;
+  enableMarquee: boolean;
   onClick: () => void;
 }) {
   const isPending = request.status === 'PENDING' || request.status === 'IN_PROGRESS';
@@ -485,9 +512,6 @@ function LogRow({
     forceProjectBinding &&
     (!request.projectID || request.projectID === 0);
   const [isRecent, setIsRecent] = useState(false);
-
-  // Live duration calculation for pending requests
-  const [liveDuration, setLiveDuration] = useState<number | null>(null);
 
   useEffect(() => {
     // Check if request is new (less than 5 seconds old)
@@ -499,33 +523,20 @@ function LogRow({
     }
   }, [request.startTime]);
 
-  useEffect(() => {
-    if (!isPending) {
-      setLiveDuration(null);
-      return;
-    }
-
-    const startTime = new Date(request.startTime).getTime();
-    const updateDuration = () => {
-      const now = Date.now();
-      setLiveDuration(now - startTime);
-    };
-
-    updateDuration();
-    const interval = setInterval(updateDuration, 100);
-
-    return () => clearInterval(interval);
-  }, [isPending, request.startTime]);
+  const startTimeMs = useMemo(() => new Date(request.startTime).getTime(), [request.startTime]);
+  const liveDurationMs =
+    isPending && Number.isFinite(startTimeMs) ? Math.max(0, nowMs - startTimeMs) : null;
 
   const formatDuration = (ns?: number | null) => {
     if (ns === undefined || ns === null) return '-';
-    // If it's live duration (ms), convert directly to seconds
-    if (isPending && liveDuration !== null) {
-      return `${(liveDuration / 1000).toFixed(2)}s`;
-    }
     // Convert nanoseconds to seconds with 2 decimal places
     const seconds = ns / 1_000_000_000;
     return `${seconds.toFixed(2)}s`;
+  };
+
+  const formatLiveDuration = (ms: number | null) => {
+    if (ms === null) return '-';
+    return `${(ms / 1000).toFixed(2)}s`;
   };
 
   const formatTime = (dateStr: string) => {
@@ -540,7 +551,7 @@ function LogRow({
   };
 
   // Display duration
-  const displayDuration = isPending ? liveDuration : request.duration;
+  const displayDuration = request.duration;
 
   // Duration color
   const durationColor = isPending
@@ -576,8 +587,15 @@ function LogRow({
             'border-l-2 border-l-amber-500',
           ),
 
-        // Active/Pending state - Blue left border + Marquee animation
-        isPending && !isPendingBinding && 'animate-marquee-row',
+        // Active/Pending state - Blue left border + (optional) Marquee animation
+        isPending &&
+          !isPendingBinding &&
+          (enableMarquee
+            ? 'animate-marquee-row'
+            : cn(
+                index % 2 === 1 ? 'bg-blue-500/10' : 'bg-blue-500/5',
+                'border-l-2 border-l-blue-500/50',
+              )),
 
         // New Item Flash Animation
         isRecent && !isPending && !isPendingBinding && 'bg-accent/20',
@@ -687,7 +705,7 @@ function LogRow({
           className={`text-xs font-mono ${durationColor}`}
           title={`${formatTime(request.startTime || request.createdAt)} → ${request.endTime && new Date(request.endTime).getTime() > 0 ? formatTime(request.endTime) : '...'}`}
         >
-          {formatDuration(displayDuration)}
+          {isPending ? formatLiveDuration(liveDurationMs) : formatDuration(displayDuration)}
         </span>
       </TableCell>
 
