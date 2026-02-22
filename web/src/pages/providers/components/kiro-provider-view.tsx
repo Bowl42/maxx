@@ -15,12 +15,13 @@ import { ClientIcon } from '@/components/icons/client-icons';
 import type { Provider, KiroQuotaData, ModelMapping, ModelMappingInput } from '@/lib/transport';
 import { getTransport } from '@/lib/transport';
 import {
+  useUpdateProvider,
   useModelMappings,
   useCreateModelMapping,
   useUpdateModelMapping,
   useDeleteModelMapping,
 } from '@/hooks/queries';
-import { Button } from '@/components/ui';
+import { Button, Switch } from '@/components/ui';
 import { ModelInput } from '@/components/ui/model-input';
 import { KIRO_COLOR } from '../types';
 
@@ -267,6 +268,38 @@ export function KiroProviderView({ provider, onDelete, onClose }: KiroProviderVi
   const [quota, setQuota] = useState<KiroQuotaData | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const updateProvider = useUpdateProvider();
+  const [disableErrorCooldown, setDisableErrorCooldown] = useState(
+    () => provider.config?.disableErrorCooldown ?? false,
+  );
+
+  useEffect(() => {
+    setDisableErrorCooldown(provider.config?.disableErrorCooldown ?? false);
+  }, [provider.config?.disableErrorCooldown]);
+
+  const handleToggleDisableErrorCooldown = async (checked: boolean) => {
+    const kiroConfig = provider.config?.kiro;
+    if (!kiroConfig) return;
+    const prev = disableErrorCooldown;
+    setDisableErrorCooldown(checked);
+    try {
+      await updateProvider.mutateAsync({
+        id: provider.id,
+        data: {
+          ...provider,
+          config: {
+            ...provider.config,
+            disableErrorCooldown: checked,
+            kiro: {
+              ...kiroConfig,
+            },
+          },
+        },
+      });
+    } catch {
+      setDisableErrorCooldown(prev);
+    }
+  };
 
   const fetchQuota = async () => {
     setLoading(true);
@@ -353,6 +386,24 @@ export function KiroProviderView({ provider, onDelete, onClose }: KiroProviderVi
                 <div className="font-mono text-sm text-foreground">
                   {provider.config?.kiro?.region || 'us-east-1'}
                 </div>
+              </div>
+            </div>
+
+            <div className="mt-4">
+              <div className="flex items-center justify-between p-3 bg-muted rounded-lg border border-border">
+                <div className="pr-4">
+                  <div className="text-sm font-medium text-foreground">
+                    {t('provider.disableErrorCooldown')}
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    {t('provider.disableErrorCooldownDesc')}
+                  </p>
+                </div>
+                <Switch
+                  checked={disableErrorCooldown}
+                  onCheckedChange={handleToggleDisableErrorCooldown}
+                  disabled={updateProvider.isPending}
+                />
               </div>
             </div>
           </div>

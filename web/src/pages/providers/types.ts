@@ -224,6 +224,7 @@ export type ProviderFormData = {
   cloakSensitiveWords?: string;
   modelMappings?: TemplateModelMapping[]; // 模型映射
   logo?: string; // Logo URL
+  disableErrorCooldown?: boolean;
 };
 
 // Create step type

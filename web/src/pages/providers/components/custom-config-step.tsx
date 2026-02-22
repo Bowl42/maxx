@@ -5,6 +5,7 @@ import type { ClientType, CreateProviderData } from '@/lib/transport';
 import { ClientsConfigSection } from './clients-config-section';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Switch } from '@/components/ui';
 import { ModelInput } from '@/components/ui/model-input';
 import { PageHeader } from '@/components/layout/page-header';
 import { useProviderForm } from '../context/provider-form-context';
@@ -57,6 +58,7 @@ export function CustomConfigStep() {
         name: formData.name,
         logo: formData.logo,
         config: {
+          disableErrorCooldown: !!formData.disableErrorCooldown,
           custom: {
             baseURL: formData.baseURL,
             apiKey: formData.apiKey,
@@ -204,6 +206,26 @@ export function CustomConfigStep() {
                 })
               }
             />
+          </div>
+
+          <div className="space-y-6">
+            <h3 className="text-lg font-semibold text-text-primary border-b border-border pb-2">
+              {t('provider.errorCooldownTitle')}
+            </h3>
+            <div className="flex items-center justify-between p-4 bg-card border border-border rounded-xl">
+              <div className="pr-4">
+                <div className="text-sm font-medium text-foreground">
+                  {t('provider.disableErrorCooldown')}
+                </div>
+                <p className="text-xs text-muted-foreground mt-1">
+                  {t('provider.disableErrorCooldownDesc')}
+                </p>
+              </div>
+              <Switch
+                checked={!!formData.disableErrorCooldown}
+                onCheckedChange={(checked) => updateFormData({ disableErrorCooldown: checked })}
+              />
+            </div>
           </div>
 
           {/* Model Mapping Section */}

@@ -52,28 +52,28 @@ func (e *Executor) dispatch(c *flow.Ctx) {
 		requestURI := state.requestURI
 
 		supportedTypes := matchedRoute.ProviderAdapter.SupportedClientTypes()
-			if e.converter.NeedConvert(clientType, supportedTypes) {
-				currentClientType = GetPreferredTargetType(supportedTypes, clientType, matchedRoute.Provider.Type)
-				if currentClientType != clientType {
-					needsConversion = true
-					log.Printf("[Executor] Format conversion needed: %s -> %s for provider %s",
-						clientType, currentClientType, matchedRoute.Provider.Name)
+		if e.converter.NeedConvert(clientType, supportedTypes) {
+			currentClientType = GetPreferredTargetType(supportedTypes, clientType, matchedRoute.Provider.Type)
+			if currentClientType != clientType {
+				needsConversion = true
+				log.Printf("[Executor] Format conversion needed: %s -> %s for provider %s",
+					clientType, currentClientType, matchedRoute.Provider.Name)
 
 				if currentClientType == domain.ClientTypeCodex {
 					if headers := state.requestHeaders; headers != nil {
 						requestBody = converter.InjectCodexUserAgent(requestBody, headers.Get("User-Agent"))
 					}
 				}
-					convertedBody, convErr = e.converter.TransformRequest(
-						clientType, currentClientType, requestBody, mappedModel, state.isStream)
-					if convErr != nil {
-						log.Printf("[Executor] Request conversion failed: %v, proceeding with original format", convErr)
-						needsConversion = false
-						currentClientType = clientType
-					} else {
-						requestBody = convertedBody
+				convertedBody, convErr = e.converter.TransformRequest(
+					clientType, currentClientType, requestBody, mappedModel, state.isStream)
+				if convErr != nil {
+					log.Printf("[Executor] Request conversion failed: %v, proceeding with original format", convErr)
+					needsConversion = false
+					currentClientType = clientType
+				} else {
+					requestBody = convertedBody
 
-						originalURI := requestURI
+					originalURI := requestURI
 					convertedURI := ConvertRequestURI(requestURI, clientType, currentClientType, mappedModel, state.isStream)
 					if convertedURI != originalURI {
 						requestURI = convertedURI
@@ -330,11 +330,13 @@ func (e *Executor) dispatch(c *flow.Ctx) {
 			if ok && ctx.Err() != context.Canceled {
 				log.Printf("[Executor] ProxyError - IsNetworkError: %v, IsServerError: %v, Retryable: %v, Provider: %d",
 					proxyErr.IsNetworkError, proxyErr.IsServerError, proxyErr.Retryable, matchedRoute.Provider.ID)
-				e.handleCooldown(proxyErr, matchedRoute.Provider, currentClientType, originalClientType)
-				if e.broadcaster != nil {
-					e.broadcaster.BroadcastMessage("cooldown_update", map[string]interface{}{
-						"providerID": matchedRoute.Provider.ID,
-					})
+				if !shouldSkipErrorCooldown(matchedRoute.Provider) {
+					e.handleCooldown(proxyErr, matchedRoute.Provider, currentClientType, originalClientType)
+					if e.broadcaster != nil {
+						e.broadcaster.BroadcastMessage("cooldown_update", map[string]interface{}{
+							"providerID": matchedRoute.Provider.ID,
+						})
+					}
 				}
 			} else if ok && ctx.Err() == context.Canceled {
 				log.Printf("[Executor] Client disconnected, skipping cooldown for Provider: %d", matchedRoute.Provider.ID)

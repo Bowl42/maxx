@@ -230,6 +230,10 @@ func (e *Executor) handleCooldown(proxyErr *domain.ProxyError, provider *domain.
 	}
 }
 
+func shouldSkipErrorCooldown(provider *domain.Provider) bool {
+	return provider != nil && provider.Config != nil && provider.Config.DisableErrorCooldown
+}
+
 // mapRateLimitTypeToReason maps RateLimitInfo.Type to CooldownReason
 func mapRateLimitTypeToReason(rateLimitType string) cooldown.CooldownReason {
 	switch rateLimitType {
