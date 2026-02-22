@@ -1,10 +1,13 @@
 package sqlite
 
 import (
+	"errors"
 	"log"
 	"sort"
+	"strings"
 	"time"
 
+	mysqlDriver "github.com/go-sql-driver/mysql"
 	"gorm.io/gorm"
 )
 
@@ -51,6 +54,50 @@ var migrations = []Migration{
 			return nil
 		},
 	},
+	{
+		Version:     2,
+		Description: "Add index on proxy_requests.provider_id",
+		Up: func(db *gorm.DB) error {
+			// 说明：这是高频列表/过滤路径的关键优化点。
+			// 不同数据库方言对 IF NOT EXISTS 的支持不同，这里做最小兼容处理。
+			switch db.Dialector.Name() {
+			case "mysql":
+				err := db.Exec("CREATE INDEX idx_proxy_requests_provider_id ON proxy_requests(provider_id)").Error
+				if isMySQLDuplicateIndexError(err) {
+					return nil
+				}
+				return err
+			default:
+				return db.Exec("CREATE INDEX IF NOT EXISTS idx_proxy_requests_provider_id ON proxy_requests(provider_id)").Error
+			}
+		},
+		Down: func(db *gorm.DB) error {
+			switch db.Dialector.Name() {
+			case "mysql":
+				// MySQL 不支持 DROP INDEX IF EXISTS；这里尽量执行，失败则忽略（回滚不是主路径）。
+				sql := "DROP INDEX idx_proxy_requests_provider_id ON proxy_requests"
+				if err := db.Exec(sql).Error; err != nil {
+					log.Printf("[Migration] Warning: rollback v2 failed (dialector=mysql) sql=%q err=%v", sql, err)
+				}
+				return nil
+			default:
+				return db.Exec("DROP INDEX IF EXISTS idx_proxy_requests_provider_id").Error
+			}
+		},
+	},
+}
+
+func isMySQLDuplicateIndexError(err error) bool {
+	if err == nil {
+		return false
+	}
+	var mysqlErr *mysqlDriver.MySQLError
+	if errors.As(err, &mysqlErr) {
+		return mysqlErr.Number == 1061 // ER_DUP_KEYNAME
+	}
+	// 兜底：错误可能被包装成字符串，避免使用过宽的 "duplicate" 匹配导致吞掉其它错误。
+	lower := strings.ToLower(err.Error())
+	return strings.Contains(lower, "duplicate key name") || strings.Contains(lower, "error 1061")
 }
 
 // RunMigrations 运行所有待执行的迁移
@@ -103,6 +150,10 @@ func (d *DB) getCurrentVersion() int {
 
 // runMigration 在事务中运行单个迁移
 func (d *DB) runMigration(m Migration) error {
+	// 注意：MySQL 的 DDL（如 CREATE/DROP INDEX）会触发隐式提交（implicit commit），
+	// 这意味着即使这里用 gorm.Transaction 包裹，MySQL 路径也无法提供严格的“DDL + 迁移记录”原子性。
+	//
+	// 因此迁移实现必须尽量幂等：例如重复执行 CREATE INDEX 时，仅在 ER_DUP_KEYNAME(1061) 场景下视为成功。
 	return d.gorm.Transaction(func(tx *gorm.DB) error {
 		// 运行迁移
 		if m.Up != nil {
@@ -160,6 +211,8 @@ func (d *DB) RollbackMigration(targetVersion int) error {
 
 // rollbackMigration 在事务中回滚单个迁移
 func (d *DB) rollbackMigration(m Migration) error {
+	// 同 runMigration：MySQL DDL 在回滚路径同样可能发生隐式提交，因此这里的事务主要用于把“回滚逻辑”
+	// 与“删除迁移记录”尽量绑定在一起，但不应假设 MySQL 上能做到严格原子回滚。
 	return d.gorm.Transaction(func(tx *gorm.DB) error {
 		// 运行回滚
 		if m.Down != nil {

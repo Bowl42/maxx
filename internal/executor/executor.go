@@ -1,4 +1,4 @@
-package executor
+﻿package executor
 
 import (
 	"context"
@@ -321,51 +321,71 @@ func (e *Executor) processAdapterEventsRealtime(eventChan domain.AdapterEventCha
 		return
 	}
 
-	for event := range eventChan {
-		if event == nil {
-			continue
+	// 事件节流：合并多个 adapter 事件为一次广播，避免在流式高并发下产生“广播风暴”
+	const broadcastThrottle = 200 * time.Millisecond
+	ticker := time.NewTicker(broadcastThrottle)
+	defer ticker.Stop()
+
+	dirty := false
+
+	flush := func() {
+		if !dirty || e.broadcaster == nil {
+			dirty = false
+			return
 		}
+		// 广播前做一次瘦身 + 快照，避免发送大字段、也避免指针被后续修改导致数据竞争
+		snapshot := event.SanitizeProxyUpstreamAttemptForBroadcast(attempt)
+		e.broadcaster.BroadcastProxyUpstreamAttempt(snapshot)
+		dirty = false
+	}
 
-		needsBroadcast := false
+	for {
+		select {
+		case ev, ok := <-eventChan:
+			if !ok {
+				flush()
+				return
+			}
+			if ev == nil {
+				continue
+			}
 
-		switch event.Type {
-		case domain.EventRequestInfo:
-			if !e.shouldClearRequestDetail() && event.RequestInfo != nil {
-				attempt.RequestInfo = event.RequestInfo
-				needsBroadcast = true
+			switch ev.Type {
+			case domain.EventRequestInfo:
+				if !e.shouldClearRequestDetail() && ev.RequestInfo != nil {
+					attempt.RequestInfo = ev.RequestInfo
+					dirty = true
+				}
+			case domain.EventResponseInfo:
+				if !e.shouldClearRequestDetail() && ev.ResponseInfo != nil {
+					attempt.ResponseInfo = ev.ResponseInfo
+					dirty = true
+				}
+			case domain.EventMetrics:
+				if ev.Metrics != nil {
+					attempt.InputTokenCount = ev.Metrics.InputTokens
+					attempt.OutputTokenCount = ev.Metrics.OutputTokens
+					attempt.CacheReadCount = ev.Metrics.CacheReadCount
+					attempt.CacheWriteCount = ev.Metrics.CacheCreationCount
+					attempt.Cache5mWriteCount = ev.Metrics.Cache5mCreationCount
+					attempt.Cache1hWriteCount = ev.Metrics.Cache1hCreationCount
+					dirty = true
+				}
+			case domain.EventResponseModel:
+				if ev.ResponseModel != "" {
+					attempt.ResponseModel = ev.ResponseModel
+					dirty = true
+				}
+			case domain.EventFirstToken:
+				if ev.FirstTokenTime > 0 {
+					// Calculate TTFT as duration from start time to first token time
+					firstTokenTime := time.UnixMilli(ev.FirstTokenTime)
+					attempt.TTFT = firstTokenTime.Sub(attempt.StartTime)
+					dirty = true
+				}
 			}
-		case domain.EventResponseInfo:
-			if !e.shouldClearRequestDetail() && event.ResponseInfo != nil {
-				attempt.ResponseInfo = event.ResponseInfo
-				needsBroadcast = true
-			}
-		case domain.EventMetrics:
-			if event.Metrics != nil {
-				attempt.InputTokenCount = event.Metrics.InputTokens
-				attempt.OutputTokenCount = event.Metrics.OutputTokens
-				attempt.CacheReadCount = event.Metrics.CacheReadCount
-				attempt.CacheWriteCount = event.Metrics.CacheCreationCount
-				attempt.Cache5mWriteCount = event.Metrics.Cache5mCreationCount
-				attempt.Cache1hWriteCount = event.Metrics.Cache1hCreationCount
-				needsBroadcast = true
-			}
-		case domain.EventResponseModel:
-			if event.ResponseModel != "" {
-				attempt.ResponseModel = event.ResponseModel
-				needsBroadcast = true
-			}
-		case domain.EventFirstToken:
-			if event.FirstTokenTime > 0 {
-				// Calculate TTFT as duration from start time to first token time
-				firstTokenTime := time.UnixMilli(event.FirstTokenTime)
-				attempt.TTFT = firstTokenTime.Sub(attempt.StartTime)
-				needsBroadcast = true
-			}
-		}
-
-		// Broadcast update immediately for real-time visibility
-		if needsBroadcast && e.broadcaster != nil {
-			e.broadcaster.BroadcastProxyUpstreamAttempt(attempt)
+		case <-ticker.C:
+			flush()
 		}
 	}
 }

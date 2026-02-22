@@ -84,11 +84,57 @@ export function useProxyRequestUpdates() {
 
     const flushIntervalMs = 250;
     const pendingRequests = new Map<number, ProxyRequest>();
+    const pendingAttemptsByRequest = new Map<number, Map<number, ProxyUpstreamAttempt>>();
     const knownRequestIds = new Set<number>();
     let flushTimer: ReturnType<typeof setTimeout> | null = null;
 
+    const flushAttempts = () => {
+      if (pendingAttemptsByRequest.size === 0) {
+        return;
+      }
+
+      const entries = Array.from(pendingAttemptsByRequest.entries());
+      pendingAttemptsByRequest.clear();
+
+      for (const [proxyRequestID, attemptsById] of entries) {
+        const attemptsKey = requestKeys.attempts(proxyRequestID);
+        const attemptsQuery = queryCache.find({ queryKey: attemptsKey, exact: true });
+        if (!attemptsQuery || attemptsQuery.getObserversCount() === 0) {
+          continue;
+        }
+
+        const updates = Array.from(attemptsById.values());
+
+        queryClient.setQueryData<ProxyUpstreamAttempt[]>(attemptsKey, (old) => {
+          const list = old ? [...old] : [];
+
+          for (const updatedAttempt of updates) {
+            const index = list.findIndex((a) => a.id === updatedAttempt.id);
+            if (index >= 0) {
+              const prev = list[index];
+              list[index] = {
+                ...prev,
+                ...updatedAttempt,
+                requestInfo: updatedAttempt.requestInfo ?? prev.requestInfo,
+                responseInfo: updatedAttempt.responseInfo ?? prev.responseInfo,
+              };
+              continue;
+            }
+            list.push(updatedAttempt);
+          }
+
+          return list;
+        });
+      }
+    };
+
     const flush = () => {
+      if (pendingRequests.size === 0 && pendingAttemptsByRequest.size === 0) {
+        return;
+      }
+
       if (pendingRequests.size === 0) {
+        flushAttempts();
         return;
       }
 
@@ -117,7 +163,19 @@ export function useProxyRequestUpdates() {
         const detailKey = requestKeys.detail(requestId);
         const detailQuery = queryCache.find({ queryKey: detailKey, exact: true });
         if (detailQuery && detailQuery.getObserversCount() > 0) {
-          queryClient.setQueryData(detailKey, updatedRequest);
+          // 后端可能会对 WS 广播做“瘦身”（不带 requestInfo/responseInfo 大字段），
+          // 这里合并旧值，避免把详情页已加载的内容覆盖成空。
+          queryClient.setQueryData<ProxyRequest>(detailKey, (old) => {
+            if (!old) {
+              return updatedRequest;
+            }
+            return {
+              ...old,
+              ...updatedRequest,
+              requestInfo: updatedRequest.requestInfo ?? old.requestInfo,
+              responseInfo: updatedRequest.responseInfo ?? old.responseInfo,
+            };
+          });
           isKnown = true;
         }
 
@@ -292,6 +350,8 @@ export function useProxyRequestUpdates() {
       if (invalidateCooldowns) {
         queryClient.invalidateQueries({ queryKey: ['cooldowns'] });
       }
+
+      flushAttempts();
     };
 
     const scheduleFlush = () => {
@@ -320,19 +380,13 @@ export function useProxyRequestUpdates() {
           return;
         }
 
-        queryClient.setQueryData<ProxyUpstreamAttempt[]>(
-          attemptsKey,
-          (old) => {
-            if (!old) return [updatedAttempt];
-            const index = old.findIndex((a) => a.id === updatedAttempt.id);
-            if (index >= 0) {
-              const newList = [...old];
-              newList[index] = updatedAttempt;
-              return newList;
-            }
-            return [...old, updatedAttempt];
-          },
-        );
+        let perRequest = pendingAttemptsByRequest.get(updatedAttempt.proxyRequestID);
+        if (!perRequest) {
+          perRequest = new Map<number, ProxyUpstreamAttempt>();
+          pendingAttemptsByRequest.set(updatedAttempt.proxyRequestID, perRequest);
+        }
+        perRequest.set(updatedAttempt.id, updatedAttempt);
+        scheduleFlush();
       },
     );
 
@@ -342,6 +396,7 @@ export function useProxyRequestUpdates() {
         flushTimer = null;
       }
       pendingRequests.clear();
+      pendingAttemptsByRequest.clear();
       unsubscribeRequest();
       unsubscribeAttempt();
     };

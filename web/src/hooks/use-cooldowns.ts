@@ -1,7 +1,8 @@
-import { useQuery, useQueryClient, useMutation } from '@tanstack/react-query';
+﻿import { useQuery, useQueryClient, useMutation } from '@tanstack/react-query';
 import { getTransport } from '@/lib/transport';
 import type { Cooldown } from '@/lib/transport';
 import { useEffect, useState, useCallback } from 'react';
+import { subscribeCooldownUpdates } from '@/lib/cooldown-update-subscription';
 
 export function useCooldowns() {
   const queryClient = useQueryClient();
@@ -20,15 +21,7 @@ export function useCooldowns() {
 
   // Subscribe to cooldown_update WebSocket event
   useEffect(() => {
-    const transport = getTransport();
-    const unsubscribe = transport.subscribe('cooldown_update', () => {
-      // Invalidate and refetch cooldowns when a cooldown update is received
-      queryClient.invalidateQueries({ queryKey: ['cooldowns'] });
-    });
-
-    return () => {
-      unsubscribe();
-    };
+    return subscribeCooldownUpdates(queryClient);
   }, [queryClient]);
 
   // Mutation for clearing cooldown

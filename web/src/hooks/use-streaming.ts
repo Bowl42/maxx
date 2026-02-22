@@ -1,9 +1,9 @@
-/**
+﻿/**
  * Streaming Requests Hook
  * 追踪实时活动请求状态
  */
 
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { getTransport, type ProxyRequest, type ClientType } from '@/lib/transport';
 
 export interface StreamingState {
@@ -105,43 +105,46 @@ export function useStreamingRequests(): StreamingState {
     };
   }, [handleRequestUpdate, loadActiveRequests]);
 
-  // 计算按 clientType 和 providerID 的统计
-  const countsByClient = new Map<ClientType, number>();
-  const countsByProvider = new Map<number, number>();
-  const countsByProviderAndClient = new Map<string, number>();
-  const countsByRoute = new Map<number, number>();
+  return useMemo((): StreamingState => {
+    // 计算按 clientType 和 providerID 的统计
+    const countsByClient = new Map<ClientType, number>();
+    const countsByProvider = new Map<number, number>();
+    const countsByProviderAndClient = new Map<string, number>();
+    const countsByRoute = new Map<number, number>();
+    const requests = Array.from(activeRequests.values());
 
-  for (const request of activeRequests.values()) {
-    // 按 clientType 统计
-    const clientCount = countsByClient.get(request.clientType) || 0;
-    countsByClient.set(request.clientType, clientCount + 1);
+    for (const request of requests) {
+      // 按 clientType 统计
+      const clientCount = countsByClient.get(request.clientType) || 0;
+      countsByClient.set(request.clientType, clientCount + 1);
 
-    // 按 routeID 统计
-    if (request.routeID > 0) {
-      const routeCount = countsByRoute.get(request.routeID) || 0;
-      countsByRoute.set(request.routeID, routeCount + 1);
+      // 按 routeID 统计
+      if (request.routeID > 0) {
+        const routeCount = countsByRoute.get(request.routeID) || 0;
+        countsByRoute.set(request.routeID, routeCount + 1);
+      }
+
+      // 按 providerID 统计
+      if (request.providerID > 0) {
+        const providerCount = countsByProvider.get(request.providerID) || 0;
+        countsByProvider.set(request.providerID, providerCount + 1);
+
+        // 按 providerID + clientType 组合统计
+        const key = `${request.providerID}:${request.clientType}`;
+        const combinedCount = countsByProviderAndClient.get(key) || 0;
+        countsByProviderAndClient.set(key, combinedCount + 1);
+      }
     }
 
-    // 按 providerID 统计
-    if (request.providerID > 0) {
-      const providerCount = countsByProvider.get(request.providerID) || 0;
-      countsByProvider.set(request.providerID, providerCount + 1);
-
-      // 按 providerID + clientType 组合统计
-      const key = `${request.providerID}:${request.clientType}`;
-      const combinedCount = countsByProviderAndClient.get(key) || 0;
-      countsByProviderAndClient.set(key, combinedCount + 1);
-    }
-  }
-
-  return {
-    total: activeRequests.size,
-    requests: Array.from(activeRequests.values()),
-    countsByClient,
-    countsByProvider,
-    countsByProviderAndClient,
-    countsByRoute,
-  };
+    return {
+      total: activeRequests.size,
+      requests,
+      countsByClient,
+      countsByProvider,
+      countsByProviderAndClient,
+      countsByRoute,
+    };
+  }, [activeRequests]);
 }
 
 /**

@@ -2,14 +2,19 @@ package handler
 
 import (
 	"bufio"
+	"encoding/json"
 	"io"
 	"log"
 	"net/http"
 	"os"
+	"strconv"
 	"strings"
 	"sync"
+	"sync/atomic"
+	"time"
 
 	"github.com/awsl-project/maxx/internal/domain"
+	"github.com/awsl-project/maxx/internal/event"
 	"github.com/gorilla/websocket"
 )
 
@@ -28,7 +33,12 @@ type WebSocketHub struct {
 	clients   map[*websocket.Conn]bool
 	broadcast chan WSMessage
 	mu        sync.RWMutex
+
+	// broadcast channel 满时的丢弃计数（热路径：只做原子累加）
+	broadcastDroppedTotal atomic.Uint64
 }
+
+const websocketWriteTimeout = 5 * time.Second
 
 func NewWebSocketHub() *WebSocketHub {
 	hub := &WebSocketHub{
@@ -41,15 +51,47 @@ func NewWebSocketHub() *WebSocketHub {
 
 func (h *WebSocketHub) run() {
 	for msg := range h.broadcast {
+		// 避免在持锁状态下进行网络写入；同时修复 RLock 下 delete map 的数据竞争风险
 		h.mu.RLock()
+		clients := make([]*websocket.Conn, 0, len(h.clients))
 		for client := range h.clients {
-			err := client.WriteJSON(msg)
-			if err != nil {
-				client.Close()
-				delete(h.clients, client)
-			}
+			clients = append(clients, client)
 		}
 		h.mu.RUnlock()
+
+		var toRemove []*websocket.Conn
+		for _, client := range clients {
+			_ = client.SetWriteDeadline(time.Now().Add(websocketWriteTimeout))
+			if err := client.WriteJSON(msg); err != nil {
+				_ = client.Close()
+				toRemove = append(toRemove, client)
+			}
+		}
+
+		if len(toRemove) > 0 {
+			h.mu.Lock()
+			for _, client := range toRemove {
+				delete(h.clients, client)
+			}
+			h.mu.Unlock()
+		}
+	}
+}
+
+func (h *WebSocketHub) tryEnqueueBroadcast(msg WSMessage, meta string) {
+	select {
+	case h.broadcast <- msg:
+	default:
+		dropped := h.broadcastDroppedTotal.Add(1)
+		// 避免日志刷屏：首次 + 每100次打印一次，确保可观测性但不拖慢热路径。
+		if dropped == 1 || dropped%100 == 0 {
+			meta = strings.TrimSpace(meta)
+			if meta != "" {
+				log.Printf("[WebSocket] drop broadcast message type=%s %s dropped_total=%d", msg.Type, meta, dropped)
+			} else {
+				log.Printf("[WebSocket] drop broadcast message type=%s dropped_total=%d", msg.Type, dropped)
+			}
+		}
 	}
 }
 
@@ -81,33 +123,84 @@ func (h *WebSocketHub) HandleWebSocket(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *WebSocketHub) BroadcastProxyRequest(req *domain.ProxyRequest) {
-	h.broadcast <- WSMessage{
-		Type: "proxy_request_update",
-		Data: req,
+	sanitized := event.SanitizeProxyRequestForBroadcast(req)
+	var data interface{} = sanitized
+	var meta string
+	if sanitized != nil {
+		// 无论 Sanitize 是否返回原指针，都强制做一次浅拷贝快照，避免异步消费者读到后续可变更的数据。
+		snapshot := *sanitized
+		data = snapshot
+		meta = "requestID=" + snapshot.RequestID
+		if snapshot.ID != 0 {
+			meta += " requestDbID=" + strconv.FormatUint(snapshot.ID, 10)
+		}
 	}
+	msg := WSMessage{
+		Type: "proxy_request_update",
+		Data: data,
+	}
+	h.tryEnqueueBroadcast(msg, meta)
 }
 
 func (h *WebSocketHub) BroadcastProxyUpstreamAttempt(attempt *domain.ProxyUpstreamAttempt) {
-	h.broadcast <- WSMessage{
-		Type: "proxy_upstream_attempt_update",
-		Data: attempt,
+	sanitized := event.SanitizeProxyUpstreamAttemptForBroadcast(attempt)
+	var data interface{} = sanitized
+	var meta string
+	if sanitized != nil {
+		snapshot := *sanitized
+		data = snapshot
+		if snapshot.ProxyRequestID != 0 {
+			meta = "proxyRequestID=" + strconv.FormatUint(snapshot.ProxyRequestID, 10)
+		}
+		if snapshot.ID != 0 {
+			if meta != "" {
+				meta += " "
+			}
+			meta += "attemptDbID=" + strconv.FormatUint(snapshot.ID, 10)
+		}
 	}
+	msg := WSMessage{
+		Type: "proxy_upstream_attempt_update",
+		Data: data,
+	}
+	h.tryEnqueueBroadcast(msg, meta)
 }
 
 // BroadcastMessage sends a custom message with specified type to all connected clients
 func (h *WebSocketHub) BroadcastMessage(messageType string, data interface{}) {
-	h.broadcast <- WSMessage{
-		Type: messageType,
-		Data: data,
+	// 约定：BroadcastMessage 允许调用方传入 map/struct/指针等可变对象。
+	//
+	// 但由于实际发送是异步的（入队后由 run() 写到各连接），如果这里直接把可变指针放进 channel，
+	// 调用方在入队后继续修改数据，会导致与 BroadcastProxyRequest 类似的数据竞态。
+	//
+	// 因此这里先把 data 预先序列化为 json.RawMessage，形成不可变快照；后续 WriteJSON 会直接写入该快照。
+	var snapshot interface{} = data
+	if data != nil {
+		if raw, ok := data.(json.RawMessage); ok {
+			snapshot = raw
+		} else {
+			b, err := json.Marshal(data)
+			if err != nil {
+				log.Printf("[WebSocket] drop broadcast message type=%s: marshal snapshot failed: %v", messageType, err)
+				return
+			}
+			snapshot = json.RawMessage(b)
+		}
 	}
+	msg := WSMessage{
+		Type: messageType,
+		Data: snapshot,
+	}
+	h.tryEnqueueBroadcast(msg, "")
 }
 
 // BroadcastLog sends a log message to all connected clients
 func (h *WebSocketHub) BroadcastLog(message string) {
-	h.broadcast <- WSMessage{
+	msg := WSMessage{
 		Type: "log_message",
 		Data: message,
 	}
+	h.tryEnqueueBroadcast(msg, "")
 }
 
 // WebSocketLogWriter implements io.Writer to capture logs and broadcast via WebSocket
