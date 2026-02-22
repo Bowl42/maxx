@@ -30,7 +30,7 @@ import {
   useUpdateModelMapping,
   useDeleteModelMapping,
 } from '@/hooks/queries';
-import { Button } from '@/components/ui';
+import { Button, Switch } from '@/components/ui';
 import { ModelInput } from '@/components/ui/model-input';
 import { ANTIGRAVITY_COLOR } from '../types';
 import { CLIProxyAPISwitch } from './cliproxyapi-switch';
@@ -281,10 +281,16 @@ export function AntigravityProviderView({
   const [useCLIProxyAPI, setUseCLIProxyAPI] = useState(
     () => provider.config?.antigravity?.useCLIProxyAPI ?? false,
   );
+  const [disableErrorCooldown, setDisableErrorCooldown] = useState(
+    () => provider.config?.disableErrorCooldown ?? false,
+  );
 
   useEffect(() => {
     setUseCLIProxyAPI(provider.config?.antigravity?.useCLIProxyAPI ?? false);
   }, [provider.config?.antigravity?.useCLIProxyAPI]);
+  useEffect(() => {
+    setDisableErrorCooldown(provider.config?.disableErrorCooldown ?? false);
+  }, [provider.config?.disableErrorCooldown]);
 
   const handleToggleCLIProxyAPI = async (checked: boolean) => {
     const antigravityConfig = provider.config?.antigravity;
@@ -307,6 +313,31 @@ export function AntigravityProviderView({
       });
     } catch {
       setUseCLIProxyAPI(prev);
+    }
+  };
+
+  const handleToggleDisableErrorCooldown = async (checked: boolean) => {
+    const antigravityConfig = provider.config?.antigravity;
+    if (!antigravityConfig) return;
+    const prev = disableErrorCooldown;
+    setDisableErrorCooldown(checked);
+    try {
+      await updateProvider.mutateAsync({
+        id: provider.id,
+        data: {
+          ...provider,
+          config: {
+            ...provider.config,
+            disableErrorCooldown: checked,
+            antigravity: {
+              ...antigravityConfig,
+              useCLIProxyAPI,
+            },
+          },
+        },
+      });
+    } catch {
+      setDisableErrorCooldown(prev);
     }
   };
 
@@ -433,6 +464,24 @@ export function AntigravityProviderView({
                 <CLIProxyAPISwitch
                   checked={useCLIProxyAPI}
                   onChange={handleToggleCLIProxyAPI}
+                  disabled={updateProvider.isPending}
+                />
+              </div>
+            </div>
+
+            <div className="mt-4">
+              <div className="flex items-center justify-between p-3 bg-muted rounded-lg border border-border">
+                <div className="pr-4">
+                  <div className="text-sm font-medium text-foreground">
+                    {t('provider.disableErrorCooldown')}
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    {t('provider.disableErrorCooldownDesc')}
+                  </p>
+                </div>
+                <Switch
+                  checked={disableErrorCooldown}
+                  onCheckedChange={handleToggleDisableErrorCooldown}
                   disabled={updateProvider.isPending}
                 />
               </div>

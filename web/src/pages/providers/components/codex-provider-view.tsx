@@ -35,7 +35,7 @@ import {
   useUpdateModelMapping,
   useDeleteModelMapping,
 } from '@/hooks/queries';
-import { Button } from '@/components/ui';
+import { Button, Switch } from '@/components/ui';
 import { ModelInput } from '@/components/ui/model-input';
 import { CODEX_COLOR } from '../types';
 import { useCodexBatchQuotas } from '@/hooks/queries';
@@ -354,10 +354,16 @@ export function CodexProviderView({ provider, onDelete, onClose }: CodexProvider
   const [useCLIProxyAPI, setUseCLIProxyAPI] = useState(
     () => config?.useCLIProxyAPI ?? false,
   );
+  const [disableErrorCooldown, setDisableErrorCooldown] = useState(
+    () => provider.config?.disableErrorCooldown ?? false,
+  );
 
   useEffect(() => {
     setUseCLIProxyAPI(config?.useCLIProxyAPI ?? false);
   }, [config?.useCLIProxyAPI]);
+  useEffect(() => {
+    setDisableErrorCooldown(provider.config?.disableErrorCooldown ?? false);
+  }, [provider.config?.disableErrorCooldown]);
 
   const handleToggleCLIProxyAPI = async (checked: boolean) => {
     if (!config) return;
@@ -379,6 +385,30 @@ export function CodexProviderView({ provider, onDelete, onClose }: CodexProvider
       });
     } catch {
       setUseCLIProxyAPI(prev);
+    }
+  };
+
+  const handleToggleDisableErrorCooldown = async (checked: boolean) => {
+    if (!config) return;
+    const prev = disableErrorCooldown;
+    setDisableErrorCooldown(checked);
+    try {
+      await updateProvider.mutateAsync({
+        id: provider.id,
+        data: {
+          ...provider,
+          config: {
+            ...provider.config,
+            disableErrorCooldown: checked,
+            codex: {
+              ...config,
+              useCLIProxyAPI,
+            },
+          },
+        },
+      });
+    } catch {
+      setDisableErrorCooldown(prev);
     }
   };
 
@@ -545,6 +575,24 @@ export function CodexProviderView({ provider, onDelete, onClose }: CodexProvider
                 </div>
               </div>
             )}
+
+            <div className="mt-4">
+              <div className="flex items-center justify-between p-3 bg-muted rounded-lg border border-border">
+                <div className="pr-4">
+                  <div className="text-sm font-medium text-foreground">
+                    {t('provider.disableErrorCooldown')}
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    {t('provider.disableErrorCooldownDesc')}
+                  </p>
+                </div>
+                <Switch
+                  checked={disableErrorCooldown}
+                  onCheckedChange={handleToggleDisableErrorCooldown}
+                  disabled={updateProvider.isPending}
+                />
+              </div>
+            </div>
           </div>
 
           {/* Subscription Section */}

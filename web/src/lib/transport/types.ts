@@ -58,6 +58,7 @@ export interface ProviderConfigCodex {
 }
 
 export interface ProviderConfig {
+  disableErrorCooldown?: boolean;
   custom?: ProviderConfigCustom;
   antigravity?: ProviderConfigAntigravity;
   kiro?: ProviderConfigKiro;

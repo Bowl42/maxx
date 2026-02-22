@@ -40,6 +40,7 @@ const initialFormData: ProviderFormData = {
   cloakMode: 'auto',
   cloakStrictMode: false,
   cloakSensitiveWords: '',
+  disableErrorCooldown: false,
 };
 
 export function ProviderFormProvider({ children }: { children: ReactNode }) {

@@ -1,4 +1,4 @@
-{
+﻿{
   "common": {
     "save": "保存",
     "cancel": "取消",
@@ -926,7 +926,10 @@
     "tokenValidationFailed": "令牌验证失败",
     "multiplier": "价格倍率",
     "multiplierHint": "(1.00 = 100%)",
-    "endpointOverride": "端点覆盖"
+    "endpointOverride": "端点覆盖",
+    "errorCooldownTitle": "3. 错误冷冻",
+    "disableErrorCooldown": "禁用错误冷冻",
+    "disableErrorCooldownDesc": "开启后，错误将不再触发自动冷冻；手动冷冻与上游明确冷冻时间仍会生效。"
   },
   "cooldown": {
     "title": "冷却保护中",

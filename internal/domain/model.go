@@ -163,10 +163,12 @@ type ProviderConfigCLIProxyAPICodex struct {
 }
 
 type ProviderConfig struct {
-	Custom                 *ProviderConfigCustom                 `json:"custom,omitempty"`
-	Antigravity            *ProviderConfigAntigravity            `json:"antigravity,omitempty"`
-	Kiro                   *ProviderConfigKiro                   `json:"kiro,omitempty"`
-	Codex                  *ProviderConfigCodex                  `json:"codex,omitempty"`
+	// 禁用错误自动冷冻（只影响错误触发的冷冻）
+	DisableErrorCooldown bool                       `json:"disableErrorCooldown,omitempty"`
+	Custom               *ProviderConfigCustom      `json:"custom,omitempty"`
+	Antigravity          *ProviderConfigAntigravity `json:"antigravity,omitempty"`
+	Kiro                 *ProviderConfigKiro        `json:"kiro,omitempty"`
+	Codex                *ProviderConfigCodex       `json:"codex,omitempty"`
 	// 内部运行时字段，仅用于 NewAdapter 委托，不序列化
 	CLIProxyAPIAntigravity *ProviderConfigCLIProxyAPIAntigravity `json:"-"`
 	CLIProxyAPICodex       *ProviderConfigCLIProxyAPICodex       `json:"-"`

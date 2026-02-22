@@ -41,6 +41,7 @@ import { KiroProviderView } from './kiro-provider-view';
 import { CodexProviderView } from './codex-provider-view';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Switch } from '@/components/ui';
 import { ModelInput } from '@/components/ui/model-input';
 import { PageHeader } from '@/components/layout/page-header';
 
@@ -273,6 +274,7 @@ type EditFormData = {
   cloakMode?: 'auto' | 'always' | 'never';
   cloakStrictMode?: boolean;
   cloakSensitiveWords?: string;
+  disableErrorCooldown?: boolean;
 };
 
 export function ProviderEditFlow({ provider, onClose }: ProviderEditFlowProps) {
@@ -303,6 +305,7 @@ export function ProviderEditFlow({ provider, onClose }: ProviderEditFlowProps) {
     cloakMode: provider.config?.custom?.cloak?.mode || 'auto',
     cloakStrictMode: provider.config?.custom?.cloak?.strictMode || false,
     cloakSensitiveWords: (provider.config?.custom?.cloak?.sensitiveWords || []).join('\n'),
+    disableErrorCooldown: provider.config?.disableErrorCooldown ?? false,
   });
 
   const updateClient = (clientId: ClientType, updates: Partial<ClientConfig>) => {
@@ -350,6 +353,7 @@ export function ProviderEditFlow({ provider, onClose }: ProviderEditFlowProps) {
         name: formData.name,
         type: provider.type || 'custom', // Preserve the provider type
         config: {
+          disableErrorCooldown: !!formData.disableErrorCooldown,
           custom: {
             baseURL: formData.baseURL,
             apiKey: formData.apiKey || provider.config?.custom?.apiKey || '',
@@ -570,6 +574,28 @@ export function ProviderEditFlow({ provider, onClose }: ProviderEditFlowProps) {
                 }))
               }
             />
+          </div>
+
+          <div className="space-y-6">
+            <h3 className="text-lg font-semibold text-foreground border-b border-border pb-2">
+              {t('provider.errorCooldownTitle')}
+            </h3>
+            <div className="flex items-center justify-between p-4 bg-card border border-border rounded-xl">
+              <div className="pr-4">
+                <div className="text-sm font-medium text-foreground">
+                  {t('provider.disableErrorCooldown')}
+                </div>
+                <p className="text-xs text-muted-foreground mt-1">
+                  {t('provider.disableErrorCooldownDesc')}
+                </p>
+              </div>
+              <Switch
+                checked={!!formData.disableErrorCooldown}
+                onCheckedChange={(checked) =>
+                  setFormData((prev) => ({ ...prev, disableErrorCooldown: checked }))
+                }
+              />
+            </div>
           </div>
 
           {/* Provider Supported Models Filter */}
