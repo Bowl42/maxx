@@ -3,7 +3,7 @@
  * 支持多层级时间粒度聚合
  */
 
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { keepPreviousData, useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { getTransport, type UsageStatsFilter, type StatsGranularity } from '@/lib/transport';
 
 // Query Keys
@@ -117,6 +117,7 @@ export function useUsageStats(filter?: UsageStatsFilter) {
   return useQuery({
     queryKey: usageStatsKeys.list(filter),
     queryFn: () => getTransport().getUsageStats(filter),
+    placeholderData: keepPreviousData,
   });
 }
 
