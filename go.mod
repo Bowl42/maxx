@@ -4,7 +4,7 @@ go 1.26.0
 
 require (
 	github.com/andybalholm/brotli v1.2.0
-	github.com/bytedance/sonic v1.14.2
+	github.com/bytedance/sonic v1.15.0
 	github.com/getlantern/systray v1.2.2
 	github.com/glebarez/sqlite v1.11.0
 	github.com/golang-jwt/jwt/v5 v5.3.0
@@ -23,10 +23,10 @@ require (
 
 require (
 	cloud.google.com/go/compute/metadata v0.3.0 // indirect
-	filippo.io/edwards25519 v1.1.0 // indirect
+	filippo.io/edwards25519 v1.1.1 // indirect
 	github.com/bep/debounce v1.2.1 // indirect
 	github.com/bytedance/gopkg v0.1.3 // indirect
-	github.com/bytedance/sonic/loader v0.4.0 // indirect
+	github.com/bytedance/sonic/loader v0.5.0 // indirect
 	github.com/cloudwego/base64x v0.1.6 // indirect
 	github.com/dlclark/regexp2 v1.11.5 // indirect
 	github.com/dustin/go-humanize v1.0.1 // indirect
@@ -104,4 +104,4 @@ require (
 	modernc.org/sqlite v1.23.1 // indirect
 )
 
-replace github.com/router-for-me/CLIProxyAPI/v6 => github.com/awsl-project/CLIProxyAPI/v6 v6.0.0-20260216041831-0b08114d895a
+replace github.com/router-for-me/CLIProxyAPI/v6 => github.com/awsl-project/CLIProxyAPI/v6 v6.0.0-20260222041026-6abb0bf76228
