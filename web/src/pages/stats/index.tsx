@@ -898,8 +898,8 @@ export function StatsPage() {
                   </Tabs>
                 </CardHeader>
                 <CardContent className="pt-2">
-                  <div className="w-full" style={{ height: '400px' }}>
-                    <ResponsiveContainer width="100%" height="100%">
+                  <div className="w-full h-[400px] min-h-[400px]">
+                    <ResponsiveContainer width="100%" height={400}>
                       <ComposedChart data={chartData}>
                         <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" opacity={0.5} />
                         <XAxis

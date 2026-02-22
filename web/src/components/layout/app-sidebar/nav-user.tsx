@@ -201,3 +201,4 @@ export function NavUser() {
     </SidebarMenu>
   );
 }
+

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import {
@@ -40,6 +40,24 @@ export function ProjectsPage() {
   const handleRowClick = (id: number) => {
     navigate(`/projects/${id}`);
   };
+
+  const sortedProjects = useMemo(() => {
+    if (!projects) {
+      return undefined;
+    }
+    return projects.slice().sort((a, b) => {
+      const timeA = Number.isFinite(new Date(a.createdAt).getTime())
+        ? new Date(a.createdAt).getTime()
+        : 0;
+      const timeB = Number.isFinite(new Date(b.createdAt).getTime())
+        ? new Date(b.createdAt).getTime()
+        : 0;
+      if (timeA !== timeB) {
+        return timeA - timeB;
+      }
+      return a.id - b.id;
+    });
+  }, [projects]);
 
   return (
     <div className="flex flex-col h-full bg-background">
@@ -89,9 +107,9 @@ export function ProjectsPage() {
           <div className="flex items-center justify-center p-12">
             <Loader2 className="h-8 w-8 animate-spin text-accent" />
           </div>
-        ) : projects && projects.length > 0 ? (
+        ) : sortedProjects && sortedProjects.length > 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-            {projects.map((project) => (
+            {sortedProjects.map((project) => (
               <Card
                 key={project.id}
                 className="group border-border bg-surface-primary cursor-pointer hover:border-accent/50 hover:shadow-card-hover transition-all duration-200 flex flex-col"
