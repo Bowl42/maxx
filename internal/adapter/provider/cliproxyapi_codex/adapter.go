@@ -316,7 +316,7 @@ func (a *CLIProxyAPICodexAdapter) executeStream(c *flow.Ctx, w http.ResponseWrit
 	var streamErr error
 	firstChunkSent := false
 
-	for chunk := range stream {
+	for chunk := range stream.Chunks {
 		if chunk.Err != nil {
 			log.Printf("[CLIProxyAPI-Codex] stream chunk error: %v", chunk.Err)
 			streamErr = chunk.Err

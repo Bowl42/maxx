@@ -24,7 +24,7 @@ ARG VITE_COMMIT=unknown
 RUN VITE_COMMIT=${VITE_COMMIT} pnpm build
 
 # Stage 2: Build backend
-FROM golang:1.25-alpine AS backend-builder
+FROM golang:1.26-alpine AS backend-builder
 
 # Install build dependencies
 RUN apk add --no-cache git
