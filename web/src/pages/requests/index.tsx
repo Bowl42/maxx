@@ -1,4 +1,4 @@
-﻿import { useState, useMemo, useRef, useEffect } from 'react';
+import { useState, useMemo, useRef, useEffect } from 'react';
 import { useCallback, memo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
@@ -575,7 +575,7 @@ function LogRow({
 
   // Zebra striping base class
   const zebraClass = index % 2 === 1 ? 'bg-foreground/[0.03]' : '';
-  const handleClick = useCallback(() => onOpenRequest(request.id), [onOpenRequest, request.id]);
+  const handleClick = () => onOpenRequest(request.id);
 
   return (
     <TableRow

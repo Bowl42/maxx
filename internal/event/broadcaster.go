@@ -1,4 +1,4 @@
-﻿package event
+package event
 
 import "github.com/awsl-project/maxx/internal/domain"
 

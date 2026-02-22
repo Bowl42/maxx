@@ -1,11 +1,13 @@
-﻿package sqlite
+package sqlite
 
 import (
+	"errors"
 	"log"
 	"sort"
 	"strings"
 	"time"
 
+	mysqlDriver "github.com/go-sql-driver/mysql"
 	"gorm.io/gorm"
 )
 
@@ -61,7 +63,7 @@ var migrations = []Migration{
 			switch db.Dialector.Name() {
 			case "mysql":
 				err := db.Exec("CREATE INDEX idx_proxy_requests_provider_id ON proxy_requests(provider_id)").Error
-				if err != nil && strings.Contains(strings.ToLower(err.Error()), "duplicate") {
+				if isMySQLDuplicateIndexError(err) {
 					return nil
 				}
 				return err
@@ -73,13 +75,29 @@ var migrations = []Migration{
 			switch db.Dialector.Name() {
 			case "mysql":
 				// MySQL 不支持 DROP INDEX IF EXISTS；这里尽量执行，失败则忽略（回滚不是主路径）。
-				_ = db.Exec("DROP INDEX idx_proxy_requests_provider_id ON proxy_requests").Error
+				sql := "DROP INDEX idx_proxy_requests_provider_id ON proxy_requests"
+				if err := db.Exec(sql).Error; err != nil {
+					log.Printf("[Migration] Warning: rollback v2 failed (dialector=mysql) sql=%q err=%v", sql, err)
+				}
 				return nil
 			default:
 				return db.Exec("DROP INDEX IF EXISTS idx_proxy_requests_provider_id").Error
 			}
 		},
 	},
+}
+
+func isMySQLDuplicateIndexError(err error) bool {
+	if err == nil {
+		return false
+	}
+	var mysqlErr *mysqlDriver.MySQLError
+	if errors.As(err, &mysqlErr) {
+		return mysqlErr.Number == 1061 // ER_DUP_KEYNAME
+	}
+	// 兜底：错误可能被包装成字符串，避免使用过宽的 "duplicate" 匹配导致吞掉其它错误。
+	lower := strings.ToLower(err.Error())
+	return strings.Contains(lower, "duplicate key name") || strings.Contains(lower, "error 1061")
 }
 
 // RunMigrations 运行所有待执行的迁移
