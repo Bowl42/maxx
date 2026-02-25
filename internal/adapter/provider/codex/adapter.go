@@ -561,8 +561,36 @@ func applyCodexRequestTuning(c *flow.Ctx, body []byte) (string, []byte) {
 	body, _ = sjson.DeleteBytes(body, "previous_response_id")
 	body, _ = sjson.DeleteBytes(body, "prompt_cache_retention")
 	body, _ = sjson.DeleteBytes(body, "safety_identifier")
+	if maxOut := gjson.GetBytes(body, "max_output_tokens"); maxOut.Exists() {
+		if !gjson.GetBytes(body, "max_tokens").Exists() {
+			if updated, err := sjson.SetBytes(body, "max_tokens", maxOut.Value()); err == nil {
+				body = updated
+			}
+		}
+		body, _ = sjson.DeleteBytes(body, "max_output_tokens")
+	}
 	if !gjson.GetBytes(body, "instructions").Exists() {
 		body, _ = sjson.SetBytes(body, "instructions", "")
+	}
+	if input := gjson.GetBytes(body, "input"); input.IsArray() {
+		for i, item := range input.Array() {
+			itemType := item.Get("type").String()
+			if itemType != "message" {
+				if item.Get("role").Exists() {
+					body, _ = sjson.DeleteBytes(body, fmt.Sprintf("input.%d.role", i))
+				}
+			}
+			if itemType == "function_call" {
+				if id := item.Get("id").String(); id != "" && !strings.HasPrefix(id, "fc_") {
+					body, _ = sjson.SetBytes(body, fmt.Sprintf("input.%d.id", i), "fc_"+id)
+				}
+			}
+			if itemType == "function_call_output" {
+				if !item.Get("output").Exists() {
+					body, _ = sjson.SetBytes(body, fmt.Sprintf("input.%d.output", i), "")
+				}
+			}
+		}
 	}
 
 	return cacheID, body

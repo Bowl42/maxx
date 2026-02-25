@@ -28,6 +28,7 @@ func (c *claudeToCodexRequest) Transform(body []byte, model string, stream bool)
 		MaxOutputTokens: req.MaxTokens,
 		Temperature:     req.Temperature,
 		TopP:            req.TopP,
+		Store:           false,
 	}
 
 	shortMap := map[string]string{}
@@ -90,26 +91,34 @@ func (c *claudeToCodexRequest) Transform(body []byte, model string, stream bool)
 						} else {
 							name = shortenNameIfNeeded(name)
 						}
-						id, _ := m["id"].(string)
-						inputData := m["input"]
-						argJSON, _ := json.Marshal(inputData)
-						input = append(input, CodexInputItem{
-							Type:      "function_call",
-							ID:        id,
-							CallID:    id,
-							Name:      name,
-							Role:      "assistant",
-							Arguments: string(argJSON),
-						})
+							id, _ := m["id"].(string)
+							callID := id
+							callItemID := ""
+							if callID != "" {
+								if strings.HasPrefix(callID, "fc_") {
+									callItemID = callID
+								} else {
+									callItemID = "fc_" + callID
+								}
+							}
+							inputData := m["input"]
+							argJSON, _ := json.Marshal(inputData)
+							input = append(input, CodexInputItem{
+								Type:      "function_call",
+								ID:        callItemID,
+								CallID:    callID,
+								Name:      name,
+								Arguments: string(argJSON),
+							})
 						continue
-					case "tool_result":
-						toolUseID, _ := m["tool_use_id"].(string)
-						resultContent, _ := m["content"].(string)
-						input = append(input, CodexInputItem{
-							Type:   "function_call_output",
-							CallID: toolUseID,
-							Output: resultContent,
-						})
+						case "tool_result":
+							toolUseID, _ := m["tool_use_id"].(string)
+							resultContent := convertClaudeToolResultContentToString(m["content"])
+							input = append(input, CodexInputItem{
+								Type:   "function_call_output",
+								CallID: toolUseID,
+								Output: resultContent,
+							})
 						continue
 					}
 				}
@@ -192,10 +201,18 @@ func (c *claudeToCodexResponse) Transform(body []byte) ([]byte, error) {
 			})
 		case "tool_use":
 			argJSON, _ := json.Marshal(block.Input)
+			callID := block.ID
+			itemID := block.ID
+			if callID != "" {
+				if strings.HasPrefix(callID, "fc_") {
+					callID = strings.TrimPrefix(callID, "fc_")
+				}
+				itemID = "fc_" + callID
+			}
 			codexResp.Output = append(codexResp.Output, CodexOutput{
 				Type:      "function_call",
-				ID:        block.ID,
-				CallID:    block.ID,
+				ID:        itemID,
+				CallID:    callID,
 				Name:      block.Name,
 				Arguments: string(argJSON),
 				Status:    "completed",

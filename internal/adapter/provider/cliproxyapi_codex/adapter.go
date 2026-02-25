@@ -21,6 +21,8 @@ import (
 	"github.com/router-for-me/CLIProxyAPI/v6/sdk/cliproxy/executor"
 	"github.com/router-for-me/CLIProxyAPI/v6/sdk/exec"
 	"github.com/router-for-me/CLIProxyAPI/v6/sdk/translator"
+	"github.com/tidwall/gjson"
+	"github.com/tidwall/sjson"
 )
 
 // TokenCache caches access tokens
@@ -227,6 +229,11 @@ func (a *CLIProxyAPICodexAdapter) Execute(c *flow.Ctx, p *domain.Provider) error
 		return domain.NewProxyErrorWithMessage(err, true, fmt.Sprintf("failed to get access token: %v", err))
 	}
 
+	// Normalize Codex payload for upstream compatibility.
+	if len(requestBody) > 0 {
+		requestBody = sanitizeCodexPayload(requestBody)
+	}
+
 	// 构建 executor 请求
 	execReq := executor.Request{
 		Model:   model,
@@ -244,6 +251,30 @@ func (a *CLIProxyAPICodexAdapter) Execute(c *flow.Ctx, p *domain.Provider) error
 		return a.executeStream(c, w, execReq, execOpts)
 	}
 	return a.executeNonStream(c, w, execReq, execOpts)
+}
+
+func sanitizeCodexPayload(body []byte) []byte {
+	if input := gjson.GetBytes(body, "input"); input.IsArray() {
+		for i, item := range input.Array() {
+			itemType := item.Get("type").String()
+			if itemType != "message" {
+				if item.Get("role").Exists() {
+					body, _ = sjson.DeleteBytes(body, fmt.Sprintf("input.%d.role", i))
+				}
+			}
+			if itemType == "function_call" {
+				if id := item.Get("id").String(); id != "" && !strings.HasPrefix(id, "fc_") {
+					body, _ = sjson.SetBytes(body, fmt.Sprintf("input.%d.id", i), "fc_"+id)
+				}
+			}
+			if itemType == "function_call_output" {
+				if !item.Get("output").Exists() {
+					body, _ = sjson.SetBytes(body, fmt.Sprintf("input.%d.output", i), "")
+				}
+			}
+		}
+	}
+	return body
 }
 
 func (a *CLIProxyAPICodexAdapter) executeNonStream(c *flow.Ctx, w http.ResponseWriter, execReq executor.Request, execOpts executor.Options) error {
