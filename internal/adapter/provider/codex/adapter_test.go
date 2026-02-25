@@ -2,6 +2,7 @@ package codex
 
 import (
 	"net/http"
+	"strings"
 	"testing"
 
 	"github.com/awsl-project/maxx/internal/domain"
@@ -14,7 +15,7 @@ func TestApplyCodexRequestTuning(t *testing.T) {
 	c.Set(flow.KeyOriginalClientType, domain.ClientTypeClaude)
 	c.Set(flow.KeyOriginalRequestBody, []byte(`{"metadata":{"user_id":"user-123"}}`))
 
-	body := []byte(`{"model":"gpt-5","stream":false,"instructions":"x","previous_response_id":"r1","prompt_cache_retention":123,"safety_identifier":"s1","max_output_tokens":77,"input":[{"type":"message","role":"user","content":"hi"},{"type":"function_call","role":"assistant","name":"t","arguments":"{}"},{"role":"tool","call_id":"c1","output":"ok"}]}`)
+	body := []byte(`{"model":"gpt-5","stream":false,"instructions":"x","previous_response_id":"r1","prompt_cache_retention":123,"safety_identifier":"s1","max_output_tokens":77,"input":[{"type":"message","role":"user","content":"hi"},{"type":"function_call","role":"assistant","name":"t","arguments":"{}","id":"toolu_01"},{"type":"function_call","name":"t2","arguments":"{}"},{"type":"function_call_output","call_id":"c1"},{"role":"tool","call_id":"c1","output":"ok"}]}`)
 	cacheID, tuned := applyCodexRequestTuning(c, body)
 
 	if cacheID == "" {
@@ -44,8 +45,18 @@ func TestApplyCodexRequestTuning(t *testing.T) {
 	if gjson.GetBytes(tuned, "input.0.role").String() != "user" {
 		t.Fatalf("expected role to be preserved for message input")
 	}
-	if gjson.GetBytes(tuned, "input.1.role").Exists() || gjson.GetBytes(tuned, "input.2.role").Exists() {
+	if gjson.GetBytes(tuned, "input.1.role").Exists() || gjson.GetBytes(tuned, "input.2.role").Exists() || gjson.GetBytes(tuned, "input.3.role").Exists() || gjson.GetBytes(tuned, "input.4.role").Exists() {
 		t.Fatalf("expected role to be removed for non-message inputs")
+	}
+	if gjson.GetBytes(tuned, "input.1.id").String() != "fc_toolu_01" {
+		t.Fatalf("expected function_call id to be prefixed with fc_")
+	}
+	missingID := gjson.GetBytes(tuned, "input.2.id").String()
+	if !strings.HasPrefix(missingID, "fc_") || missingID == "fc_" {
+		t.Fatalf("expected generated function_call id to be set and prefixed with fc_")
+	}
+	if gjson.GetBytes(tuned, "input.3.output").String() != "" {
+		t.Fatalf("expected missing function_call_output output to default to empty string")
 	}
 }
 
