@@ -75,8 +75,8 @@ func processClaudeRequestBody(body []byte, clientUserAgent string, cloakCfg *dom
 // sanitizeClaudeMessages removes invalid empty text blocks from messages content.
 // Anthropic rejects requests containing message content blocks like:
 // {"type":"text","text":""}
-// After filtering, any leading assistant messages are also stripped to satisfy
-// the Anthropic requirement that messages[0].role == "user".
+// Messages are never dropped; empty content is replaced with a placeholder to
+// preserve conversation structure and tool_use/tool_result correspondence.
 func sanitizeClaudeMessages(body []byte) []byte {
 	messages := gjson.GetBytes(body, "messages")
 	if !messages.Exists() || !messages.IsArray() {
@@ -90,9 +90,14 @@ func sanitizeClaudeMessages(body []byte) []byte {
 	for _, msg := range msgArr {
 		content := msg.Get("content")
 
-		// Drop messages with empty string content.
+		// Replace empty string content with a placeholder.
 		if content.Type == gjson.String && strings.TrimSpace(content.String()) == "" {
-			modified = true
+			if updatedMsg, err := sjson.SetRaw(msg.Raw, "content", `[{"type":"text","text":"[empty]"}]`); err == nil {
+				filteredMessages = append(filteredMessages, updatedMsg)
+				modified = true
+			} else {
+				filteredMessages = append(filteredMessages, msg.Raw)
+			}
 			continue
 		}
 
@@ -155,9 +160,16 @@ func sanitizeClaudeMessages(body []byte) []byte {
 				filteredBlocks = append(filteredBlocks, block.Raw)
 			}
 
-			// Drop entire message if all blocks were removed.
+			// If all content blocks were removed, replace with a placeholder rather than
+			// dropping the message, to preserve user/assistant alternation and
+			// tool_use/tool_result correspondence.
 			if len(filteredBlocks) == 0 {
-				modified = true
+				if updatedMsg, err := sjson.SetRaw(msg.Raw, "content", `[{"type":"text","text":"[empty]"}]`); err == nil {
+					filteredMessages = append(filteredMessages, updatedMsg)
+					modified = true
+				} else {
+					filteredMessages = append(filteredMessages, msg.Raw)
+				}
 				continue
 			}
 
@@ -171,13 +183,6 @@ func sanitizeClaudeMessages(body []byte) []byte {
 		}
 
 		filteredMessages = append(filteredMessages, msg.Raw)
-	}
-
-	// Strip any leading assistant messages so messages[0].role is always "user".
-	// This can occur when an all-empty user message at the front is dropped above.
-	for len(filteredMessages) > 0 && gjson.Get(filteredMessages[0], "role").String() == "assistant" {
-		filteredMessages = filteredMessages[1:]
-		modified = true
 	}
 
 	if !modified {

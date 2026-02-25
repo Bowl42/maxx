@@ -571,7 +571,7 @@ func TestSanitizeClaudeMessagesReplacesAllEmptyToolResultWithPlaceholder(t *test
 	}
 }
 
-func TestProcessClaudeRequestBodyDropsMessagesWithOnlyEmptyText(t *testing.T) {
+func TestProcessClaudeRequestBodyReplacesEmptyContentWithPlaceholder(t *testing.T) {
 	body := []byte(`{
 		"model":"claude-3-5-sonnet",
 		"messages":[
@@ -584,12 +584,15 @@ func TestProcessClaudeRequestBodyDropsMessagesWithOnlyEmptyText(t *testing.T) {
 	cfg := &domain.ProviderConfigCustomCloak{Mode: "never"}
 	result, _ := processClaudeRequestBody(body, "curl/7.68.0", cfg)
 
-	// The empty first user message is dropped; the orphaned leading assistant message
-	// is also stripped so that messages[0].role is always "user".
-	if got := gjson.GetBytes(result, "messages.#").Int(); got != 1 {
-		t.Fatalf("message count = %d, want 1", got)
+	// Message count is preserved: empty content is replaced with placeholder,
+	// never dropped, to maintain user/assistant alternation and tool correspondence.
+	if got := gjson.GetBytes(result, "messages.#").Int(); got != 3 {
+		t.Fatalf("message count = %d, want 3", got)
 	}
 	if gjson.GetBytes(result, "messages.0.role").String() != "user" {
 		t.Fatalf("first message role = %q, want user", gjson.GetBytes(result, "messages.0.role").String())
+	}
+	if got := gjson.GetBytes(result, "messages.0.content.0.text").String(); got != "[empty]" {
+		t.Fatalf("placeholder text = %q, want '[empty]'", got)
 	}
 }
