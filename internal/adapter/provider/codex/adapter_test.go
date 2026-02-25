@@ -14,7 +14,7 @@ func TestApplyCodexRequestTuning(t *testing.T) {
 	c.Set(flow.KeyOriginalClientType, domain.ClientTypeClaude)
 	c.Set(flow.KeyOriginalRequestBody, []byte(`{"metadata":{"user_id":"user-123"}}`))
 
-	body := []byte(`{"model":"gpt-5","stream":false,"instructions":"x","previous_response_id":"r1","prompt_cache_retention":123,"safety_identifier":"s1"}`)
+	body := []byte(`{"model":"gpt-5","stream":false,"instructions":"x","previous_response_id":"r1","prompt_cache_retention":123,"safety_identifier":"s1","max_output_tokens":77,"input":[{"type":"message","role":"user","content":"hi"},{"type":"function_call","role":"assistant","name":"t","arguments":"{}"},{"role":"tool","call_id":"c1","output":"ok"}]}`)
 	cacheID, tuned := applyCodexRequestTuning(c, body)
 
 	if cacheID == "" {
@@ -34,6 +34,18 @@ func TestApplyCodexRequestTuning(t *testing.T) {
 	}
 	if gjson.GetBytes(tuned, "safety_identifier").Exists() {
 		t.Fatalf("expected safety_identifier to be removed")
+	}
+	if gjson.GetBytes(tuned, "max_output_tokens").Exists() {
+		t.Fatalf("expected max_output_tokens to be removed")
+	}
+	if gjson.GetBytes(tuned, "max_tokens").Int() != 77 {
+		t.Fatalf("expected max_tokens to be set from max_output_tokens")
+	}
+	if gjson.GetBytes(tuned, "input.0.role").String() != "user" {
+		t.Fatalf("expected role to be preserved for message input")
+	}
+	if gjson.GetBytes(tuned, "input.1.role").Exists() || gjson.GetBytes(tuned, "input.2.role").Exists() {
+		t.Fatalf("expected role to be removed for non-message inputs")
 	}
 }
 
