@@ -535,7 +535,7 @@ func TestSanitizeClaudeMessagesRemovesEmptyTextBlocksInToolResult(t *testing.T) 
 	}
 }
 
-func TestSanitizeClaudeMessagesDropsToolResultWithOnlyEmptyText(t *testing.T) {
+func TestSanitizeClaudeMessagesReplacesAllEmptyToolResultWithPlaceholder(t *testing.T) {
 	body := []byte(`{
 		"model":"claude-3-5-sonnet",
 		"messages":[
@@ -555,11 +555,19 @@ func TestSanitizeClaudeMessagesDropsToolResultWithOnlyEmptyText(t *testing.T) {
 
 	result := sanitizeClaudeMessages(body)
 
-	if got := gjson.GetBytes(result, "messages.0.content.#").Int(); got != 1 {
-		t.Fatalf("content block count = %d, want 1 (tool_result with all-empty nested blocks should be dropped)", got)
+	// tool_result must be preserved (not dropped) to maintain tool_use/tool_result correspondence.
+	if got := gjson.GetBytes(result, "messages.0.content.#").Int(); got != 2 {
+		t.Fatalf("content block count = %d, want 2 (tool_result should be preserved with placeholder)", got)
 	}
-	if gjson.GetBytes(result, "messages.0.content.0.type").String() != "text" {
-		t.Fatalf("remaining block type = %q, want text", gjson.GetBytes(result, "messages.0.content.0.type").String())
+	if gjson.GetBytes(result, "messages.0.content.0.type").String() != "tool_result" {
+		t.Fatalf("first block type = %q, want tool_result", gjson.GetBytes(result, "messages.0.content.0.type").String())
+	}
+	nested := gjson.GetBytes(result, "messages.0.content.0.content")
+	if !nested.IsArray() || nested.Get("#").Int() != 1 {
+		t.Fatalf("tool_result nested content should have 1 placeholder block, got %s", nested.Raw)
+	}
+	if got := nested.Get("0.text").String(); got != "[empty]" {
+		t.Fatalf("placeholder text = %q, want '[empty]'", got)
 	}
 }
 
@@ -576,13 +584,12 @@ func TestProcessClaudeRequestBodyDropsMessagesWithOnlyEmptyText(t *testing.T) {
 	cfg := &domain.ProviderConfigCustomCloak{Mode: "never"}
 	result, _ := processClaudeRequestBody(body, "curl/7.68.0", cfg)
 
-	if got := gjson.GetBytes(result, "messages.#").Int(); got != 2 {
-		t.Fatalf("message count = %d, want 2", got)
+	// The empty first user message is dropped; the orphaned leading assistant message
+	// is also stripped so that messages[0].role is always "user".
+	if got := gjson.GetBytes(result, "messages.#").Int(); got != 1 {
+		t.Fatalf("message count = %d, want 1", got)
 	}
-	if gjson.GetBytes(result, "messages.0.role").String() != "assistant" {
-		t.Fatalf("first message role = %q, want assistant", gjson.GetBytes(result, "messages.0.role").String())
-	}
-	if gjson.GetBytes(result, "messages.1.role").String() != "user" {
-		t.Fatalf("second message role = %q, want user", gjson.GetBytes(result, "messages.1.role").String())
+	if gjson.GetBytes(result, "messages.0.role").String() != "user" {
+		t.Fatalf("first message role = %q, want user", gjson.GetBytes(result, "messages.0.role").String())
 	}
 }
