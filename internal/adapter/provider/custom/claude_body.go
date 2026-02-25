@@ -37,8 +37,10 @@ var claudeBillingCCHPattern = regexp.MustCompile(`(?i)\bcch=[^;]*;\s*`)
 // 1. strip volatile billing cch fields from system text
 // 2. applyCloaking (system prompt injection, fake user_id, sensitive word obfuscation)
 // 3. disableThinkingIfToolChoiceForced
-// 4. ensureCacheControl (auto-inject if missing)
-// 5. extractAndRemoveBetas
+// 4. ensureMinThinkingBudget
+// 5. ensureCacheControl (auto-inject if missing)
+// 6. sanitizeClaudeMessages (drop empty text content blocks)
+// 7. extractAndRemoveBetas
 // Returns processed body and extra betas for header.
 func processClaudeRequestBody(body []byte, clientUserAgent string, cloakCfg *domain.ProviderConfigCustomCloak) ([]byte, []string) {
 	modelName := gjson.GetBytes(body, "model").String()
@@ -60,11 +62,133 @@ func processClaudeRequestBody(body []byte, clientUserAgent string, cloakCfg *dom
 		body = ensureCacheControl(body)
 	}
 
-	// 6. Extract betas from body (to be added to header)
+	// 6. Remove empty text content blocks to satisfy Anthropic validation.
+	body = sanitizeClaudeMessages(body)
+
+	// 7. Extract betas from body (to be added to header)
 	var extraBetas []string
 	extraBetas, body = extractAndRemoveBetas(body)
 
 	return body, extraBetas
+}
+
+// sanitizeClaudeMessages removes invalid empty text blocks from messages content.
+// Anthropic rejects requests containing message content blocks like:
+// {"type":"text","text":""}
+// After filtering, any leading assistant messages are also stripped to satisfy
+// the Anthropic requirement that messages[0].role == "user".
+func sanitizeClaudeMessages(body []byte) []byte {
+	messages := gjson.GetBytes(body, "messages")
+	if !messages.Exists() || !messages.IsArray() {
+		return body
+	}
+
+	msgArr := messages.Array()
+	filteredMessages := make([]string, 0, len(msgArr))
+	modified := false
+
+	for _, msg := range msgArr {
+		content := msg.Get("content")
+
+		// Drop messages with empty string content.
+		if content.Type == gjson.String && strings.TrimSpace(content.String()) == "" {
+			modified = true
+			continue
+		}
+
+		// Remove empty text blocks from array content.
+		if content.IsArray() {
+			blocks := content.Array()
+			filteredBlocks := make([]string, 0, len(blocks))
+			blockModified := false
+
+			for _, block := range blocks {
+				blockType := block.Get("type").String()
+
+				// Sanitize nested content inside tool_result blocks (one level deep).
+				if blockType == "tool_result" {
+					nestedContent := block.Get("content")
+					if nestedContent.IsArray() {
+						nestedBlocks := nestedContent.Array()
+						filteredNested := make([]string, 0, len(nestedBlocks))
+						nestedModified := false
+						for _, nb := range nestedBlocks {
+							if nb.Get("type").String() == "text" && strings.TrimSpace(nb.Get("text").String()) == "" {
+								nestedModified = true
+								continue
+							}
+							filteredNested = append(filteredNested, nb.Raw)
+						}
+						if nestedModified {
+							var newContent string
+							if len(filteredNested) == 0 {
+								// All nested blocks were empty; replace with a placeholder to
+								// preserve the required tool_use/tool_result correspondence.
+								newContent = `[{"type":"text","text":"[empty]"}]`
+							} else {
+								newContent = "[" + strings.Join(filteredNested, ",") + "]"
+							}
+							updated, err := sjson.SetRaw(block.Raw, "content", newContent)
+							if err == nil {
+								// Only mark modified after a successful update.
+								blockModified = true
+								modified = true
+								filteredBlocks = append(filteredBlocks, updated)
+								continue
+							}
+							// SetRaw failed; keep the original block unchanged.
+						}
+					}
+					filteredBlocks = append(filteredBlocks, block.Raw)
+					continue
+				}
+
+				if blockType != "text" {
+					filteredBlocks = append(filteredBlocks, block.Raw)
+					continue
+				}
+				if strings.TrimSpace(block.Get("text").String()) == "" {
+					blockModified = true
+					modified = true
+					continue
+				}
+				filteredBlocks = append(filteredBlocks, block.Raw)
+			}
+
+			// Drop entire message if all blocks were removed.
+			if len(filteredBlocks) == 0 {
+				modified = true
+				continue
+			}
+
+			if blockModified {
+				updatedMsg, err := sjson.SetRaw(msg.Raw, "content", "["+strings.Join(filteredBlocks, ",")+"]")
+				if err == nil {
+					filteredMessages = append(filteredMessages, updatedMsg)
+					continue
+				}
+			}
+		}
+
+		filteredMessages = append(filteredMessages, msg.Raw)
+	}
+
+	// Strip any leading assistant messages so messages[0].role is always "user".
+	// This can occur when an all-empty user message at the front is dropped above.
+	for len(filteredMessages) > 0 && gjson.Get(filteredMessages[0], "role").String() == "assistant" {
+		filteredMessages = filteredMessages[1:]
+		modified = true
+	}
+
+	if !modified {
+		return body
+	}
+
+	updatedBody, err := sjson.SetRawBytes(body, "messages", []byte("["+strings.Join(filteredMessages, ",")+"]"))
+	if err != nil {
+		return body
+	}
+	return updatedBody
 }
 
 func stripVolatileClaudeBillingCCH(body []byte) []byte {
