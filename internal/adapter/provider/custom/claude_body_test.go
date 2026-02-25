@@ -472,3 +472,117 @@ func TestStripVolatileClaudeBillingCCHSupportsMessageEnvelope(t *testing.T) {
 		t.Fatalf("expected stable billing keys preserved, got %q", systemText)
 	}
 }
+
+func TestSanitizeClaudeMessagesRemovesEmptyTextBlocks(t *testing.T) {
+	body := []byte(`{
+		"model":"claude-3-5-sonnet",
+		"messages":[
+			{
+				"role":"user",
+				"content":[
+					{"type":"text","text":"   "},
+					{"type":"tool_result","tool_use_id":"tool_1","content":"ok"},
+					{"type":"text","text":"hello"}
+				]
+			}
+		]
+	}`)
+
+	result := sanitizeClaudeMessages(body)
+
+	if got := gjson.GetBytes(result, "messages.0.content.#").Int(); got != 2 {
+		t.Fatalf("content block count = %d, want 2", got)
+	}
+	if gjson.GetBytes(result, "messages.0.content.0.type").String() != "tool_result" {
+		t.Fatalf("first block type = %q, want tool_result", gjson.GetBytes(result, "messages.0.content.0.type").String())
+	}
+	if gjson.GetBytes(result, "messages.0.content.1.text").String() != "hello" {
+		t.Fatalf("remaining text block = %q, want hello", gjson.GetBytes(result, "messages.0.content.1.text").String())
+	}
+}
+
+func TestSanitizeClaudeMessagesRemovesEmptyTextBlocksInToolResult(t *testing.T) {
+	body := []byte(`{
+		"model":"claude-3-5-sonnet",
+		"messages":[
+			{
+				"role":"user",
+				"content":[
+					{
+						"type":"tool_result",
+						"tool_use_id":"tool_1",
+						"content":[
+							{"type":"text","text":""},
+							{"type":"text","text":"real content"}
+						]
+					}
+				]
+			}
+		]
+	}`)
+
+	result := sanitizeClaudeMessages(body)
+
+	nested := gjson.GetBytes(result, "messages.0.content.0.content")
+	if !nested.IsArray() {
+		t.Fatalf("expected nested content to be array, got %s", nested.Raw)
+	}
+	if got := nested.Get("#").Int(); got != 1 {
+		t.Fatalf("nested content block count = %d, want 1", got)
+	}
+	if got := nested.Get("0.text").String(); got != "real content" {
+		t.Fatalf("nested text = %q, want 'real content'", got)
+	}
+}
+
+func TestSanitizeClaudeMessagesDropsToolResultWithOnlyEmptyText(t *testing.T) {
+	body := []byte(`{
+		"model":"claude-3-5-sonnet",
+		"messages":[
+			{
+				"role":"user",
+				"content":[
+					{
+						"type":"tool_result",
+						"tool_use_id":"tool_1",
+						"content":[{"type":"text","text":"   "}]
+					},
+					{"type":"text","text":"hello"}
+				]
+			}
+		]
+	}`)
+
+	result := sanitizeClaudeMessages(body)
+
+	if got := gjson.GetBytes(result, "messages.0.content.#").Int(); got != 1 {
+		t.Fatalf("content block count = %d, want 1 (tool_result with all-empty nested blocks should be dropped)", got)
+	}
+	if gjson.GetBytes(result, "messages.0.content.0.type").String() != "text" {
+		t.Fatalf("remaining block type = %q, want text", gjson.GetBytes(result, "messages.0.content.0.type").String())
+	}
+}
+
+func TestProcessClaudeRequestBodyDropsMessagesWithOnlyEmptyText(t *testing.T) {
+	body := []byte(`{
+		"model":"claude-3-5-sonnet",
+		"messages":[
+			{"role":"user","content":[{"type":"text","text":"   "}]},
+			{"role":"assistant","content":"ok"},
+			{"role":"user","content":"next"}
+		]
+	}`)
+
+	cfg := &domain.ProviderConfigCustomCloak{Mode: "never"}
+	result, _ := processClaudeRequestBody(body, "curl/7.68.0", cfg)
+
+	if got := gjson.GetBytes(result, "messages.#").Int(); got != 2 {
+		t.Fatalf("message count = %d, want 2", got)
+	}
+	if gjson.GetBytes(result, "messages.0.role").String() != "assistant" {
+		t.Fatalf("first message role = %q, want assistant", gjson.GetBytes(result, "messages.0.role").String())
+	}
+	if gjson.GetBytes(result, "messages.1.role").String() != "user" {
+		t.Fatalf("second message role = %q, want user", gjson.GetBytes(result, "messages.1.role").String())
+	}
+}
