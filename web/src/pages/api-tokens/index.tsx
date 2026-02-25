@@ -616,11 +616,6 @@ export function APITokensPage() {
                 </Button>
               </div>
             </div>
-            <div className="bg-amber-500/10 border border-amber-500/20 rounded-lg p-3">
-              <p className="text-sm text-amber-600 dark:text-amber-400">
-                <strong>{t('common.confirm')}:</strong> {t('apiTokens.newTokenDialog.warning')}
-              </p>
-            </div>
           </div>
           <DialogFooter>
             <Button onClick={() => setNewTokenDialog(null)}>

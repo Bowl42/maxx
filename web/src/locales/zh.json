@@ -834,7 +834,7 @@
     },
     "newTokenDialog": {
       "title": "令牌创建成功",
-      "description": "请立即复制您的新 API 令牌。您将无法再次看到它！",
+      "description": "请立即复制您的新 API 令牌。",
       "tokenName": "令牌名称",
       "apiToken": "API 令牌",
       "warning": "此令牌仅显示一次。请确保现在复制它。",
