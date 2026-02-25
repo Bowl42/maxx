@@ -1,4 +1,4 @@
-{
+﻿{
   "common": {
     "save": "Save",
     "cancel": "Cancel",
@@ -918,6 +918,10 @@
     "createError": "Failed to create provider. Please check your connection and try again.",
     "updateError": "Failed to update provider. Please check your connection and try again.",
     "saveChanges": "Save Changes",
+    "clone": "Clone",
+    "cloning": "Cloning...",
+    "cloneSuffix": " (Copy)",
+    "cloneSuccess": "Cloned \"{{name}}\" successfully.",
     "delete": "Delete",
     "cancel": "Cancel",
     "none": "None",
@@ -1083,3 +1087,4 @@
     "emptyHint": "No model mappings configured. Add mappings to transform request models before sending to upstream."
   }
 }
+
