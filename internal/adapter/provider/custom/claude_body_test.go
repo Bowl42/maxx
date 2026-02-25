@@ -658,3 +658,62 @@ func TestEnsureToolResultCorrespondenceNoop(t *testing.T) {
 		t.Fatal("expected body to be unchanged when all tool_results present")
 	}
 }
+
+func TestEnsureToolResultCorrespondenceInjectsSyntheticUserMessage(t *testing.T) {
+	// Assistant with tool_use is the LAST message — no user message follows.
+	body := []byte(`{
+		"model":"claude-3-5-sonnet",
+		"messages":[
+			{"role":"user","content":"hello"},
+			{"role":"assistant","content":[
+				{"type":"tool_use","id":"tool_1","name":"bash","input":{"cmd":"ls"}}
+			]}
+		]
+	}`)
+
+	result := ensureToolResultCorrespondence(body)
+
+	if got := gjson.GetBytes(result, "messages.#").Int(); got != 3 {
+		t.Fatalf("message count = %d, want 3 (synthetic user message should be injected)", got)
+	}
+	injected := gjson.GetBytes(result, "messages.2")
+	if injected.Get("role").String() != "user" {
+		t.Fatalf("injected message role = %q, want user", injected.Get("role").String())
+	}
+	if injected.Get("content.0.type").String() != "tool_result" {
+		t.Fatalf("injected block type = %q, want tool_result", injected.Get("content.0.type").String())
+	}
+	if injected.Get("content.0.tool_use_id").String() != "tool_1" {
+		t.Fatalf("injected tool_use_id = %q, want tool_1", injected.Get("content.0.tool_use_id").String())
+	}
+}
+
+func TestEnsureToolResultCorrespondenceNextIsNotUser(t *testing.T) {
+	// Assistant with tool_use followed by another assistant (not user).
+	body := []byte(`{
+		"model":"claude-3-5-sonnet",
+		"messages":[
+			{"role":"user","content":"hello"},
+			{"role":"assistant","content":[
+				{"type":"tool_use","id":"t1","name":"bash","input":{}}
+			]},
+			{"role":"assistant","content":"continued"}
+		]
+	}`)
+
+	result := ensureToolResultCorrespondence(body)
+
+	// Should inject a user message between the two assistants.
+	if got := gjson.GetBytes(result, "messages.#").Int(); got != 4 {
+		t.Fatalf("message count = %d, want 4", got)
+	}
+	if gjson.GetBytes(result, "messages.2.role").String() != "user" {
+		t.Fatalf("messages[2] role = %q, want user", gjson.GetBytes(result, "messages.2.role").String())
+	}
+	if gjson.GetBytes(result, "messages.2.content.0.tool_use_id").String() != "t1" {
+		t.Fatalf("injected tool_use_id = %q, want t1", gjson.GetBytes(result, "messages.2.content.0.tool_use_id").String())
+	}
+	if gjson.GetBytes(result, "messages.3.role").String() != "assistant" {
+		t.Fatalf("messages[3] role = %q, want assistant", gjson.GetBytes(result, "messages.3.role").String())
+	}
+}
