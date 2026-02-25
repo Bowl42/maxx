@@ -596,3 +596,65 @@ func TestProcessClaudeRequestBodyReplacesEmptyContentWithPlaceholder(t *testing.
 		t.Fatalf("placeholder text = %q, want '[empty]'", got)
 	}
 }
+
+func TestEnsureToolResultCorrespondenceInjectsMissing(t *testing.T) {
+	body := []byte(`{
+		"model":"claude-3-5-sonnet",
+		"messages":[
+			{"role":"user","content":"hello"},
+			{"role":"assistant","content":[
+				{"type":"tool_use","id":"tool_1","name":"bash","input":{"cmd":"ls"}},
+				{"type":"tool_use","id":"tool_2","name":"read","input":{"path":"a.txt"}}
+			]},
+			{"role":"user","content":[
+				{"type":"tool_result","tool_use_id":"tool_1","content":"file1"},
+				{"type":"text","text":"here you go"}
+			]}
+		]
+	}`)
+
+	result := ensureToolResultCorrespondence(body)
+
+	userContent := gjson.GetBytes(result, "messages.2.content")
+	if !userContent.IsArray() {
+		t.Fatalf("expected array content, got %s", userContent.Raw)
+	}
+
+	// tool_2 was missing, should be prepended.
+	first := userContent.Array()[0]
+	if first.Get("type").String() != "tool_result" {
+		t.Fatalf("first block type = %q, want tool_result", first.Get("type").String())
+	}
+	if first.Get("tool_use_id").String() != "tool_2" {
+		t.Fatalf("injected tool_use_id = %q, want tool_2", first.Get("tool_use_id").String())
+	}
+	if first.Get("content.0.text").String() != "[empty]" {
+		t.Fatalf("injected content text = %q, want '[empty]'", first.Get("content.0.text").String())
+	}
+
+	// Original blocks should still be there after the injected one.
+	if got := userContent.Get("#").Int(); got != 3 {
+		t.Fatalf("content block count = %d, want 3", got)
+	}
+}
+
+func TestEnsureToolResultCorrespondenceNoop(t *testing.T) {
+	// All tool_results present: no modification.
+	body := []byte(`{
+		"model":"claude-3-5-sonnet",
+		"messages":[
+			{"role":"user","content":"hello"},
+			{"role":"assistant","content":[
+				{"type":"tool_use","id":"t1","name":"bash","input":{}}
+			]},
+			{"role":"user","content":[
+				{"type":"tool_result","tool_use_id":"t1","content":"ok"}
+			]}
+		]
+	}`)
+
+	result := ensureToolResultCorrespondence(body)
+	if string(result) != string(body) {
+		t.Fatal("expected body to be unchanged when all tool_results present")
+	}
+}
