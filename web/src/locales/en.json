@@ -834,7 +834,7 @@
     },
     "newTokenDialog": {
       "title": "Token Created Successfully",
-      "description": "Copy your new API token now. You won't be able to see it again!",
+      "description": "Copy your new API token now. ",
       "tokenName": "Token Name",
       "apiToken": "API Token",
       "warning": "This token will only be shown once. Make sure to copy it now.",
