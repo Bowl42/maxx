@@ -5,6 +5,7 @@ import {
   Key,
   Check,
   Trash2,
+  Copy,
   Plus,
   ArrowRight,
   Zap,
@@ -20,6 +21,7 @@ import {
   DialogFooter,
 } from '@/components/ui/dialog';
 import {
+  useCreateProvider,
   useUpdateProvider,
   useDeleteProvider,
   useModelMappings,
@@ -280,11 +282,16 @@ type EditFormData = {
 export function ProviderEditFlow({ provider, onClose }: ProviderEditFlowProps) {
   const { t } = useTranslation();
   const [saving, setSaving] = useState(false);
+  const [cloning, setCloning] = useState(false);
+  const [cloneToastMessage, setCloneToastMessage] = useState<string | null>(null);
   const [deleting, setDeleting] = useState(false);
   const [saveStatus, setSaveStatus] = useState<'idle' | 'success' | 'error'>('idle');
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const createProvider = useCreateProvider();
   const updateProvider = useUpdateProvider();
   const deleteProvider = useDeleteProvider();
+  const createModelMapping = useCreateModelMapping();
+  const { data: allMappings } = useModelMappings();
 
   const initClients = (): ClientConfig[] => {
     const supportedTypes = provider.supportedClientTypes || [];
@@ -323,6 +330,13 @@ export function ProviderEditFlow({ provider, onClose }: ProviderEditFlowProps) {
     return hasEnabledClient && hasUrl;
   };
 
+  const parseSensitiveWords = (value: string): string[] => {
+    return value
+      .split(/[\n,]/)
+      .map((item) => item.trim())
+      .filter(Boolean);
+  };
+
   const handleSave = async () => {
     if (!isValid()) return;
 
@@ -330,13 +344,6 @@ export function ProviderEditFlow({ provider, onClose }: ProviderEditFlowProps) {
     setSaveStatus('idle');
 
     try {
-      const parseSensitiveWords = (value: string): string[] => {
-        return value
-          .split(/[\n,]/)
-          .map((item) => item.trim())
-          .filter(Boolean);
-      };
-
       const supportedClientTypes = formData.clients.filter((c) => c.enabled).map((c) => c.id);
       const clientBaseURL: Partial<Record<ClientType, string>> = {};
       const clientMultiplier: Partial<Record<ClientType, number>> = {};
@@ -384,6 +391,89 @@ export function ProviderEditFlow({ provider, onClose }: ProviderEditFlowProps) {
       setSaveStatus('error');
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleClone = async () => {
+    if (!isValid() || cloning || cloneToastMessage) return;
+
+    setCloning(true);
+
+    try {
+      const supportedClientTypes = formData.clients.filter((c) => c.enabled).map((c) => c.id);
+      const clientBaseURL: Partial<Record<ClientType, string>> = {};
+      const clientMultiplier: Partial<Record<ClientType, number>> = {};
+      formData.clients.forEach((c) => {
+        if (c.enabled && c.urlOverride) {
+          clientBaseURL[c.id] = c.urlOverride;
+        }
+        if (c.enabled && c.multiplier !== 10000) {
+          clientMultiplier[c.id] = c.multiplier;
+        }
+      });
+
+      const baseName = formData.name.trim() || provider.name;
+      const suffix = t('provider.cloneSuffix');
+      const cloneName = baseName.endsWith(suffix) ? baseName : `${baseName}${suffix}`;
+
+      const data: CreateProviderData = {
+        type: provider.type || 'custom',
+        name: cloneName,
+        logo: provider.logo,
+        config: {
+          disableErrorCooldown: !!formData.disableErrorCooldown,
+          custom: {
+            baseURL: formData.baseURL,
+            apiKey: formData.apiKey || provider.config?.custom?.apiKey || '',
+            clientBaseURL: Object.keys(clientBaseURL).length > 0 ? clientBaseURL : undefined,
+            clientMultiplier:
+              Object.keys(clientMultiplier).length > 0 ? clientMultiplier : undefined,
+            cloak:
+              formData.cloakMode !== 'auto' ||
+              formData.cloakStrictMode ||
+              parseSensitiveWords(formData.cloakSensitiveWords || '').length > 0
+                ? {
+                    mode: formData.cloakMode,
+                    strictMode: formData.cloakStrictMode,
+                    sensitiveWords: parseSensitiveWords(formData.cloakSensitiveWords || ''),
+                  }
+                : undefined,
+          },
+        },
+        supportedClientTypes,
+        supportModels: formData.supportModels.length > 0 ? formData.supportModels : undefined,
+      };
+
+      const newProvider = await createProvider.mutateAsync(data);
+
+      const providerMappings = (allMappings || []).filter(
+        (mapping) => mapping.scope === 'provider' && mapping.providerID === provider.id,
+      );
+
+      if (providerMappings.length > 0) {
+        for (const mapping of providerMappings) {
+          await createModelMapping.mutateAsync({
+            scope: mapping.scope,
+            clientType: mapping.clientType,
+            providerType: mapping.providerType,
+            providerID: newProvider.id,
+            projectID: mapping.projectID,
+            routeID: mapping.routeID,
+            apiTokenID: mapping.apiTokenID,
+            pattern: mapping.pattern,
+            target: mapping.target,
+            priority: mapping.priority,
+            isEnabled: mapping.isEnabled,
+          });
+        }
+      }
+
+      setCloneToastMessage(t('provider.cloneSuccess', { name: cloneName }));
+      setTimeout(() => onClose(), 800);
+    } catch (error) {
+      console.error('Failed to clone provider:', error);
+    } finally {
+      setCloning(false);
     }
   };
 
@@ -471,6 +561,14 @@ export function ProviderEditFlow({ provider, onClose }: ProviderEditFlowProps) {
         <Button onClick={() => setShowDeleteConfirm(true)} variant={'destructive'}>
           <Trash2 size={14} />
           {t('provider.delete')}
+        </Button>
+        <Button
+          onClick={handleClone}
+          disabled={cloning || saving || !isValid() || !!cloneToastMessage}
+          variant={'outline'}
+        >
+          <Copy size={14} />
+          {cloning ? t('provider.cloning') : t('provider.clone')}
         </Button>
         <Button onClick={onClose} variant={'secondary'}>
           {t('provider.cancel')}
@@ -615,6 +713,12 @@ export function ProviderEditFlow({ provider, onClose }: ProviderEditFlowProps) {
           )}
         </div>
       </div>
+
+      {cloneToastMessage && (
+        <div className="fixed bottom-6 right-6 bg-card border border-border rounded-lg shadow-lg p-4 z-50">
+          <div className="text-sm font-medium text-foreground">{cloneToastMessage}</div>
+        </div>
+      )}
 
       <DeleteConfirmModal
         providerName={provider.name}

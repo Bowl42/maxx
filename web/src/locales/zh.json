@@ -918,6 +918,10 @@
     "createError": "创建提供商失败。请检查您的连接并重试。",
     "updateError": "更新提供商失败。请检查您的连接并重试。",
     "saveChanges": "保存更改",
+    "clone": "克隆",
+    "cloning": "克隆中...",
+    "cloneSuffix": "（副本）",
+    "cloneSuccess": "已成功克隆「{{name}}」。",
     "delete": "删除",
     "cancel": "取消",
     "none": "无",
@@ -1082,3 +1086,4 @@
     "emptyHint": "暂无模型映射。添加映射以在发送到上游前转换请求模型。"
   }
 }
+
