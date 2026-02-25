@@ -16,6 +16,7 @@ import (
 
 	"github.com/awsl-project/maxx/internal/adapter/provider"
 	cliproxyapi "github.com/awsl-project/maxx/internal/adapter/provider/cliproxyapi_codex"
+	"github.com/awsl-project/maxx/internal/codexutil"
 	"github.com/awsl-project/maxx/internal/domain"
 	"github.com/awsl-project/maxx/internal/flow"
 	"github.com/awsl-project/maxx/internal/usage"
@@ -572,26 +573,7 @@ func applyCodexRequestTuning(c *flow.Ctx, body []byte) (string, []byte) {
 	if !gjson.GetBytes(body, "instructions").Exists() {
 		body, _ = sjson.SetBytes(body, "instructions", "")
 	}
-	if input := gjson.GetBytes(body, "input"); input.IsArray() {
-		for i, item := range input.Array() {
-			itemType := item.Get("type").String()
-			if itemType != "message" {
-				if item.Get("role").Exists() {
-					body, _ = sjson.DeleteBytes(body, fmt.Sprintf("input.%d.role", i))
-				}
-			}
-			if itemType == "function_call" {
-				if id := item.Get("id").String(); id != "" && !strings.HasPrefix(id, "fc_") {
-					body, _ = sjson.SetBytes(body, fmt.Sprintf("input.%d.id", i), "fc_"+id)
-				}
-			}
-			if itemType == "function_call_output" {
-				if !item.Get("output").Exists() {
-					body, _ = sjson.SetBytes(body, fmt.Sprintf("input.%d.output", i), "")
-				}
-			}
-		}
-	}
+	body = codexutil.NormalizeCodexInput(body)
 
 	return cacheID, body
 }

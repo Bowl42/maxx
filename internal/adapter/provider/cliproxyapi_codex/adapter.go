@@ -14,6 +14,7 @@ import (
 	"time"
 
 	"github.com/awsl-project/maxx/internal/adapter/provider"
+	"github.com/awsl-project/maxx/internal/codexutil"
 	"github.com/awsl-project/maxx/internal/domain"
 	"github.com/awsl-project/maxx/internal/flow"
 	"github.com/awsl-project/maxx/internal/usage"
@@ -21,8 +22,6 @@ import (
 	"github.com/router-for-me/CLIProxyAPI/v6/sdk/cliproxy/executor"
 	"github.com/router-for-me/CLIProxyAPI/v6/sdk/exec"
 	"github.com/router-for-me/CLIProxyAPI/v6/sdk/translator"
-	"github.com/tidwall/gjson"
-	"github.com/tidwall/sjson"
 )
 
 // TokenCache caches access tokens
@@ -254,26 +253,7 @@ func (a *CLIProxyAPICodexAdapter) Execute(c *flow.Ctx, p *domain.Provider) error
 }
 
 func sanitizeCodexPayload(body []byte) []byte {
-	if input := gjson.GetBytes(body, "input"); input.IsArray() {
-		for i, item := range input.Array() {
-			itemType := item.Get("type").String()
-			if itemType != "message" {
-				if item.Get("role").Exists() {
-					body, _ = sjson.DeleteBytes(body, fmt.Sprintf("input.%d.role", i))
-				}
-			}
-			if itemType == "function_call" {
-				if id := item.Get("id").String(); id != "" && !strings.HasPrefix(id, "fc_") {
-					body, _ = sjson.SetBytes(body, fmt.Sprintf("input.%d.id", i), "fc_"+id)
-				}
-			}
-			if itemType == "function_call_output" {
-				if !item.Get("output").Exists() {
-					body, _ = sjson.SetBytes(body, fmt.Sprintf("input.%d.output", i), "")
-				}
-			}
-		}
-	}
+	body = codexutil.NormalizeCodexInput(body)
 	return body
 }
 
