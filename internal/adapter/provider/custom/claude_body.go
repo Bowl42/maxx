@@ -206,6 +206,8 @@ func sanitizeClaudeMessages(body []byte) []byte {
 // Missing tool_results are injected with placeholder content so the request
 // satisfies Anthropic's requirement that "each tool_use block must have a
 // corresponding tool_result block in the next message".
+// If the assistant message is the last message or the next message is not a user
+// message, a synthetic user message is inserted with all required tool_results.
 func ensureToolResultCorrespondence(body []byte) []byte {
 	messages := gjson.GetBytes(body, "messages")
 	if !messages.Exists() || !messages.IsArray() {
@@ -213,19 +215,17 @@ func ensureToolResultCorrespondence(body []byte) []byte {
 	}
 
 	msgArr := messages.Array()
-	if len(msgArr) < 2 {
+	if len(msgArr) == 0 {
 		return body
 	}
 
-	// First pass: collect all (userMsgIdx → []missingToolUseID) pairs.
-	type injection struct {
-		userIdx   int
-		toolUseID string
-	}
-	var injections []injection
+	rebuilt := make([]string, 0, len(msgArr)+4)
+	modified := false
 
-	for i := 0; i < len(msgArr)-1; i++ {
+	for i := 0; i < len(msgArr); i++ {
 		msg := msgArr[i]
+		rebuilt = append(rebuilt, msg.Raw)
+
 		if msg.Get("role").String() != "assistant" {
 			continue
 		}
@@ -248,72 +248,78 @@ func ensureToolResultCorrespondence(body []byte) []byte {
 			continue
 		}
 
-		// The next message must be a user message with corresponding tool_results.
-		nextMsg := msgArr[i+1]
-		if nextMsg.Get("role").String() != "user" {
-			continue
-		}
+		// Check if the next message is a user message with the required tool_results.
+		hasNextUser := i+1 < len(msgArr) && msgArr[i+1].Get("role").String() == "user"
 
-		// Collect existing tool_result IDs in the next user message.
-		existing := make(map[string]bool)
-		nextContent := nextMsg.Get("content")
-		if nextContent.IsArray() {
-			nextContent.ForEach(func(_, block gjson.Result) bool {
-				if block.Get("type").String() == "tool_result" {
-					existing[block.Get("tool_use_id").String()] = true
-				}
-				return true
-			})
-		}
+		if hasNextUser {
+			nextMsg := msgArr[i+1]
+			nextContent := nextMsg.Get("content")
 
-		for _, id := range toolUseIDs {
-			if !existing[id] {
-				injections = append(injections, injection{userIdx: i + 1, toolUseID: id})
+			existing := make(map[string]bool)
+			if nextContent.IsArray() {
+				nextContent.ForEach(func(_, block gjson.Result) bool {
+					if block.Get("type").String() == "tool_result" {
+						existing[block.Get("tool_use_id").String()] = true
+					}
+					return true
+				})
 			}
+
+			var missingIDs []string
+			for _, id := range toolUseIDs {
+				if !existing[id] {
+					missingIDs = append(missingIDs, id)
+				}
+			}
+
+			if len(missingIDs) == 0 {
+				continue // all tool_results present
+			}
+
+			// Prepend missing tool_results to the existing user message content.
+			var newBlocks []string
+			for _, id := range missingIDs {
+				newBlocks = append(newBlocks,
+					fmt.Sprintf(`{"type":"tool_result","tool_use_id":%s,"content":[{"type":"text","text":"[empty]"}]}`,
+						strconv.Quote(id)))
+			}
+			if nextContent.IsArray() {
+				nextContent.ForEach(func(_, block gjson.Result) bool {
+					newBlocks = append(newBlocks, block.Raw)
+					return true
+				})
+			} else if nextContent.Type == gjson.String && strings.TrimSpace(nextContent.String()) != "" {
+				newBlocks = append(newBlocks,
+					fmt.Sprintf(`{"type":"text","text":%s}`, strconv.Quote(nextContent.String())))
+			}
+
+			if updatedNext, err := sjson.SetRaw(nextMsg.Raw, "content", "["+strings.Join(newBlocks, ",")+"]"); err == nil {
+				rebuilt = append(rebuilt, updatedNext)
+				i++ // skip original next message
+				modified = true
+			}
+		} else {
+			// No user message follows — inject a synthetic one with all tool_results.
+			var blocks []string
+			for _, id := range toolUseIDs {
+				blocks = append(blocks,
+					fmt.Sprintf(`{"type":"tool_result","tool_use_id":%s,"content":[{"type":"text","text":"[empty]"}]}`,
+						strconv.Quote(id)))
+			}
+			rebuilt = append(rebuilt, `{"role":"user","content":[`+strings.Join(blocks, ",")+`]}`)
+			modified = true
 		}
 	}
 
-	if len(injections) == 0 {
+	if !modified {
 		return body
 	}
 
-	// Group by user message index.
-	grouped := make(map[int][]string)
-	for _, inj := range injections {
-		grouped[inj.userIdx] = append(grouped[inj.userIdx], inj.toolUseID)
+	updatedBody, err := sjson.SetRawBytes(body, "messages", []byte("["+strings.Join(rebuilt, ",")+"]"))
+	if err != nil {
+		return body
 	}
-
-	// Second pass: inject missing tool_results (reverse order to keep indices stable).
-	for idx := len(msgArr) - 1; idx >= 0; idx-- {
-		ids, ok := grouped[idx]
-		if !ok {
-			continue
-		}
-
-		contentPath := fmt.Sprintf("messages.%d.content", idx)
-		content := gjson.GetBytes(body, contentPath)
-
-		// Build new blocks: prepend missing tool_results before existing content.
-		var newBlocks []string
-		for _, id := range ids {
-			newBlocks = append(newBlocks,
-				fmt.Sprintf(`{"type":"tool_result","tool_use_id":%s,"content":[{"type":"text","text":"[empty]"}]}`,
-					strconv.Quote(id)))
-		}
-		if content.IsArray() {
-			content.ForEach(func(_, block gjson.Result) bool {
-				newBlocks = append(newBlocks, block.Raw)
-				return true
-			})
-		} else if content.Type == gjson.String && strings.TrimSpace(content.String()) != "" {
-			newBlocks = append(newBlocks,
-				fmt.Sprintf(`{"type":"text","text":%s}`, strconv.Quote(content.String())))
-		}
-
-		body, _ = sjson.SetRawBytes(body, contentPath, []byte("["+strings.Join(newBlocks, ",")+"]"))
-	}
-
-	return body
+	return updatedBody
 }
 
 func stripVolatileClaudeBillingCCH(body []byte) []byte {
