@@ -302,6 +302,11 @@ func (e *Executor) dispatch(c *flow.Ctx) {
 			proxyReq.Cost = attemptRecord.Cost
 			proxyReq.TTFT = attemptRecord.TTFT
 
+			if clearDetail {
+				proxyReq.RequestInfo = nil
+				proxyReq.ResponseInfo = nil
+			}
+
 			_ = e.proxyRequestRepo.Update(proxyReq)
 			if e.broadcaster != nil {
 				e.broadcaster.BroadcastProxyRequest(proxyReq)
@@ -318,6 +323,10 @@ func (e *Executor) dispatch(c *flow.Ctx) {
 					proxyReq.Error = "request timeout"
 				} else {
 					proxyReq.Error = ctx.Err().Error()
+				}
+				if clearDetail {
+					proxyReq.RequestInfo = nil
+					proxyReq.ResponseInfo = nil
 				}
 				_ = e.proxyRequestRepo.Update(proxyReq)
 				if e.broadcaster != nil {
@@ -365,6 +374,10 @@ func (e *Executor) dispatch(c *flow.Ctx) {
 						proxyReq.Error = "request timeout during retry wait"
 					} else {
 						proxyReq.Error = ctx.Err().Error()
+					}
+					if clearDetail {
+						proxyReq.RequestInfo = nil
+						proxyReq.ResponseInfo = nil
 					}
 					_ = e.proxyRequestRepo.Update(proxyReq)
 					if e.broadcaster != nil {
