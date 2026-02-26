@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useId, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   Button,
@@ -73,12 +73,14 @@ export function APITokensPage() {
     name: string;
   } | null>(null);
   const [copied, setCopied] = useState(false);
+  const devModeSwitchId = useId();
 
   // Form state
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [projectID, setProjectID] = useState<string>('0');
   const [expiresAt, setExpiresAt] = useState('');
+  const [devMode, setDevMode] = useState(false);
   const [showProjectPicker, setShowProjectPicker] = useState(false);
 
   const resetForm = () => {
@@ -86,7 +88,13 @@ export function APITokensPage() {
     setDescription('');
     setProjectID('0');
     setExpiresAt('');
+    setDevMode(false);
     setShowProjectPicker(false);
+  };
+
+  const closeEditDialog = () => {
+    setEditingToken(null);
+    resetForm();
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -121,13 +129,11 @@ export function APITokensPage() {
           description,
           projectID: parseInt(projectID) || 0,
           expiresAt: expiresAt ? new Date(expiresAt).toISOString() : undefined,
+          devMode,
         },
       },
       {
-        onSuccess: () => {
-          setEditingToken(null);
-          resetForm();
-        },
+        onSuccess: () => closeEditDialog(),
       },
     );
   };
@@ -136,13 +142,6 @@ export function APITokensPage() {
     updateToken.mutate({
       id: token.id,
       data: { isEnabled: !token.isEnabled },
-    });
-  };
-
-  const handleToggleDevMode = (token: APIToken) => {
-    updateToken.mutate({
-      id: token.id,
-      data: { devMode: !token.devMode },
     });
   };
 
@@ -159,6 +158,7 @@ export function APITokensPage() {
     setDescription(token.description);
     setProjectID(token.projectID.toString());
     setExpiresAt(token.expiresAt ? token.expiresAt.split('T')[0] : '');
+    setDevMode(!!token.devMode);
   };
 
   const handleCopyToken = async () => {
@@ -268,7 +268,6 @@ export function APITokensPage() {
                       <TableHead>{t('apiTokens.tokenPrefix')}</TableHead>
                       <TableHead>{t('apiTokens.project')}</TableHead>
                       <TableHead>{t('common.status')}</TableHead>
-                      <TableHead>{t('apiTokens.devMode')}</TableHead>
                       <TableHead>{t('apiTokens.usage')}</TableHead>
                       <TableHead>{t('apiTokens.lastUsed')}</TableHead>
                       <TableHead className="text-right">{t('common.actions')}</TableHead>
@@ -328,27 +327,6 @@ export function APITokensPage() {
                             ) : (
                               <Badge variant="secondary" className="text-xs">
                                 {t('common.disabled')}
-                              </Badge>
-                            )}
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex items-center gap-2">
-                            <Switch
-                              checked={!!token.devMode}
-                              onCheckedChange={() => handleToggleDevMode(token)}
-                              disabled={updateToken.isPending}
-                            />
-                            {token.devMode ? (
-                              <Badge
-                                variant="default"
-                                className="text-xs bg-blue-500/10 text-blue-500 border-blue-500/20"
-                              >
-                                {t('apiTokens.devModeEnabled')}
-                              </Badge>
-                            ) : (
-                              <Badge variant="secondary" className="text-xs">
-                                {t('apiTokens.devModeDisabled')}
                               </Badge>
                             )}
                           </div>
@@ -503,7 +481,11 @@ export function APITokensPage() {
       {/* Edit Dialog */}
       <Dialog
         open={!!editingToken}
-        onOpenChange={(open: boolean) => !open && setEditingToken(null)}
+        onOpenChange={(open: boolean) => {
+          if (!open) {
+            closeEditDialog();
+          }
+        }}
       >
         <DialogContent>
           <DialogHeader>
@@ -567,8 +549,31 @@ export function APITokensPage() {
                 min={new Date().toISOString().split('T')[0]}
               />
             </div>
+            <div className="flex items-center justify-between">
+              <label
+                htmlFor={devModeSwitchId}
+                className="text-xs font-medium text-text-secondary uppercase tracking-wider"
+              >
+                {t('apiTokens.devMode')}
+              </label>
+              <div className="flex items-center gap-2">
+                <Switch
+                  id={devModeSwitchId}
+                  checked={devMode}
+                  onCheckedChange={setDevMode}
+                  disabled={updateToken.isPending}
+                />
+                <span className="text-xs text-text-muted">
+                  {devMode ? t('apiTokens.devModeEnabled') : t('apiTokens.devModeDisabled')}
+                </span>
+              </div>
+            </div>
             <DialogFooter>
-              <Button type="button" variant="outline" onClick={() => setEditingToken(null)}>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={closeEditDialog}
+              >
                 {t('common.cancel')}
               </Button>
               <Button type="submit" disabled={updateToken.isPending || !name}>
