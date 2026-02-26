@@ -25,6 +25,7 @@ func (e *Executor) dispatch(c *flow.Ctx) {
 
 	proxyReq := state.proxyReq
 	ctx := state.ctx
+	clearDetail := e.shouldClearRequestDetailFor(state)
 
 	for _, matchedRoute := range state.routes {
 		if ctx.Err() != nil {
@@ -127,7 +128,7 @@ func (e *Executor) dispatch(c *flow.Ctx) {
 			c.Set(flow.KeyEventChan, eventChan)
 			c.Set(flow.KeyBroadcaster, e.broadcaster)
 			eventDone := make(chan struct{})
-			go e.processAdapterEventsRealtime(eventChan, attemptRecord, eventDone)
+			go e.processAdapterEventsRealtime(eventChan, attemptRecord, eventDone, clearDetail)
 
 			var responseWriter http.ResponseWriter
 			var convertingWriter *ConvertingResponseWriter
@@ -179,7 +180,7 @@ func (e *Executor) dispatch(c *flow.Ctx) {
 					attemptRecord.Multiplier = result.Multiplier
 				}
 
-				if e.shouldClearRequestDetail() {
+				if clearDetail {
 					attemptRecord.RequestInfo = nil
 					attemptRecord.ResponseInfo = nil
 				}
@@ -200,7 +201,7 @@ func (e *Executor) dispatch(c *flow.Ctx) {
 				proxyReq.Multiplier = attemptRecord.Multiplier
 				proxyReq.ResponseModel = mappedModel
 
-				if !e.shouldClearRequestDetail() {
+				if !clearDetail {
 					proxyReq.ResponseInfo = &domain.ResponseInfo{
 						Status:  responseCapture.StatusCode(),
 						Headers: responseCapture.CapturedHeaders(),
@@ -220,7 +221,7 @@ func (e *Executor) dispatch(c *flow.Ctx) {
 				proxyReq.Cost = attemptRecord.Cost
 				proxyReq.TTFT = attemptRecord.TTFT
 
-				if e.shouldClearRequestDetail() {
+				if clearDetail {
 					proxyReq.RequestInfo = nil
 					proxyReq.ResponseInfo = nil
 				}
@@ -265,7 +266,7 @@ func (e *Executor) dispatch(c *flow.Ctx) {
 				attemptRecord.Multiplier = result.Multiplier
 			}
 
-			if e.shouldClearRequestDetail() {
+			if clearDetail {
 				attemptRecord.RequestInfo = nil
 				attemptRecord.ResponseInfo = nil
 			}
@@ -282,7 +283,7 @@ func (e *Executor) dispatch(c *flow.Ctx) {
 
 			if responseCapture.Body() != "" {
 				proxyReq.StatusCode = responseCapture.StatusCode()
-				if !e.shouldClearRequestDetail() {
+				if !clearDetail {
 					proxyReq.ResponseInfo = &domain.ResponseInfo{
 						Status:  responseCapture.StatusCode(),
 						Headers: responseCapture.CapturedHeaders(),
@@ -384,7 +385,7 @@ func (e *Executor) dispatch(c *flow.Ctx) {
 	if state.lastErr != nil {
 		proxyReq.Error = state.lastErr.Error()
 	}
-	if e.shouldClearRequestDetail() {
+	if clearDetail {
 		proxyReq.RequestInfo = nil
 		proxyReq.ResponseInfo = nil
 	}

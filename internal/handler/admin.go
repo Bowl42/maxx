@@ -1069,6 +1069,7 @@ func (h *AdminHandler) handleAPITokens(w http.ResponseWriter, r *http.Request, i
 			Description *string `json:"description"`
 			ProjectID   *uint64 `json:"projectID"`
 			IsEnabled   *bool   `json:"isEnabled"`
+			DevMode     *bool   `json:"devMode"`
 			ExpiresAt   *string `json:"expiresAt"`
 		}
 		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
@@ -1090,6 +1091,9 @@ func (h *AdminHandler) handleAPITokens(w http.ResponseWriter, r *http.Request, i
 		}
 		if body.IsEnabled != nil {
 			existing.IsEnabled = *body.IsEnabled
+		}
+		if body.DevMode != nil {
+			existing.DevMode = *body.DevMode
 		}
 		if body.ExpiresAt != nil {
 			if *body.ExpiresAt == "" {

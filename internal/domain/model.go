@@ -353,6 +353,9 @@ type ProxyRequest struct {
 
 	// 使用的 API Token ID，0 表示未使用 Token
 	APITokenID uint64 `json:"apiTokenID"`
+
+	// 是否开发者模式请求（由 Token 开关决定）
+	DevMode bool `json:"devMode"`
 }
 
 type ProxyUpstreamAttempt struct {
@@ -721,6 +724,9 @@ type APIToken struct {
 
 	// 是否启用
 	IsEnabled bool `json:"isEnabled"`
+
+	// 开发者模式（开启时该令牌请求详情永久保留）
+	DevMode bool `json:"devMode"`
 
 	// 过期时间，nil 表示永不过期
 	ExpiresAt *time.Time `json:"expiresAt,omitempty"`

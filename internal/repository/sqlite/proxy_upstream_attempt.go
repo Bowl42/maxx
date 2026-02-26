@@ -241,8 +241,13 @@ func (r *ProxyUpstreamAttemptRepository) ClearDetailOlderThan(before time.Time) 
 	beforeTs := toTimestamp(before)
 	now := time.Now().UnixMilli()
 
+	devModeOffRequests := r.db.gorm.Model(&ProxyRequest{}).
+		Select("id").
+		Where("dev_mode = 0")
+
 	result := r.db.gorm.Model(&ProxyUpstreamAttempt{}).
 		Where("created_at < ? AND (request_info IS NOT NULL OR response_info IS NOT NULL)", beforeTs).
+		Where("proxy_request_id IN (?)", devModeOffRequests).
 		Updates(map[string]any{
 			"request_info":  nil,
 			"response_info": nil,

@@ -426,7 +426,7 @@ func (r *ProxyRequestRepository) ClearDetailOlderThan(before time.Time) (int64, 
 	now := time.Now().UnixMilli()
 
 	result := r.db.gorm.Model(&ProxyRequest{}).
-		Where("created_at < ? AND (request_info IS NOT NULL OR response_info IS NOT NULL)", beforeTs).
+		Where("created_at < ? AND (request_info IS NOT NULL OR response_info IS NOT NULL) AND dev_mode = 0", beforeTs).
 		Updates(map[string]any{
 			"request_info":  nil,
 			"response_info": nil,
@@ -474,6 +474,7 @@ func (r *ProxyRequestRepository) toModel(p *domain.ProxyRequest) *ProxyRequest {
 		Multiplier:                 p.Multiplier,
 		Cost:                       p.Cost,
 		APITokenID:                 p.APITokenID,
+		DevMode:                    boolToInt(p.DevMode),
 	}
 }
 
@@ -513,6 +514,7 @@ func (r *ProxyRequestRepository) toDomain(m *ProxyRequest) *domain.ProxyRequest 
 		Multiplier:                  m.Multiplier,
 		Cost:                        m.Cost,
 		APITokenID:                  m.APITokenID,
+		DevMode:                     m.DevMode == 1,
 	}
 }
 
