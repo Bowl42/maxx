@@ -83,6 +83,9 @@
     "account": "账户",
     "notifications": "通知",
     "theme": "主题",
+    "restartServer": "重启服务器",
+    "restartServerConfirm": "确定重启服务器？当前连接可能会短暂中断。",
+    "restartServerFailed": "重启失败，请检查服务状态。",
     "language": "语言",
     "logout": "退出登录"
   },

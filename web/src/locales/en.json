@@ -83,6 +83,9 @@
     "account": "Account",
     "notifications": "Notifications",
     "theme": "Theme",
+    "restartServer": "Restart Server",
+    "restartServerConfirm": "Restart the server? Active connections may be briefly interrupted.",
+    "restartServerFailed": "Restart failed. Please check the server status.",
     "language": "Language",
     "logout": "Log out"
   },

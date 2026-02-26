@@ -323,6 +323,12 @@ export class HttpTransport implements Transport {
     return data;
   }
 
+  // ===== System API =====
+
+  async restartServer(): Promise<void> {
+    await this.client.post('/restart');
+  }
+
   // ===== Provider Stats API =====
 
   async getProviderStats(
