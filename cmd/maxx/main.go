@@ -245,6 +245,7 @@ func main() {
 
 	// Start background tasks
 	core.StartBackgroundTasks(core.BackgroundTaskDeps{
+		DB:                 db,
 		UsageStats:         usageStatsRepo,
 		ProxyRequest:       proxyRequestRepo,
 		AttemptRepo:        attemptRepo,

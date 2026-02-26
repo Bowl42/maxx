@@ -4,25 +4,40 @@ import (
 	"context"
 	"log"
 	"strconv"
+	"sync"
 	"time"
 
 	"github.com/awsl-project/maxx/internal/domain"
 	"github.com/awsl-project/maxx/internal/repository"
+	"github.com/awsl-project/maxx/internal/repository/sqlite"
 	"github.com/awsl-project/maxx/internal/service"
 )
 
 const (
 	defaultRequestRetentionHours = 168 // 默认保留 168 小时（7天）
+
+	// sqlite maintenance throttle
+	sqliteVacuumMinInterval = time.Hour
+)
+
+var (
+	sqliteMaintenanceMu            sync.Mutex
+	sqliteMaintenanceLastCompleted time.Time
+	sqliteMaintenanceInProgress    bool
 )
 
 // BackgroundTaskDeps 后台任务依赖
 type BackgroundTaskDeps struct {
-	UsageStats          repository.UsageStatsRepository
-	ProxyRequest        repository.ProxyRequestRepository
-	AttemptRepo         repository.ProxyUpstreamAttemptRepository
-	Settings            repository.SystemSettingRepository
-	AntigravityTaskSvc  *service.AntigravityTaskService
-	CodexTaskSvc        *service.CodexTaskService
+	// DB is optional. When provided and the dialector is sqlite, cleanup tasks will
+	// best-effort run WAL checkpoint + VACUUM with throttling.
+	DB *sqlite.DB
+
+	UsageStats         repository.UsageStatsRepository
+	ProxyRequest       repository.ProxyRequestRepository
+	AttemptRepo        repository.ProxyUpstreamAttemptRepository
+	Settings           repository.SystemSettingRepository
+	AntigravityTaskSvc *service.AntigravityTaskService
+	CodexTaskSvc       *service.CodexTaskService
 }
 
 // StartBackgroundTasks 启动所有后台任务
@@ -100,11 +115,62 @@ func (d *BackgroundTaskDeps) cleanupOldRequests() {
 	}
 
 	before := time.Now().Add(-time.Duration(retentionHours) * time.Hour)
-	if deleted, err := d.ProxyRequest.DeleteOlderThan(before); err != nil {
+	deletedRequests, err := d.ProxyRequest.DeleteOlderThan(before)
+	if err != nil {
 		log.Printf("[Task] Failed to delete old requests: %v", err)
-	} else if deleted > 0 {
-		log.Printf("[Task] Deleted %d requests older than %d hours", deleted, retentionHours)
+		return
 	}
+	if deletedRequests > 0 {
+		log.Printf("[Task] Deleted %d requests older than %d hours", deletedRequests, retentionHours)
+	}
+
+	// Best-effort: SQLite needs VACUUM (and WAL checkpoint) to reclaim disk space after deletes.
+	// Only attempt when using sqlite dialector and when throttling allows.
+	// Failure (e.g. database is locked) must not affect the cleanup flow.
+	d.maybeSQLiteCheckpointAndVacuum(deletedRequests)
+}
+
+func (d *BackgroundTaskDeps) maybeSQLiteCheckpointAndVacuum(deletedRequests int64) {
+	if d.DB == nil || d.DB.Dialector() != "sqlite" {
+		return
+	}
+	if deletedRequests <= 0 {
+		return
+	}
+
+	// Combine throttle check (due) + in-progress mark under one lock to avoid race window.
+	sqliteMaintenanceMu.Lock()
+	if sqliteMaintenanceInProgress {
+		sqliteMaintenanceMu.Unlock()
+		return
+	}
+	if !sqliteMaintenanceLastCompleted.IsZero() && time.Since(sqliteMaintenanceLastCompleted) < sqliteVacuumMinInterval {
+		sqliteMaintenanceMu.Unlock()
+		return
+	}
+	sqliteMaintenanceInProgress = true
+	sqliteMaintenanceMu.Unlock()
+	defer func() {
+		sqliteMaintenanceMu.Lock()
+		sqliteMaintenanceInProgress = false
+		sqliteMaintenanceMu.Unlock()
+	}()
+
+	// Best-effort WAL checkpoint to also shrink - ignore errors.
+	if err := d.DB.GormDB().Exec("PRAGMA wal_checkpoint(TRUNCATE)").Error; err != nil {
+		log.Printf("[Task] SQLite wal_checkpoint(TRUNCATE) failed (ignored): %v", err)
+	}
+
+	// VACUUM cannot run within a transaction.
+	if err := d.DB.GormDB().Exec("VACUUM").Error; err != nil {
+		log.Printf("[Task] SQLite VACUUM failed (best-effort): %v", err)
+		return
+	}
+
+	sqliteMaintenanceMu.Lock()
+	sqliteMaintenanceLastCompleted = time.Now()
+	sqliteMaintenanceMu.Unlock()
+	log.Printf("[Task] SQLite maintenance completed (best-effort)")
 }
 
 // cleanupOldRequestDetails 清理过期的请求详情（request_info 和 response_info）
