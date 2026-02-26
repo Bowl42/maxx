@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useId, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   Button,
@@ -73,6 +73,7 @@ export function APITokensPage() {
     name: string;
   } | null>(null);
   const [copied, setCopied] = useState(false);
+  const devModeSwitchId = useId();
 
   // Form state
   const [name, setName] = useState('');
@@ -89,6 +90,11 @@ export function APITokensPage() {
     setExpiresAt('');
     setDevMode(false);
     setShowProjectPicker(false);
+  };
+
+  const closeEditDialog = () => {
+    setEditingToken(null);
+    resetForm();
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -127,10 +133,7 @@ export function APITokensPage() {
         },
       },
       {
-        onSuccess: () => {
-          setEditingToken(null);
-          resetForm();
-        },
+        onSuccess: () => closeEditDialog(),
       },
     );
   };
@@ -480,8 +483,7 @@ export function APITokensPage() {
         open={!!editingToken}
         onOpenChange={(open: boolean) => {
           if (!open) {
-            setEditingToken(null);
-            resetForm();
+            closeEditDialog();
           }
         }}
       >
@@ -548,11 +550,15 @@ export function APITokensPage() {
               />
             </div>
             <div className="flex items-center justify-between">
-              <label className="text-xs font-medium text-text-secondary uppercase tracking-wider">
+              <label
+                htmlFor={devModeSwitchId}
+                className="text-xs font-medium text-text-secondary uppercase tracking-wider"
+              >
                 {t('apiTokens.devMode')}
               </label>
               <div className="flex items-center gap-2">
                 <Switch
+                  id={devModeSwitchId}
                   checked={devMode}
                   onCheckedChange={setDevMode}
                   disabled={updateToken.isPending}
@@ -566,10 +572,7 @@ export function APITokensPage() {
               <Button
                 type="button"
                 variant="outline"
-                onClick={() => {
-                  setEditingToken(null);
-                  resetForm();
-                }}
+                onClick={closeEditDialog}
               >
                 {t('common.cancel')}
               </Button>
