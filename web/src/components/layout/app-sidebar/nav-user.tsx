@@ -1,8 +1,9 @@
 ﻿'use client';
 
-import { Moon, Sun, Laptop, Sparkles, Gem, Github, ChevronsUp } from 'lucide-react';
+import { Moon, Sun, Laptop, Sparkles, Gem, Github, ChevronsUp, RefreshCw } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '@/components/theme-provider';
+import { useTransport } from '@/lib/transport/context';
 import type { Theme } from '@/lib/theme';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { cn } from '@/lib/utils';
@@ -13,6 +14,7 @@ import {
   DropdownMenuTrigger,
   DropdownMenuGroup,
   DropdownMenuLabel,
+  DropdownMenuItem,
   DropdownMenuSub,
   DropdownMenuSubTrigger,
   DropdownMenuSubContent,
@@ -29,6 +31,7 @@ import {
 export function NavUser() {
   const { isMobile, state } = useSidebar();
   const { t, i18n } = useTranslation();
+  const { transport } = useTransport();
   const { theme, setTheme } = useTheme();
   const isCollapsed = !isMobile && state === 'collapsed';
   const currentLanguage = (i18n.resolvedLanguage || i18n.language || 'en').toLowerCase().startsWith('zh')
@@ -36,9 +39,35 @@ export function NavUser() {
     : 'en';
   const currentLanguageLabel =
     currentLanguage === 'zh' ? t('settings.languages.zh') : t('settings.languages.en');
+  const desktopRestartAvailable =
+    typeof window !== 'undefined' &&
+    !!(window as unknown as { go?: { desktop?: { LauncherApp?: { RestartServer?: () => unknown } } } })
+      .go?.desktop?.LauncherApp?.RestartServer;
 
   const handleToggleLanguage = () => {
     i18n.changeLanguage(currentLanguage === 'zh' ? 'en' : 'zh');
+  };
+
+  const handleRestartServer = async () => {
+    if (!window.confirm(t('nav.restartServerConfirm'))) return;
+    try {
+      if (desktopRestartAvailable) {
+        const launcher = (window as unknown as {
+          go?: { desktop?: { LauncherApp?: { RestartServer?: () => Promise<void> } } };
+        }).go?.desktop?.LauncherApp;
+        if (!launcher?.RestartServer) {
+          throw new Error('Desktop restart is unavailable.');
+        }
+        await launcher.RestartServer();
+        return;
+      }
+      await transport.restartServer();
+    } catch (error) {
+      console.error('Restart server failed:', error);
+      if (typeof window !== 'undefined') {
+        window.alert(t('nav.restartServerFailed'));
+      }
+    }
   };
 
   const user = {
@@ -123,8 +152,8 @@ export function NavUser() {
               )}
             />
             <DropdownMenuContent
-              className="!w-40 rounded-lg max-w-xs !min-w-0"
-              style={{ width: '10rem' }}
+              className="!w-32 rounded-lg max-w-xs !min-w-0"
+              style={{ width: '8rem' }}
               side={isMobile ? 'bottom' : 'right'}
               align="end"
               sideOffset={4}
@@ -194,6 +223,13 @@ export function NavUser() {
                   </DropdownMenuPortal>
                 </DropdownMenuSub>
               </DropdownMenuGroup>
+              <>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={handleRestartServer}>
+                  <RefreshCw />
+                  <span>{t('nav.restartServer')}</span>
+                </DropdownMenuItem>
+              </>
             </DropdownMenuContent>
           </DropdownMenu>
         </div>
@@ -201,4 +237,5 @@ export function NavUser() {
     </SidebarMenu>
   );
 }
+
 

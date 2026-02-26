@@ -117,6 +117,9 @@ export interface Transport {
   // ===== Proxy Status API =====
   getProxyStatus(): Promise<ProxyStatus>;
 
+  // ===== System API =====
+  restartServer(): Promise<void>;
+
   // ===== Provider Stats API =====
   getProviderStats(clientType?: string, projectId?: number): Promise<Record<number, ProviderStats>>;
 

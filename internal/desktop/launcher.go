@@ -206,6 +206,11 @@ func (a *LauncherApp) startServerAsync() {
 	}
 	a.components = components
 
+	// Allow Web admin endpoint to trigger desktop restart
+	if components.AdminHandler != nil {
+		components.AdminHandler.SetRestartFunc(a.RestartServer)
+	}
+
 	// 设置 Wails context 用于事件广播
 	if components.WailsBroadcaster != nil {
 		components.WailsBroadcaster.SetContext(a.ctx)

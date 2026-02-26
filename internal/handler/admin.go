@@ -21,6 +21,7 @@ type AdminHandler struct {
 	svc       *service.AdminService
 	backupSvc *service.BackupService
 	logPath   string
+	restartFn func() error
 }
 
 // NewAdminHandler creates a new admin handler
@@ -30,6 +31,11 @@ func NewAdminHandler(svc *service.AdminService, backupSvc *service.BackupService
 		backupSvc: backupSvc,
 		logPath:   logPath,
 	}
+}
+
+// SetRestartFunc sets the restart callback for admin restart endpoint.
+func (h *AdminHandler) SetRestartFunc(fn func() error) {
+	h.restartFn = fn
 }
 
 // ServeHTTP routes admin requests
@@ -50,6 +56,8 @@ func (h *AdminHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 
 	switch resource {
+	case "restart":
+		h.handleRestart(w, r)
 	case "providers":
 		h.handleProviders(w, r, id)
 	case "routes":
@@ -97,6 +105,27 @@ func (h *AdminHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	default:
 		writeJSON(w, http.StatusNotFound, map[string]string{"error": "not found"})
 	}
+}
+
+func (h *AdminHandler) handleRestart(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		w.Header().Set("Allow", http.MethodPost)
+		writeJSON(w, http.StatusMethodNotAllowed, map[string]string{"error": "method not allowed"})
+		return
+	}
+
+	if h.restartFn == nil {
+		writeJSON(w, http.StatusNotImplemented, map[string]string{"error": "restart not supported"})
+		return
+	}
+
+	go func() {
+		if err := h.restartFn(); err != nil {
+			log.Printf("[Admin] Restart failed: %v", err)
+		}
+	}()
+
+	writeJSON(w, http.StatusAccepted, map[string]string{"status": "restarting"})
 }
 
 // Provider handlers

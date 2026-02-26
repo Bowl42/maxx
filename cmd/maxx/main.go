@@ -7,9 +7,11 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"os/exec"
 	"os/signal"
 	"path/filepath"
 	"syscall"
+	"sync/atomic"
 	"time"
 
 	"github.com/awsl-project/maxx/internal/adapter/client"
@@ -399,6 +401,81 @@ func main() {
 	codexOAuthServer := core.NewCodexOAuthServer(codexHandler)
 	codexHandler.SetOAuthServer(codexOAuthServer)
 
+	var restartInProgress int32
+
+	shutdownServer := func(reason string) {
+		log.Printf("Initiating graceful shutdown (%s)...", reason)
+
+		// Step 1: Wait for active proxy requests to complete
+		activeCount := requestTracker.ActiveCount()
+		if activeCount > 0 {
+			log.Printf("Waiting for %d active proxy requests to complete...", activeCount)
+			completed := requestTracker.GracefulShutdown(core.GracefulShutdownTimeout)
+			if !completed {
+				log.Printf("Graceful shutdown timeout, some requests may be interrupted")
+			} else {
+				log.Printf("All proxy requests completed successfully")
+			}
+		} else {
+			// Mark as shutting down to reject new requests
+			requestTracker.GracefulShutdown(0)
+			log.Printf("No active proxy requests")
+		}
+
+		// Step 2: Stop pprof manager
+		shutdownCtx, cancel := context.WithTimeout(context.Background(), core.HTTPShutdownTimeout)
+		defer cancel()
+
+		// Stop background cleanup task
+		cleanupCancel()
+
+		// Stop pprof manager
+		if err := pprofMgr.Stop(shutdownCtx); err != nil {
+			log.Printf("Warning: Failed to stop pprof manager: %v", err)
+		}
+
+		// Stop Codex OAuth server
+		if err := codexOAuthServer.Stop(shutdownCtx); err != nil {
+			log.Printf("Warning: Failed to stop Codex OAuth server: %v", err)
+		}
+
+		// Step 3: Shutdown HTTP server
+		if err := server.Shutdown(shutdownCtx); err != nil {
+			log.Printf("HTTP server graceful shutdown failed: %v, forcing close", err)
+			if closeErr := server.Close(); closeErr != nil {
+				log.Printf("Force close error: %v", closeErr)
+			}
+		}
+	}
+
+	restartServer := func() error {
+		if !atomic.CompareAndSwapInt32(&restartInProgress, 0, 1) {
+			return fmt.Errorf("restart already in progress")
+		}
+
+		shutdownServer("restart")
+
+		executable, err := os.Executable()
+		if err != nil {
+			return fmt.Errorf("failed to locate executable: %w", err)
+		}
+
+		cmd := exec.Command(executable, os.Args[1:]...)
+		cmd.Stdout = os.Stdout
+		cmd.Stderr = os.Stderr
+		cmd.Env = os.Environ()
+
+		if err := cmd.Start(); err != nil {
+			return fmt.Errorf("failed to start new process: %w", err)
+		}
+
+		log.Printf("[Admin] Started new process (pid=%d). Exiting current process.", cmd.Process.Pid)
+		os.Exit(0)
+		return nil
+	}
+
+	adminHandler.SetRestartFunc(restartServer)
+
 	// Start server in goroutine
 	log.Printf("Starting Maxx server %s on %s", version.Info(), *addr)
 	log.Printf("Data directory: %s", dataDirPath)
@@ -425,47 +502,7 @@ func main() {
 	signal.Notify(sigCh, syscall.SIGINT, syscall.SIGTERM)
 	sig := <-sigCh
 	log.Printf("Received signal %v, initiating graceful shutdown...", sig)
-
-	// Step 1: Wait for active proxy requests to complete
-	activeCount := requestTracker.ActiveCount()
-	if activeCount > 0 {
-		log.Printf("Waiting for %d active proxy requests to complete...", activeCount)
-		completed := requestTracker.GracefulShutdown(core.GracefulShutdownTimeout)
-		if !completed {
-			log.Printf("Graceful shutdown timeout, some requests may be interrupted")
-		} else {
-			log.Printf("All proxy requests completed successfully")
-		}
-	} else {
-		// Mark as shutting down to reject new requests
-		requestTracker.GracefulShutdown(0)
-		log.Printf("No active proxy requests")
-	}
-
-	// Step 2: Stop pprof manager
-	shutdownCtx, cancel := context.WithTimeout(context.Background(), core.HTTPShutdownTimeout)
-	defer cancel()
-
-	// Stop background cleanup task
-	cleanupCancel()
-
-	// Stop pprof manager
-	if err := pprofMgr.Stop(shutdownCtx); err != nil {
-		log.Printf("Warning: Failed to stop pprof manager: %v", err)
-	}
-
-	// Stop Codex OAuth server
-	if err := codexOAuthServer.Stop(shutdownCtx); err != nil {
-		log.Printf("Warning: Failed to stop Codex OAuth server: %v", err)
-	}
-
-	// Step 3: Shutdown HTTP server
-	if err := server.Shutdown(shutdownCtx); err != nil {
-		log.Printf("HTTP server graceful shutdown failed: %v, forcing close", err)
-		if closeErr := server.Close(); closeErr != nil {
-			log.Printf("Force close error: %v", closeErr)
-		}
-	}
+	shutdownServer(fmt.Sprintf("signal %v", sig))
 
 	log.Printf("Server stopped")
 }
