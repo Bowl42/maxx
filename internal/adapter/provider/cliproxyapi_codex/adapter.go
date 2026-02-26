@@ -207,8 +207,8 @@ func (a *CLIProxyAPICodexAdapter) Execute(c *flow.Ctx, p *domain.Provider) error
 	stream := flow.GetIsStream(c)
 	model := flow.GetMappedModel(c)
 
-	// Codex CLI 使用 OpenAI Responses API 格式
-	sourceFormat := translator.FormatCodex
+	// Codex CLI 请求体本质是 OpenAI Responses schema；保持与 CLIProxyAPI 一致。
+	sourceFormat := translator.FormatOpenAIResponse
 
 	// 发送事件
 	if eventChan := flow.GetEventChan(c); eventChan != nil {
@@ -253,6 +253,9 @@ func (a *CLIProxyAPICodexAdapter) Execute(c *flow.Ctx, p *domain.Provider) error
 }
 
 func sanitizeCodexPayload(body []byte) []byte {
+	if len(body) == 0 {
+		return body
+	}
 	body = codexutil.NormalizeCodexInput(body)
 	return body
 }
