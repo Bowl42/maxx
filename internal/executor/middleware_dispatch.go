@@ -221,10 +221,7 @@ func (e *Executor) dispatch(c *flow.Ctx) {
 				proxyReq.Cost = attemptRecord.Cost
 				proxyReq.TTFT = attemptRecord.TTFT
 
-				if clearDetail {
-					proxyReq.RequestInfo = nil
-					proxyReq.ResponseInfo = nil
-				}
+				clearProxyRequestDetail(proxyReq, clearDetail)
 
 				_ = e.proxyRequestRepo.Update(proxyReq)
 				if e.broadcaster != nil {
@@ -302,10 +299,7 @@ func (e *Executor) dispatch(c *flow.Ctx) {
 			proxyReq.Cost = attemptRecord.Cost
 			proxyReq.TTFT = attemptRecord.TTFT
 
-			if clearDetail {
-				proxyReq.RequestInfo = nil
-				proxyReq.ResponseInfo = nil
-			}
+			clearProxyRequestDetail(proxyReq, clearDetail)
 
 			_ = e.proxyRequestRepo.Update(proxyReq)
 			if e.broadcaster != nil {
@@ -324,10 +318,7 @@ func (e *Executor) dispatch(c *flow.Ctx) {
 				} else {
 					proxyReq.Error = ctx.Err().Error()
 				}
-				if clearDetail {
-					proxyReq.RequestInfo = nil
-					proxyReq.ResponseInfo = nil
-				}
+				clearProxyRequestDetail(proxyReq, clearDetail)
 				_ = e.proxyRequestRepo.Update(proxyReq)
 				if e.broadcaster != nil {
 					e.broadcaster.BroadcastProxyRequest(proxyReq)
@@ -375,10 +366,7 @@ func (e *Executor) dispatch(c *flow.Ctx) {
 					} else {
 						proxyReq.Error = ctx.Err().Error()
 					}
-					if clearDetail {
-						proxyReq.RequestInfo = nil
-						proxyReq.ResponseInfo = nil
-					}
+					clearProxyRequestDetail(proxyReq, clearDetail)
 					_ = e.proxyRequestRepo.Update(proxyReq)
 					if e.broadcaster != nil {
 						e.broadcaster.BroadcastProxyRequest(proxyReq)
@@ -398,10 +386,7 @@ func (e *Executor) dispatch(c *flow.Ctx) {
 	if state.lastErr != nil {
 		proxyReq.Error = state.lastErr.Error()
 	}
-	if clearDetail {
-		proxyReq.RequestInfo = nil
-		proxyReq.ResponseInfo = nil
-	}
+	clearProxyRequestDetail(proxyReq, clearDetail)
 	_ = e.proxyRequestRepo.Update(proxyReq)
 	if e.broadcaster != nil {
 		e.broadcaster.BroadcastProxyRequest(proxyReq)
@@ -412,4 +397,12 @@ func (e *Executor) dispatch(c *flow.Ctx) {
 	}
 	state.ctx = ctx
 	c.Err = state.lastErr
+}
+
+func clearProxyRequestDetail(req *domain.ProxyRequest, clearDetail bool) {
+	if !clearDetail || req == nil {
+		return
+	}
+	req.RequestInfo = nil
+	req.ResponseInfo = nil
 }
