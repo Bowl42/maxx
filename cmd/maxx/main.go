@@ -267,7 +267,7 @@ func main() {
 	statsAggregator := stats.NewStatsAggregator(usageStatsRepo)
 
 	// Create executor
-	exec := executor.NewExecutor(r, proxyRequestRepo, attemptRepo, cachedRetryConfigRepo, cachedSessionRepo, cachedModelMappingRepo, settingRepo, wsHub, projectWaiter, instanceID, statsAggregator)
+	requestExecutor := executor.NewExecutor(r, proxyRequestRepo, attemptRepo, cachedRetryConfigRepo, cachedSessionRepo, cachedModelMappingRepo, settingRepo, wsHub, projectWaiter, instanceID, statsAggregator)
 
 	// Create client adapter
 	clientAdapter := client.NewAdapter()
@@ -332,7 +332,7 @@ func main() {
 	requestTracker := core.NewRequestTracker()
 
 	// Create handlers
-	proxyHandler := handler.NewProxyHandler(clientAdapter, exec, cachedSessionRepo, tokenAuthMiddleware)
+	proxyHandler := handler.NewProxyHandler(clientAdapter, requestExecutor, cachedSessionRepo, tokenAuthMiddleware)
 	proxyHandler.SetRequestTracker(requestTracker)
 	adminHandler := handler.NewAdminHandler(adminService, backupService, logPath)
 	authHandler := handler.NewAuthHandler(authMiddleware)
