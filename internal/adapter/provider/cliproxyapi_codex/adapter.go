@@ -14,7 +14,6 @@ import (
 	"time"
 
 	"github.com/awsl-project/maxx/internal/adapter/provider"
-	"github.com/awsl-project/maxx/internal/codexutil"
 	"github.com/awsl-project/maxx/internal/domain"
 	"github.com/awsl-project/maxx/internal/flow"
 	"github.com/awsl-project/maxx/internal/usage"
@@ -228,11 +227,6 @@ func (a *CLIProxyAPICodexAdapter) Execute(c *flow.Ctx, p *domain.Provider) error
 		return domain.NewProxyErrorWithMessage(err, true, fmt.Sprintf("failed to get access token: %v", err))
 	}
 
-	// Normalize Codex payload for upstream compatibility.
-	if len(requestBody) > 0 {
-		requestBody = sanitizeCodexPayload(requestBody)
-	}
-
 	// 构建 executor 请求
 	execReq := executor.Request{
 		Model:   model,
@@ -250,14 +244,6 @@ func (a *CLIProxyAPICodexAdapter) Execute(c *flow.Ctx, p *domain.Provider) error
 		return a.executeStream(c, w, execReq, execOpts)
 	}
 	return a.executeNonStream(c, w, execReq, execOpts)
-}
-
-func sanitizeCodexPayload(body []byte) []byte {
-	if len(body) == 0 {
-		return body
-	}
-	body = codexutil.NormalizeCodexInput(body)
-	return body
 }
 
 func (a *CLIProxyAPICodexAdapter) executeNonStream(c *flow.Ctx, w http.ResponseWriter, execReq executor.Request, execOpts executor.Options) error {
