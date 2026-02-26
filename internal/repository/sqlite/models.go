@@ -139,6 +139,7 @@ type APIToken struct {
 	Description LongText
 	ProjectID   uint64
 	IsEnabled   int `gorm:"default:1"`
+	DevMode     int `gorm:"default:0"`
 	ExpiresAt   int64
 	LastUsedAt  int64
 	UseCount    uint64
@@ -227,6 +228,7 @@ type ProxyRequest struct {
 	StatusCode                  int
 	ProjectID                   uint64
 	APITokenID                  uint64
+	DevMode                     int `gorm:"default:0"`
 }
 
 func (ProxyRequest) TableName() string { return "proxy_requests" }

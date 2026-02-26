@@ -139,6 +139,13 @@ export function APITokensPage() {
     });
   };
 
+  const handleToggleDevMode = (token: APIToken) => {
+    updateToken.mutate({
+      id: token.id,
+      data: { devMode: !token.devMode },
+    });
+  };
+
   const handleDelete = () => {
     if (!deletingToken) return;
     deleteToken.mutate(deletingToken.id, {
@@ -261,6 +268,7 @@ export function APITokensPage() {
                       <TableHead>{t('apiTokens.tokenPrefix')}</TableHead>
                       <TableHead>{t('apiTokens.project')}</TableHead>
                       <TableHead>{t('common.status')}</TableHead>
+                      <TableHead>{t('apiTokens.devMode')}</TableHead>
                       <TableHead>{t('apiTokens.usage')}</TableHead>
                       <TableHead>{t('apiTokens.lastUsed')}</TableHead>
                       <TableHead className="text-right">{t('common.actions')}</TableHead>
@@ -320,6 +328,27 @@ export function APITokensPage() {
                             ) : (
                               <Badge variant="secondary" className="text-xs">
                                 {t('common.disabled')}
+                              </Badge>
+                            )}
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex items-center gap-2">
+                            <Switch
+                              checked={!!token.devMode}
+                              onCheckedChange={() => handleToggleDevMode(token)}
+                              disabled={updateToken.isPending}
+                            />
+                            {token.devMode ? (
+                              <Badge
+                                variant="default"
+                                className="text-xs bg-blue-500/10 text-blue-500 border-blue-500/20"
+                              >
+                                {t('apiTokens.devModeEnabled')}
+                              </Badge>
+                            ) : (
+                              <Badge variant="secondary" className="text-xs">
+                                {t('apiTokens.devModeDisabled')}
                               </Badge>
                             )}
                           </div>

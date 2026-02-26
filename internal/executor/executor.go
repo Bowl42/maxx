@@ -314,7 +314,12 @@ func (e *Executor) processAdapterEvents(eventChan domain.AdapterEventChan, attem
 
 // processAdapterEventsRealtime processes events in real-time during adapter execution
 // It broadcasts updates immediately when RequestInfo/ResponseInfo are received
-func (e *Executor) processAdapterEventsRealtime(eventChan domain.AdapterEventChan, attempt *domain.ProxyUpstreamAttempt, done chan struct{}) {
+func (e *Executor) processAdapterEventsRealtime(
+	eventChan domain.AdapterEventChan,
+	attempt *domain.ProxyUpstreamAttempt,
+	done chan struct{},
+	clearDetail bool,
+) {
 	defer close(done)
 
 	if eventChan == nil || attempt == nil {
@@ -352,12 +357,12 @@ func (e *Executor) processAdapterEventsRealtime(eventChan domain.AdapterEventCha
 
 			switch ev.Type {
 			case domain.EventRequestInfo:
-				if !e.shouldClearRequestDetail() && ev.RequestInfo != nil {
+				if !clearDetail && ev.RequestInfo != nil {
 					attempt.RequestInfo = ev.RequestInfo
 					dirty = true
 				}
 			case domain.EventResponseInfo:
-				if !e.shouldClearRequestDetail() && ev.ResponseInfo != nil {
+				if !clearDetail && ev.ResponseInfo != nil {
 					attempt.ResponseInfo = ev.ResponseInfo
 					dirty = true
 				}
@@ -407,7 +412,15 @@ func (e *Executor) getRequestDetailRetentionSeconds() int {
 	return seconds
 }
 
-// shouldClearRequestDetail 检查是否应该立即清理请求详情
+// shouldClearRequestDetailFor 检查是否应该立即清理请求详情（考虑 Token 开发者模式）
+func (e *Executor) shouldClearRequestDetailFor(state *execState) bool {
+	if state != nil && state.apiTokenDevMode {
+		return false
+	}
+	return e.shouldClearRequestDetail()
+}
+
+// shouldClearRequestDetail 检查是否应该立即清理请求详情（全局配置）
 // 当设置为 0 时返回 true
 func (e *Executor) shouldClearRequestDetail() bool {
 	return e.getRequestDetailRetentionSeconds() == 0

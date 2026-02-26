@@ -616,6 +616,7 @@ export interface APIToken {
   description: string;
   projectID: number;
   isEnabled: boolean;
+  devMode: boolean;
   expiresAt?: string;
   lastUsedAt?: string;
   useCount: number;
@@ -804,6 +805,7 @@ export interface BackupAPIToken {
   description: string;
   projectSlug: string;
   isEnabled: boolean;
+  devMode?: boolean;
   expiresAt?: string;
 }
 

@@ -85,6 +85,7 @@ type BackupAPIToken struct {
 	Description string     `json:"description"`
 	ProjectSlug string     `json:"projectSlug"` // empty = global
 	IsEnabled   bool       `json:"isEnabled"`
+	DevMode     bool       `json:"devMode"`
 	ExpiresAt   *time.Time `json:"expiresAt,omitempty"`
 }
 

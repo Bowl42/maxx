@@ -39,6 +39,7 @@ func (r *APITokenRepository) Update(t *domain.APIToken) error {
 			"description": LongText(t.Description),
 			"project_id":  t.ProjectID,
 			"is_enabled":  boolToInt(t.IsEnabled),
+			"dev_mode":    boolToInt(t.DevMode),
 			"expires_at":  toTimestampPtr(t.ExpiresAt),
 		}).Error
 }
@@ -115,6 +116,7 @@ func (r *APITokenRepository) toModel(t *domain.APIToken) *APIToken {
 		Description: LongText(t.Description),
 		ProjectID:   t.ProjectID,
 		IsEnabled:   boolToInt(t.IsEnabled),
+		DevMode:     boolToInt(t.DevMode),
 		ExpiresAt:   toTimestampPtr(t.ExpiresAt),
 		LastUsedAt:  toTimestampPtr(t.LastUsedAt),
 		UseCount:    t.UseCount,
@@ -133,6 +135,7 @@ func (r *APITokenRepository) toDomain(m *APIToken) *domain.APIToken {
 		Description: string(m.Description),
 		ProjectID:   m.ProjectID,
 		IsEnabled:   m.IsEnabled == 1,
+		DevMode:     m.DevMode == 1,
 		ExpiresAt:   fromTimestampPtr(m.ExpiresAt),
 		LastUsedAt:  fromTimestampPtr(m.LastUsedAt),
 		UseCount:    m.UseCount,

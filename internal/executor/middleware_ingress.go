@@ -51,6 +51,11 @@ func (e *Executor) ingress(c *flow.Ctx) {
 			state.apiTokenID = id
 		}
 	}
+	if v, ok := c.Get(flow.KeyAPITokenDevMode); ok {
+		if devMode, ok := v.(bool); ok {
+			state.apiTokenDevMode = devMode
+		}
+	}
 	if v, ok := c.Get(flow.KeyRequestBody); ok {
 		if body, ok := v.([]byte); ok {
 			state.requestBody = body
@@ -86,9 +91,11 @@ func (e *Executor) ingress(c *flow.Ctx) {
 		IsStream:     state.isStream,
 		Status:       "PENDING",
 		APITokenID:   state.apiTokenID,
+		DevMode:     state.apiTokenDevMode,
 	}
 
-	if !e.shouldClearRequestDetail() {
+	clearDetail := e.shouldClearRequestDetailFor(state)
+	if !clearDetail {
 		requestURI := state.requestURI
 		requestHeaders := state.requestHeaders
 		requestBody := state.requestBody

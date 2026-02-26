@@ -194,6 +194,7 @@ func (s *BackupService) Export() (*domain.BackupFile, error) {
 			Description: t.Description,
 			ProjectSlug: projectIDToSlug[t.ProjectID],
 			IsEnabled:   t.IsEnabled,
+			DevMode:     t.DevMode,
 			ExpiresAt:   t.ExpiresAt,
 		})
 	}
@@ -739,6 +740,7 @@ func (s *BackupService) importAPITokens(tokens []domain.BackupAPIToken, opts dom
 			Description: bt.Description,
 			ProjectID:   projectID,
 			IsEnabled:   bt.IsEnabled,
+			DevMode:     bt.DevMode,
 			ExpiresAt:   bt.ExpiresAt,
 		}
 
