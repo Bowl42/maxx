@@ -17,7 +17,9 @@ func NormalizeCodexInput(body []byte) []byte {
 
 	for i, item := range input.Array() {
 		itemType := item.Get("type").String()
-		if itemType != "message" {
+		// Keep role for legacy Responses message items that omit "type" but still carry a valid "role".
+		// Only strip role when the item explicitly declares a non-message type.
+		if itemType != "" && itemType != "message" {
 			if item.Get("role").Exists() {
 				body, _ = sjson.DeleteBytes(body, fmt.Sprintf("input.%d.role", i))
 			}
