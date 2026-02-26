@@ -4,9 +4,9 @@ import { Button, Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/u
 import { useProject, useDeleteProject, projectKeys } from '@/hooks/queries';
 import {
   ArrowLeft,
+  ChevronLeft,
   Trash2,
   Loader2,
-  FolderKanban,
   LayoutGrid,
   Route,
   Users,
@@ -67,21 +67,11 @@ export function ProjectDetailPage() {
     <div className="flex flex-col h-full bg-background">
       {/* Header */}
       <PageHeader
-        icon={FolderKanban}
-        iconClassName="text-purple-500"
+        icon={<ChevronLeft className="cursor-pointer" onClick={() => navigate('/projects')} />}
         title={project.name}
         description={project.slug}
         actions={
           <div className="flex items-center gap-2">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => navigate('/projects')}
-              className="h-8 px-3"
-            >
-              <ArrowLeft className="mr-2 h-4 w-4" />
-              {t('common.back')}
-            </Button>
             <Button
               variant="destructive"
               size="sm"
