@@ -24,6 +24,8 @@ import {
 } from '@/hooks/queries';
 import type { CodexLocalConfigSyncResult } from '@/lib/transport';
 
+const FALLBACK_CODEX_MODELS = ['gpt-5.3-codex', 'gpt-5.2-codex', 'gpt-5.1-codex'];
+
 function buildBaseUrl(address: string): string {
   const trimmedAddress = address.trim().replace(/\/+$/, '');
   if (/^https?:\/\//i.test(trimmedAddress)) {
@@ -51,6 +53,23 @@ function extractErrorMessage(error: unknown, fallback: string): string {
   return fallback;
 }
 
+function buildModelOptions(responseModels: string[] | undefined): string[] {
+  const models = responseModels ?? [];
+  const codexLike = models.filter((model) => /codex/i.test(model));
+  const gpt5Like = models.filter((model) => /^gpt-5(\.|-|$)/i.test(model));
+
+  const seen = new Set<string>();
+  const ordered = [...codexLike, ...gpt5Like, ...models, ...FALLBACK_CODEX_MODELS];
+  return ordered.filter((model) => {
+    const key = model.trim();
+    if (!key || seen.has(key)) {
+      return false;
+    }
+    seen.add(key);
+    return true;
+  });
+}
+
 export function DocumentationConfigPage() {
   const { t } = useTranslation();
   const { data: proxyStatus } = useProxyStatus();
@@ -62,7 +81,6 @@ export function DocumentationConfigPage() {
   const [selectedModel, setSelectedModel] = useState('');
   const [syncResult, setSyncResult] = useState<CodexLocalConfigSyncResult | null>(null);
   const [syncError, setSyncError] = useState('');
-  const fallbackModels = ['gpt-5.3-codex', 'gpt-5.2-codex', 'gpt-5.1-codex'];
 
   const baseUrl = useMemo(() => {
     const proxyAddress = proxyStatus?.address ?? 'localhost:9880';
@@ -77,23 +95,7 @@ export function DocumentationConfigPage() {
     ? `${selectedToken.name} (${selectedToken.tokenPrefix})`
     : t('documentationConfig.tokenPlaceholder');
   const modelDisplayText = selectedModel || t('documentationConfig.modelPlaceholder');
-
-  const modelOptions = useMemo(() => {
-    const models = responseModels ?? [];
-    const codexLike = models.filter((model) => /codex/i.test(model));
-    const gpt5Like = models.filter((model) => /^gpt-5(\.|-|$)/i.test(model));
-
-    const seen = new Set<string>();
-    const ordered = [...codexLike, ...gpt5Like, ...models, ...fallbackModels];
-    return ordered.filter((model) => {
-      const key = model.trim();
-      if (!key || seen.has(key)) {
-        return false;
-      }
-      seen.add(key);
-      return true;
-    });
-  }, [responseModels]);
+  const modelOptions = buildModelOptions(responseModels);
 
   useEffect(() => {
     if (modelOptions.length === 0) {
