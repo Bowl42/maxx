@@ -70,6 +70,8 @@ export type {
   APIToken,
   APITokenCreateResult,
   CreateAPITokenData,
+  CodexLocalConfigSyncPayload,
+  CodexLocalConfigSyncResult,
   // Usage Stats
   UsageStats,
   UsageStatsFilter,

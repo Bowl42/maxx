@@ -90,6 +90,7 @@ export {
   useSetting,
   useUpdateSetting,
   useDeleteSetting,
+  useSyncCodexLocalConfig,
   useModelMappings,
   useCreateModelMapping,
   useUpdateModelMapping,
