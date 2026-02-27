@@ -128,13 +128,13 @@ export function ClientRoutesPage() {
         {sortedProjects && sortedProjects.length > 0 && (
           <div className="px-6 py-3 border-b border-border bg-card">
             <div className="mx-auto max-w-[1400px] flex items-center justify-between gap-6">
-              <div className="flex items-center gap-6">
+              <div className="flex min-w-0 flex-1 items-center gap-6">
                 {/* Global Group */}
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 shrink-0">
                   <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
                     {t('common.global')}
                   </span>
-                  <TabsList className="h-8">
+                  <TabsList className="h-8 shrink-0">
                     <TabsTrigger value="0" className="h-7 px-3 text-xs flex items-center gap-1.5">
                       <Globe className="h-3.5 w-3.5" />
                       <span>{t('common.default')}</span>
@@ -143,59 +143,61 @@ export function ClientRoutesPage() {
                 </div>
 
                 {/* Projects Group */}
-                <div className="flex items-center gap-2">
-                  <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                <div className="flex min-w-0 flex-1 items-center gap-2">
+                  <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider shrink-0">
                     {t('nav.projects')}
                   </span>
-                  <TabsList className="h-8">
-                    {sortedProjects.map((project) => (
-                      <TabsTrigger
-                        key={project.id}
-                        value={String(project.id)}
-                        className="h-7 px-3 text-xs flex items-center gap-1.5"
-                      >
-                        <FolderKanban className="h-3.5 w-3.5" />
-                        <span>{project.name}</span>
-                      </TabsTrigger>
-                    ))}
-                  </TabsList>
+                  <div className="min-w-0 flex-1 overflow-x-auto no-scrollbar pb-1">
+                    <TabsList className="h-8 w-max shrink-0">
+                      {sortedProjects.map((project) => (
+                        <TabsTrigger
+                          key={project.id}
+                          value={String(project.id)}
+                          className="h-7 px-3 text-xs flex items-center gap-1.5"
+                        >
+                          <FolderKanban className="h-3.5 w-3.5" />
+                          <span>{project.name}</span>
+                        </TabsTrigger>
+                      ))}
+                    </TabsList>
+                  </div>
                 </div>
               </div>
 
               {/* Sort Buttons - Only show when viewing Global routes and on appropriate pages */}
               {selectedProjectId === '0' &&
                 ((hasAntigravityRoutes && isClaudePage) || (hasCodexRoutes && isCodexPage)) && (
-                <div className="flex items-center gap-2">
-                  {/* Only show Antigravity sort button for Claude page */}
-                  {hasAntigravityRoutes && isClaudePage && (
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={handleSortAntigravity}
-                      disabled={isSorting}
-                      className="h-8 text-xs"
-                    >
-                      <Zap className="h-3.5 w-3.5 mr-1.5" />
-                      {t('routes.sortAntigravity')}
-                      {isSorting && <ArrowUpDown className="h-3.5 w-3.5 ml-1.5 animate-pulse" />}
-                    </Button>
-                  )}
-                  {/* Only show Codex sort button for Codex page */}
-                  {hasCodexRoutes && isCodexPage && (
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={handleSortCodex}
-                      disabled={isSorting}
-                      className="h-8 text-xs"
-                    >
-                      <Code2 className="h-3.5 w-3.5 mr-1.5" />
-                      {t('routes.sortCodex')}
-                      {isSorting && <ArrowUpDown className="h-3.5 w-3.5 ml-1.5 animate-pulse" />}
-                    </Button>
-                  )}
-                </div>
-              )}
+                  <div className="flex items-center gap-2">
+                    {/* Only show Antigravity sort button for Claude page */}
+                    {hasAntigravityRoutes && isClaudePage && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={handleSortAntigravity}
+                        disabled={isSorting}
+                        className="h-8 text-xs"
+                      >
+                        <Zap className="h-3.5 w-3.5 mr-1.5" />
+                        {t('routes.sortAntigravity')}
+                        {isSorting && <ArrowUpDown className="h-3.5 w-3.5 ml-1.5 animate-pulse" />}
+                      </Button>
+                    )}
+                    {/* Only show Codex sort button for Codex page */}
+                    {hasCodexRoutes && isCodexPage && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={handleSortCodex}
+                        disabled={isSorting}
+                        className="h-8 text-xs"
+                      >
+                        <Code2 className="h-3.5 w-3.5 mr-1.5" />
+                        {t('routes.sortCodex')}
+                        {isSorting && <ArrowUpDown className="h-3.5 w-3.5 ml-1.5 animate-pulse" />}
+                      </Button>
+                    )}
+                  </div>
+                )}
             </div>
           </div>
         )}
