@@ -185,25 +185,25 @@ stream_max_retries = 10
 stream_idle_timeout_ms = 300000
 ```
 
+可选：如果要走项目路由，可将 `base_url` 设置为：
+
+```toml
+base_url = "http://localhost:9880/project/<project-slug>"
+```
+
 **auth.json**
 
 创建或编辑 `~/.codex/auth.json`：
 
 ```json
 {
-  "maxx": {
-    "OPENAI_API_KEY": "maxx_your_token_here"
-  }
+  "OPENAI_API_KEY": "maxx_your_token_here"
 }
 ```
 
 **使用方法：**
 
 ```bash
-# 使用 --provider 参数指定
-codex --provider maxx
-
-# 或者设置为默认 provider 后直接使用
 codex
 ```
 

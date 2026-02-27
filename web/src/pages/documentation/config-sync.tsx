@@ -18,12 +18,14 @@ import {
 import { PageHeader } from '@/components/layout/page-header';
 import {
   useAPITokens,
+  useProjects,
   useProxyStatus,
   useResponseModels,
   useSyncCodexLocalConfig,
 } from '@/hooks/queries';
 import type { CodexLocalConfigSyncResult } from '@/lib/transport';
 
+const GLOBAL_ROUTE_VALUE = 'global';
 const FALLBACK_CODEX_MODELS = ['gpt-5.3-codex', 'gpt-5.2-codex', 'gpt-5.1-codex'];
 
 function buildBaseUrl(address: string): string {
@@ -39,6 +41,39 @@ function buildBaseUrl(address: string): string {
   const protocol =
     typeof window !== 'undefined' && window.location.protocol === 'https:' ? 'https' : 'http';
   return `${protocol}://${trimmedAddress}`;
+}
+
+function buildRouteBaseUrl(baseUrl: string, projectSlug: string | undefined): string {
+  const normalizedBaseUrl = baseUrl.trim().replace(/\/+$/, '');
+  if (!normalizedBaseUrl) {
+    return '';
+  }
+  if (!projectSlug) {
+    return normalizedBaseUrl;
+  }
+
+  const normalizedSlug = projectSlug.trim().replace(/^\/+/, '').replace(/\/+$/, '');
+  if (!normalizedSlug) {
+    return normalizedBaseUrl;
+  }
+
+  return `${normalizedBaseUrl}/project/${normalizedSlug}`;
+}
+
+function buildRouteValue(projectSlug: string | undefined): string {
+  if (!projectSlug) {
+    return GLOBAL_ROUTE_VALUE;
+  }
+  return `project:${projectSlug}`;
+}
+
+function extractProjectSlug(routeValue: string): string | undefined {
+  if (!routeValue.startsWith('project:')) {
+    return undefined;
+  }
+
+  const projectSlug = routeValue.slice('project:'.length).trim();
+  return projectSlug || undefined;
 }
 
 function extractErrorMessage(error: unknown, fallback: string): string {
@@ -77,11 +112,13 @@ function buildModelOptions(responseModels: string[] | undefined): string[] {
 export function DocumentationConfigPage() {
   const { t } = useTranslation();
   const { data: proxyStatus } = useProxyStatus();
+  const { data: projects, isLoading: isLoadingProjects } = useProjects();
   const { data: apiTokens, isLoading: isLoadingTokens } = useAPITokens();
   const { data: responseModels, isLoading: isLoadingModels } = useResponseModels();
   const syncCodexLocalConfig = useSyncCodexLocalConfig();
 
   const [selectedTokenId, setSelectedTokenId] = useState('');
+  const [selectedRouteValue, setSelectedRouteValue] = useState(GLOBAL_ROUTE_VALUE);
   const [selectedModel, setSelectedModel] = useState('');
   const [syncResult, setSyncResult] = useState<CodexLocalConfigSyncResult | null>(null);
   const [syncError, setSyncError] = useState('');
@@ -95,11 +132,39 @@ export function DocumentationConfigPage() {
     () => apiTokens?.find((token) => String(token.id) === selectedTokenId),
     [apiTokens, selectedTokenId],
   );
+  const selectedProjectSlug = useMemo(
+    () => extractProjectSlug(selectedRouteValue),
+    [selectedRouteValue],
+  );
+  const selectedProject = useMemo(() => {
+    if (!selectedProjectSlug) {
+      return null;
+    }
+    return (projects ?? []).find((project) => project.slug === selectedProjectSlug) ?? null;
+  }, [projects, selectedProjectSlug]);
+  const routeDisplayText = selectedProject
+    ? `${selectedProject.name} (${selectedProject.slug})`
+    : t('documentationConfig.routeGlobal');
+  const routeBaseUrl = useMemo(
+    () => buildRouteBaseUrl(baseUrl, selectedProjectSlug),
+    [baseUrl, selectedProjectSlug],
+  );
   const tokenDisplayText = selectedToken
     ? `${selectedToken.name} (${selectedToken.tokenPrefix})`
     : t('documentationConfig.tokenPlaceholder');
   const modelDisplayText = selectedModel || t('documentationConfig.modelPlaceholder');
   const modelOptions = useMemo(() => buildModelOptions(responseModels), [responseModels]);
+
+  useEffect(() => {
+    const projectSlug = extractProjectSlug(selectedRouteValue);
+    if (!projectSlug) {
+      return;
+    }
+    const hasProject = (projects ?? []).some((project) => project.slug === projectSlug);
+    if (!hasProject) {
+      setSelectedRouteValue(GLOBAL_ROUTE_VALUE);
+    }
+  }, [projects, selectedRouteValue]);
 
   useEffect(() => {
     if (modelOptions.length === 0) {
@@ -126,6 +191,7 @@ export function DocumentationConfigPage() {
       const result = await syncCodexLocalConfig.mutateAsync({
         apiToken: selectedToken.token,
         providerName: 'maxx',
+        projectSlug: selectedProjectSlug,
         model: selectedModel || undefined,
       });
       setSyncResult(result);
@@ -157,9 +223,36 @@ export function DocumentationConfigPage() {
             </CardHeader>
             <CardContent className="space-y-5 pt-6">
               <div className="space-y-2">
+                <p className="text-sm font-medium">{t('documentationConfig.routeLabel')}</p>
+                <Select
+                  value={selectedRouteValue}
+                  onValueChange={(value) => setSelectedRouteValue(value ?? GLOBAL_ROUTE_VALUE)}
+                >
+                  <SelectTrigger className="w-full">
+                    <SelectValue>{routeDisplayText}</SelectValue>
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value={GLOBAL_ROUTE_VALUE}>
+                      {t('documentationConfig.routeGlobal')}
+                    </SelectItem>
+                    {(projects ?? []).map((project) => (
+                      <SelectItem key={project.id} value={buildRouteValue(project.slug)}>
+                        {project.name} ({project.slug})
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {!isLoadingProjects && (!projects || projects.length === 0) && (
+                  <p className="text-xs text-muted-foreground">
+                    {t('documentationConfig.routeNoProjectsHint')}
+                  </p>
+                )}
+              </div>
+
+              <div className="space-y-2">
                 <p className="text-sm font-medium">{t('documentationConfig.baseUrl')}</p>
                 <div className="rounded-md border border-border bg-muted/40 px-3 py-2">
-                  <code className="text-xs break-all">{baseUrl}</code>
+                  <code className="text-xs break-all">{routeBaseUrl}</code>
                 </div>
               </div>
 

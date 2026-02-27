@@ -254,6 +254,27 @@ func TestDeriveRequestBaseURL(t *testing.T) {
 	}
 }
 
+func TestBuildCodexBaseURLGlobal(t *testing.T) {
+	got := buildCodexBaseURL("https://proxy.example.com/", "")
+	if got != "https://proxy.example.com" {
+		t.Fatalf("unexpected global base url: %q", got)
+	}
+}
+
+func TestBuildCodexBaseURLWithProjectSlug(t *testing.T) {
+	got := buildCodexBaseURL("https://proxy.example.com", "demo-project")
+	if got != "https://proxy.example.com/project/demo-project" {
+		t.Fatalf("unexpected project base url: %q", got)
+	}
+}
+
+func TestBuildCodexBaseURLNormalizesProjectSlug(t *testing.T) {
+	got := buildCodexBaseURL("https://proxy.example.com/", " /demo-project/ ")
+	if got != "https://proxy.example.com/project/demo-project" {
+		t.Fatalf("unexpected normalized project base url: %q", got)
+	}
+}
+
 func mustMap(t *testing.T, value any) map[string]any {
 	t.Helper()
 	m, ok := value.(map[string]any)

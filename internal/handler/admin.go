@@ -1538,6 +1538,7 @@ func (h *AdminHandler) handleLocalConfig(w http.ResponseWriter, r *http.Request,
 	var body struct {
 		APIToken     string `json:"apiToken"`
 		ProviderName string `json:"providerName"`
+		ProjectSlug  string `json:"projectSlug"`
 		Model        string `json:"model"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
@@ -1549,7 +1550,13 @@ func (h *AdminHandler) handleLocalConfig(w http.ResponseWriter, r *http.Request,
 		return
 	}
 
-	result, err := h.svc.SyncCodexLocalConfig(r, body.APIToken, body.ProviderName, body.Model)
+	result, err := h.svc.SyncCodexLocalConfig(
+		r,
+		body.APIToken,
+		body.ProviderName,
+		body.ProjectSlug,
+		body.Model,
+	)
 	if err != nil {
 		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": err.Error()})
 		return

@@ -639,6 +639,7 @@ export interface CreateAPITokenData {
 export interface CodexLocalConfigSyncPayload {
   apiToken: string;
   providerName?: string;
+  projectSlug?: string;
   model?: string;
 }
 

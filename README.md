@@ -185,25 +185,25 @@ stream_max_retries = 10
 stream_idle_timeout_ms = 300000
 ```
 
+Optional: Use a project route base URL:
+
+```toml
+base_url = "http://localhost:9880/project/<project-slug>"
+```
+
 **auth.json**
 
 Create or edit `~/.codex/auth.json`:
 
 ```json
 {
-  "maxx": {
-    "OPENAI_API_KEY": "maxx_your_token_here"
-  }
+  "OPENAI_API_KEY": "maxx_your_token_here"
 }
 ```
 
 **Usage:**
 
 ```bash
-# Use --provider flag to specify
-codex --provider maxx
-
-# Or use directly if set as default provider
 codex
 ```
 

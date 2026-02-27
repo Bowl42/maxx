@@ -37,6 +37,7 @@ func (s *AdminService) SyncCodexLocalConfig(
 	r *http.Request,
 	apiToken string,
 	providerName string,
+	projectSlug string,
 	model string,
 ) (*CodexLocalConfigSyncResult, error) {
 	trimmedToken := strings.TrimSpace(apiToken)
@@ -49,7 +50,7 @@ func (s *AdminService) SyncCodexLocalConfig(
 		trimmedProvider = "maxx"
 	}
 
-	baseURL := deriveRequestBaseURL(r, s.serverAddr)
+	baseURL := buildCodexBaseURL(deriveRequestBaseURL(r, s.serverAddr), projectSlug)
 
 	homeDir, err := os.UserHomeDir()
 	if err != nil {
@@ -337,6 +338,22 @@ func deriveRequestBaseURL(r *http.Request, fallbackAddr string) string {
 	}
 
 	return proto + "://" + host
+}
+
+func buildCodexBaseURL(baseURL string, projectSlug string) string {
+	normalizedBaseURL := strings.TrimSpace(baseURL)
+	normalizedBaseURL = strings.TrimRight(normalizedBaseURL, "/")
+	if normalizedBaseURL == "" {
+		return ""
+	}
+
+	normalizedProjectSlug := strings.TrimSpace(projectSlug)
+	normalizedProjectSlug = strings.Trim(normalizedProjectSlug, "/")
+	if normalizedProjectSlug == "" {
+		return normalizedBaseURL
+	}
+
+	return normalizedBaseURL + "/project/" + normalizedProjectSlug
 }
 
 func firstCSVHeaderValue(raw string) string {
