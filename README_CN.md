@@ -1,4 +1,4 @@
-<p align="center">
+﻿<p align="center">
   <img src="web/public/logo.png" alt="maxx logo" width="128" height="128">
 </p>
 
@@ -7,6 +7,12 @@
 [English](README.md) | 简体中文
 
 多提供商 AI 代理服务，内置管理界面、路由和使用追踪功能。
+
+## 预览
+
+<p align="center">
+  <img src="web/public/preview.png" alt="maxx dashboard preview" width="960">
+</p>
 
 ## 功能特性
 

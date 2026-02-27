@@ -1,4 +1,4 @@
-<p align="center">
+﻿<p align="center">
   <img src="web/public/logo.png" alt="maxx logo" width="128" height="128">
 </p>
 
@@ -7,6 +7,12 @@
 English | [简体中文](README_CN.md)
 
 Multi-provider AI proxy with a built-in admin UI, routing, and usage tracking.
+
+## Preview
+
+<p align="center">
+  <img src="web/public/preview.png" alt="maxx dashboard preview" width="960">
+</p>
 
 ## Features
 
