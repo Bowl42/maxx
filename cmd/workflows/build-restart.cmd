@@ -80,7 +80,21 @@ goto :eof
 set "PID=%~1"
 set "PORT=%~2"
 
-if "%PID%"=="0" goto :eof
+if not defined PID (
+  echo [WARN] Empty PID for port %PORT%, skip.
+  goto :eof
+)
+
+echo %PID%| findstr /R "^[0-9][0-9]*$" >nul
+if errorlevel 1 (
+  echo [WARN] Invalid PID %PID% (port %PORT%), skip.
+  goto :eof
+)
+
+if %PID% LEQ 4 (
+  echo [WARN] Skip protected PID %PID% (port %PORT%).
+  goto :eof
+)
 
 echo !SEEN_PIDS! | findstr /C:";%PID%;" >nul
 if not errorlevel 1 (
