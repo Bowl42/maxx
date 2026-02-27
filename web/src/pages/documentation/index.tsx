@@ -294,7 +294,6 @@ model_provider = "maxx"
 [model_providers.maxx]
 name = "maxx"
 base_url = "${baseUrl}"
-model = "gpt-5.3-codex"
 wire_api = "responses"
 request_max_retries = 4
 stream_max_retries = 10
@@ -310,7 +309,9 @@ stream_idle_timeout_ms = 300000`}
               <p className="text-xs text-muted-foreground">{t('documentation.authJsonDesc')}</p>
               <CodeBlock
                 code={`{
-  "OPENAI_API_KEY": "maxx_your_token_here"
+  "maxx": {
+    "OPENAI_API_KEY": "maxx_your_token_here"
+  }
 }`}
                 id="codex-auth"
                 copiedCode={copiedCode}
@@ -322,7 +323,11 @@ stream_idle_timeout_ms = 300000`}
               <h3 className="text-sm font-semibold">{t('documentation.usage')}</h3>
               <p className="text-xs text-muted-foreground">{t('documentation.codexUsageDesc')}</p>
               <CodeBlock
-                code={`codex`}
+                code={`# 使用 --provider 参数指定
+codex --provider maxx
+
+# 或者设置为默认 provider 后直接使用
+codex`}
                 id="codex-usage"
                 copiedCode={copiedCode}
                 onCopy={copyToClipboard}
