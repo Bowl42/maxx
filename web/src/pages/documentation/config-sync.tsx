@@ -28,6 +28,10 @@ const FALLBACK_CODEX_MODELS = ['gpt-5.3-codex', 'gpt-5.2-codex', 'gpt-5.1-codex'
 
 function buildBaseUrl(address: string): string {
   const trimmedAddress = address.trim().replace(/\/+$/, '');
+  if (!trimmedAddress) {
+    return '';
+  }
+
   if (/^https?:\/\//i.test(trimmedAddress)) {
     return trimmedAddress;
   }
@@ -95,7 +99,7 @@ export function DocumentationConfigPage() {
     ? `${selectedToken.name} (${selectedToken.tokenPrefix})`
     : t('documentationConfig.tokenPlaceholder');
   const modelDisplayText = selectedModel || t('documentationConfig.modelPlaceholder');
-  const modelOptions = buildModelOptions(responseModels);
+  const modelOptions = useMemo(() => buildModelOptions(responseModels), [responseModels]);
 
   useEffect(() => {
     if (modelOptions.length === 0) {
