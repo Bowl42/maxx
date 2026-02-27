@@ -92,11 +92,10 @@ function ProjectTabBar({
       <Button
         variant="ghost"
         size="icon-xs"
+        aria-label="Scroll projects left"
+        disabled={!canScrollLeft}
         onClick={() => scrollRef.current?.scrollBy({ left: -SCROLL_STEP, behavior: 'smooth' })}
-        className={cn(
-          'shrink-0 h-7 w-7 transition-opacity',
-          !canScrollLeft && 'opacity-0 pointer-events-none',
-        )}
+        className={cn('shrink-0 h-7 w-7 transition-opacity', !canScrollLeft && 'opacity-0')}
       >
         <ChevronLeft className="h-3.5 w-3.5" />
       </Button>
@@ -122,11 +121,10 @@ function ProjectTabBar({
       <Button
         variant="ghost"
         size="icon-xs"
+        aria-label="Scroll projects right"
+        disabled={!canScrollRight}
         onClick={() => scrollRef.current?.scrollBy({ left: SCROLL_STEP, behavior: 'smooth' })}
-        className={cn(
-          'shrink-0 h-7 w-7 transition-opacity',
-          !canScrollRight && 'opacity-0 pointer-events-none',
-        )}
+        className={cn('shrink-0 h-7 w-7 transition-opacity', !canScrollRight && 'opacity-0')}
       >
         <ChevronRight className="h-3.5 w-3.5" />
       </Button>
@@ -149,7 +147,10 @@ export function ClientRoutesPage() {
   const { data: projects } = useProjects();
   const { data: allRoutes } = useRoutes();
   const { data: providers = [] } = useProviders();
-  const sortedProjects = projects?.slice().sort((a, b) => a.id - b.id);
+  const sortedProjects = useMemo(
+    () => (projects ? projects.slice().sort((a, b) => a.id - b.id) : []),
+    [projects],
+  );
   const updateProject = useUpdateProject();
   const { transport } = useTransport();
   const queryClient = useQueryClient();
@@ -162,7 +163,14 @@ export function ClientRoutesPage() {
 
   const handleProjectHoverEnd = useCallback(() => {
     if (!window.matchMedia('(hover: hover)').matches) return;
+    if (panelTimerRef.current) clearTimeout(panelTimerRef.current);
     panelTimerRef.current = setTimeout(() => setShowProjectPanel(false), 150);
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      if (panelTimerRef.current) clearTimeout(panelTimerRef.current);
+    };
   }, []);
 
   // Check if there are any Antigravity/Codex routes in the current scope (Global routes, projectID=0)
@@ -255,7 +263,7 @@ export function ClientRoutesPage() {
         className="flex-1 min-h-0 flex flex-col"
       >
         {/* Only show tab bar when there are projects */}
-        {sortedProjects && sortedProjects.length > 0 && (
+        {sortedProjects.length > 0 && (
           <div className="relative px-6 py-3 border-b border-border bg-card">
             <div className="mx-auto max-w-[1400px] flex items-center justify-between gap-6">
               <div className="flex min-w-0 flex-1 items-center gap-6">
@@ -357,7 +365,7 @@ export function ClientRoutesPage() {
         </TabsContent>
 
         {/* Project Tab Contents */}
-        {sortedProjects?.map((project) => {
+        {sortedProjects.map((project) => {
           const isCustomRoutesEnabled = (project.enabledCustomRoutes ?? []).includes(
             activeClientType,
           );
