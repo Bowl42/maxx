@@ -56,6 +56,8 @@ import type {
   PriceTable,
   ModelPrice,
   ModelPriceInput,
+  CodexLocalConfigSyncPayload,
+  CodexLocalConfigSyncResult,
 } from './types';
 
 export class HttpTransport implements Transport {
@@ -365,6 +367,16 @@ export class HttpTransport implements Transport {
 
   async deleteSetting(key: string): Promise<void> {
     await this.client.delete(`/settings/${key}`);
+  }
+
+  async syncCodexLocalConfig(
+    payload: CodexLocalConfigSyncPayload,
+  ): Promise<CodexLocalConfigSyncResult> {
+    const { data } = await this.client.post<CodexLocalConfigSyncResult>(
+      '/local-config/codex/sync',
+      payload,
+    );
+    return data;
   }
 
   // ===== Logs API =====

@@ -4,7 +4,7 @@
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { getTransport } from '@/lib/transport';
-import type { ModelMappingInput } from '@/lib/transport';
+import type { CodexLocalConfigSyncPayload, ModelMappingInput } from '@/lib/transport';
 
 export const settingsKeys = {
   all: ['settings'] as const,
@@ -70,6 +70,13 @@ export function useDeleteSetting() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: settingsKeys.all });
     },
+  });
+}
+
+export function useSyncCodexLocalConfig() {
+  return useMutation({
+    mutationFn: (payload: CodexLocalConfigSyncPayload) =>
+      getTransport().syncCodexLocalConfig(payload),
   });
 }
 

@@ -634,6 +634,27 @@ export interface CreateAPITokenData {
   expiresAt?: string;
 }
 
+// ===== Local Config Sync =====
+
+export interface CodexLocalConfigSyncPayload {
+  apiToken: string;
+  providerName?: string;
+  model?: string;
+}
+
+export interface CodexLocalConfigSyncResult {
+  success: boolean;
+  baseUrl: string;
+  writtenFiles: string[];
+  recoveredAuthJSON?: boolean;
+  backupFile?: string;
+  details: {
+    configTomlUpdated: boolean;
+    authJsonUpdated: boolean;
+  };
+  message?: string;
+}
+
 // ===== Usage Stats =====
 
 /** 统计数据时间粒度 */

@@ -11,6 +11,7 @@ import {
   BarChart3,
   DollarSign,
   BookOpen,
+  Wrench,
 } from 'lucide-react';
 import type { SidebarConfig } from '@/types/sidebar';
 import { RequestsNavItem } from './requests-nav-item';
@@ -39,6 +40,15 @@ export const sidebarConfig: SidebarConfig = {
           to: '/documentation',
           icon: BookOpen,
           labelKey: 'nav.documentation',
+          activeMatch: 'exact',
+        },
+        {
+          type: 'standard',
+          key: 'documentation-config',
+          to: '/documentation-config',
+          icon: Wrench,
+          labelKey: 'nav.documentationConfig',
+          activeMatch: 'exact',
         },
         {
           type: 'standard',
