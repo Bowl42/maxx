@@ -102,8 +102,6 @@ func (h *AdminHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		h.handlePricing(w, r)
 	case "model-prices":
 		h.handleModelPrices(w, r, id)
-	case "local-config":
-		h.handleLocalConfig(w, r, parts)
 	default:
 		writeJSON(w, http.StatusNotFound, map[string]string{"error": "not found"})
 	}
@@ -1506,50 +1504,6 @@ func (h *AdminHandler) handleBackupImport(w http.ResponseWriter, r *http.Request
 	}
 
 	result, err := h.backupSvc.Import(&backup, opts)
-	if err != nil {
-		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": err.Error()})
-		return
-	}
-
-	writeJSON(w, http.StatusOK, result)
-}
-
-// handleLocalConfig routes local config sync requests
-func (h *AdminHandler) handleLocalConfig(w http.ResponseWriter, r *http.Request, parts []string) {
-	// /admin/local-config/codex/sync
-	if len(parts) < 4 {
-		writeJSON(w, http.StatusNotFound, map[string]string{"error": "not found"})
-		return
-	}
-
-	target := parts[2]
-	action := parts[3]
-	if target != "codex" || action != "sync" {
-		writeJSON(w, http.StatusNotFound, map[string]string{"error": "not found"})
-		return
-	}
-
-	if r.Method != http.MethodPost {
-		w.Header().Set("Allow", http.MethodPost)
-		writeJSON(w, http.StatusMethodNotAllowed, map[string]string{"error": "method not allowed"})
-		return
-	}
-
-	var body struct {
-		APIToken     string `json:"apiToken"`
-		ProviderName string `json:"providerName"`
-		Model        string `json:"model"`
-	}
-	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
-		writeJSON(w, http.StatusBadRequest, map[string]string{"error": err.Error()})
-		return
-	}
-	if strings.TrimSpace(body.APIToken) == "" {
-		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "apiToken is required"})
-		return
-	}
-
-	result, err := h.svc.SyncCodexLocalConfig(r, body.APIToken, body.ProviderName, body.Model)
 	if err != nil {
 		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": err.Error()})
 		return

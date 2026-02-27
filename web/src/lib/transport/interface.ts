@@ -54,8 +54,6 @@ import type {
   PriceTable,
   ModelPrice,
   ModelPriceInput,
-  CodexLocalConfigSyncPayload,
-  CodexLocalConfigSyncResult,
 } from './types';
 
 /**
@@ -130,7 +128,6 @@ export interface Transport {
   getSetting(key: string): Promise<{ key: string; value: string }>;
   updateSetting(key: string, value: string): Promise<{ key: string; value: string }>;
   deleteSetting(key: string): Promise<void>;
-  syncCodexLocalConfig(payload: CodexLocalConfigSyncPayload): Promise<CodexLocalConfigSyncResult>;
 
   // ===== Logs API =====
   getLogs(limit?: number): Promise<{ lines: string[]; count: number }>;
