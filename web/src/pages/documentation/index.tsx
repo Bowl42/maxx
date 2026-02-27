@@ -13,6 +13,16 @@ interface CodeBlockProps {
   onCopy: (text: string, id: string) => void;
 }
 
+function buildBaseUrl(address: string): string {
+  const trimmedAddress = address.trim().replace(/\/+$/, '');
+  if (/^https?:\/\//i.test(trimmedAddress)) {
+    return trimmedAddress;
+  }
+  const protocol =
+    typeof window !== 'undefined' && window.location.protocol === 'https:' ? 'https' : 'http';
+  return `${protocol}://${trimmedAddress}`;
+}
+
 function CodeBlock({ code, id, copiedCode, onCopy }: CodeBlockProps) {
   return (
     <div className="relative group">
@@ -59,7 +69,7 @@ function DocumentationSection() {
   const [copiedCode, setCopiedCode] = useState<string | null>(null);
   const { data: proxyStatus } = useProxyStatus();
   const proxyAddress = proxyStatus?.address ?? 'localhost:9880';
-  const baseUrl = `http://${proxyAddress}`;
+  const baseUrl = buildBaseUrl(proxyAddress);
 
   const copyToClipboard = (text: string, id: string) => {
     navigator.clipboard.writeText(text);
