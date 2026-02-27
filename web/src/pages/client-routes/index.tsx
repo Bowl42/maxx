@@ -3,10 +3,19 @@
  * 全局路由配置页面 - 显示当前 ClientType 的路由
  */
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useRef, useEffect, useCallback } from 'react';
 import { useParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { Search, Globe, FolderKanban, ArrowUpDown, Zap, Code2 } from 'lucide-react';
+import {
+  Search,
+  Globe,
+  FolderKanban,
+  ArrowUpDown,
+  Zap,
+  Code2,
+  ChevronLeft,
+  ChevronRight,
+} from 'lucide-react';
 import { ClientIcon, getClientName } from '@/components/icons/client-icons';
 import { PageHeader } from '@/components/layout/page-header';
 import type { ClientType } from '@/lib/transport';
@@ -16,6 +25,112 @@ import { Tabs, TabsList, TabsTrigger, TabsContent, Switch, Button } from '@/comp
 import { useProjects, useUpdateProject, useRoutes, useProviders, routeKeys } from '@/hooks/queries';
 import { useTransport } from '@/lib/transport/context';
 import { useQueryClient } from '@tanstack/react-query';
+import { cn } from '@/lib/utils';
+
+const SCROLL_STEP = 200;
+
+interface ProjectTabBarProps {
+  projects: { id: number; name: string }[];
+  selectedProjectId: string;
+  onHoverStart: () => void;
+  onHoverEnd: () => void;
+}
+
+function ProjectTabBar({
+  projects,
+  selectedProjectId,
+  onHoverStart,
+  onHoverEnd,
+}: ProjectTabBarProps) {
+  const { t } = useTranslation();
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const [canScrollLeft, setCanScrollLeft] = useState(false);
+  const [canScrollRight, setCanScrollRight] = useState(false);
+
+  const updateScrollState = useCallback(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+    setCanScrollLeft(el.scrollLeft > 0);
+    setCanScrollRight(el.scrollLeft + el.clientWidth < el.scrollWidth - 1);
+  }, []);
+
+  useEffect(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+    updateScrollState();
+    el.addEventListener('scroll', updateScrollState, { passive: true });
+    const ro = new ResizeObserver(updateScrollState);
+    ro.observe(el);
+    return () => {
+      el.removeEventListener('scroll', updateScrollState);
+      ro.disconnect();
+    };
+  }, [updateScrollState, projects]);
+
+  // Scroll selected tab into view (centered) when selection changes
+  useEffect(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+    const tab = el.querySelector<HTMLElement>(`[data-project-id="${selectedProjectId}"]`);
+    if (!tab) return;
+    const targetLeft = tab.offsetLeft - (el.clientWidth - tab.offsetWidth) / 2;
+    el.scrollTo({ left: Math.max(0, targetLeft), behavior: 'smooth' });
+  }, [selectedProjectId]);
+
+  return (
+    <div
+      className="flex min-w-0 flex-1 items-center gap-1"
+      onMouseEnter={onHoverStart}
+      onMouseLeave={onHoverEnd}
+    >
+      {/* "Projects" label */}
+      <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider shrink-0 select-none">
+        {t('nav.projects')}
+      </span>
+
+      {/* Left arrow */}
+      <Button
+        variant="ghost"
+        size="icon-xs"
+        aria-label="Scroll projects left"
+        disabled={!canScrollLeft}
+        onClick={() => scrollRef.current?.scrollBy({ left: -SCROLL_STEP, behavior: 'smooth' })}
+        className={cn('shrink-0 h-7 w-7 transition-opacity', !canScrollLeft && 'opacity-0')}
+      >
+        <ChevronLeft className="h-3.5 w-3.5" />
+      </Button>
+
+      {/* Scrollable tab container */}
+      <div ref={scrollRef} className="min-w-0 flex-1 overflow-x-auto no-scrollbar pb-1">
+        <TabsList className="h-8 w-max shrink-0">
+          {projects.map((project) => (
+            <TabsTrigger
+              key={project.id}
+              value={String(project.id)}
+              data-project-id={String(project.id)}
+              className="h-7 px-3 text-xs flex items-center gap-1.5"
+            >
+              <FolderKanban className="h-3.5 w-3.5" />
+              <span>{project.name}</span>
+            </TabsTrigger>
+          ))}
+        </TabsList>
+      </div>
+
+      {/* Right arrow */}
+      <Button
+        variant="ghost"
+        size="icon-xs"
+        aria-label="Scroll projects right"
+        disabled={!canScrollRight}
+        onClick={() => scrollRef.current?.scrollBy({ left: SCROLL_STEP, behavior: 'smooth' })}
+        className={cn('shrink-0 h-7 w-7 transition-opacity', !canScrollRight && 'opacity-0')}
+      >
+        <ChevronRight className="h-3.5 w-3.5" />
+      </Button>
+    </div>
+  );
+}
 
 export function ClientRoutesPage() {
   const { t } = useTranslation();
@@ -24,16 +139,39 @@ export function ClientRoutesPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedProjectId, setSelectedProjectId] = useState<string>('0'); // '0' = Global
   const [isSorting, setIsSorting] = useState(false);
+  const [showProjectPanel, setShowProjectPanel] = useState(false);
+  const panelTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const isClaudePage = activeClientType === 'claude';
   const isCodexPage = activeClientType === 'codex';
 
   const { data: projects } = useProjects();
   const { data: allRoutes } = useRoutes();
   const { data: providers = [] } = useProviders();
-  const sortedProjects = projects?.slice().sort((a, b) => a.id - b.id);
+  const sortedProjects = useMemo(
+    () => (projects ? projects.slice().sort((a, b) => a.id - b.id) : []),
+    [projects],
+  );
   const updateProject = useUpdateProject();
   const { transport } = useTransport();
   const queryClient = useQueryClient();
+
+  const handleProjectHoverStart = useCallback(() => {
+    if (!window.matchMedia('(hover: hover)').matches) return;
+    if (panelTimerRef.current) clearTimeout(panelTimerRef.current);
+    setShowProjectPanel(true);
+  }, []);
+
+  const handleProjectHoverEnd = useCallback(() => {
+    if (!window.matchMedia('(hover: hover)').matches) return;
+    if (panelTimerRef.current) clearTimeout(panelTimerRef.current);
+    panelTimerRef.current = setTimeout(() => setShowProjectPanel(false), 150);
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      if (panelTimerRef.current) clearTimeout(panelTimerRef.current);
+    };
+  }, []);
 
   // Check if there are any Antigravity/Codex routes in the current scope (Global routes, projectID=0)
   const { hasAntigravityRoutes, hasCodexRoutes } = useMemo(() => {
@@ -125,8 +263,8 @@ export function ClientRoutesPage() {
         className="flex-1 min-h-0 flex flex-col"
       >
         {/* Only show tab bar when there are projects */}
-        {sortedProjects && sortedProjects.length > 0 && (
-          <div className="px-6 py-3 border-b border-border bg-card">
+        {sortedProjects.length > 0 && (
+          <div className="relative px-6 py-3 border-b border-border bg-card">
             <div className="mx-auto max-w-[1400px] flex items-center justify-between gap-6">
               <div className="flex min-w-0 flex-1 items-center gap-6">
                 {/* Global Group */}
@@ -142,26 +280,12 @@ export function ClientRoutesPage() {
                   </TabsList>
                 </div>
 
-                {/* Projects Group */}
-                <div className="flex min-w-0 flex-1 items-center gap-2">
-                  <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider shrink-0">
-                    {t('nav.projects')}
-                  </span>
-                  <div className="min-w-0 flex-1 overflow-x-auto no-scrollbar pb-1">
-                    <TabsList className="h-8 w-max shrink-0">
-                      {sortedProjects.map((project) => (
-                        <TabsTrigger
-                          key={project.id}
-                          value={String(project.id)}
-                          className="h-7 px-3 text-xs flex items-center gap-1.5"
-                        >
-                          <FolderKanban className="h-3.5 w-3.5" />
-                          <span>{project.name}</span>
-                        </TabsTrigger>
-                      ))}
-                    </TabsList>
-                  </div>
-                </div>
+                <ProjectTabBar
+                  projects={sortedProjects}
+                  selectedProjectId={selectedProjectId}
+                  onHoverStart={handleProjectHoverStart}
+                  onHoverEnd={handleProjectHoverEnd}
+                />
               </div>
 
               {/* Sort Buttons - Only show when viewing Global routes and on appropriate pages */}
@@ -199,6 +323,35 @@ export function ClientRoutesPage() {
                   </div>
                 )}
             </div>
+
+            {/* Full-width hover panel: all projects */}
+            {showProjectPanel && (
+              <div
+                className="absolute left-0 right-0 top-full z-50 border-b border-border bg-card shadow-md"
+                onMouseEnter={handleProjectHoverStart}
+                onMouseLeave={handleProjectHoverEnd}
+              >
+                <div className="mx-auto max-w-[1400px] px-6 py-3 flex flex-wrap gap-2">
+                  {sortedProjects.map((project) => (
+                    <button
+                      key={project.id}
+                      onClick={() => {
+                        setSelectedProjectId(String(project.id));
+                        setShowProjectPanel(false);
+                      }}
+                      className={cn(
+                        'flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm transition-colors hover:bg-accent hover:text-accent-foreground',
+                        selectedProjectId === String(project.id) &&
+                          'bg-accent text-accent-foreground',
+                      )}
+                    >
+                      <FolderKanban className="h-3.5 w-3.5 shrink-0" />
+                      <span>{project.name}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         )}
 
@@ -212,7 +365,7 @@ export function ClientRoutesPage() {
         </TabsContent>
 
         {/* Project Tab Contents */}
-        {sortedProjects?.map((project) => {
+        {sortedProjects.map((project) => {
           const isCustomRoutesEnabled = (project.enabledCustomRoutes ?? []).includes(
             activeClientType,
           );
