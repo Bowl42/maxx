@@ -12,7 +12,7 @@ import {
   useSettings,
 } from '@/hooks/queries';
 import { Activity, RefreshCw, Loader2, CheckCircle, AlertTriangle, Ban } from 'lucide-react';
-import type { ProxyRequest, ProxyRequestStatus, Provider } from '@/lib/transport';
+import type { APIToken, ProxyRequest, ProxyRequestStatus, Provider } from '@/lib/transport';
 import { ClientIcon } from '@/components/icons/client-icons';
 import {
   Table,
@@ -45,6 +45,27 @@ const PROVIDER_TYPE_LABELS: Record<ProviderTypeKey, string> = {
   custom: 'Custom',
 };
 
+type RequestFilterMode = 'token' | 'provider';
+
+const REQUEST_FILTER_MODE_STORAGE_KEY = 'maxx-requests-filter-mode';
+const REQUEST_PROVIDER_FILTER_STORAGE_KEY = 'maxx-requests-provider-filter';
+const REQUEST_TOKEN_FILTER_STORAGE_KEY = 'maxx-requests-token-filter';
+
+function readStoredNumber(key: string): number | undefined {
+  if (typeof window === 'undefined') {
+    return undefined;
+  }
+  const raw = window.localStorage.getItem(key);
+  if (!raw) {
+    return undefined;
+  }
+  const parsed = Number(raw);
+  if (!Number.isFinite(parsed) || parsed <= 0) {
+    return undefined;
+  }
+  return parsed;
+}
+
 export const statusVariant: Record<
   ProxyRequestStatus,
   'default' | 'success' | 'warning' | 'danger' | 'info'
@@ -62,25 +83,43 @@ export function RequestsPage() {
   const navigate = useNavigate();
   const isMobile = useIsMobile();
 
+  // 过滤维度（默认令牌）
+  const [filterMode, setFilterMode] = useState<RequestFilterMode>(() => {
+    if (typeof window === 'undefined') {
+      return 'token';
+    }
+    const stored = window.localStorage.getItem(REQUEST_FILTER_MODE_STORAGE_KEY);
+    return stored === 'provider' ? 'provider' : 'token';
+  });
   // Provider 过滤器
-  const [selectedProviderId, setSelectedProviderId] = useState<number | undefined>(undefined);
+  const [selectedProviderId, setSelectedProviderId] = useState<number | undefined>(() =>
+    readStoredNumber(REQUEST_PROVIDER_FILTER_STORAGE_KEY),
+  );
+  // Token 过滤器
+  const [selectedTokenId, setSelectedTokenId] = useState<number | undefined>(() =>
+    readStoredNumber(REQUEST_TOKEN_FILTER_STORAGE_KEY),
+  );
   // Status 过滤器
   const [selectedStatus, setSelectedStatus] = useState<string | undefined>(undefined);
 
   const scrollContainerRef = useRef<HTMLDivElement | null>(null);
   const loadMoreRef = useRef<HTMLDivElement | null>(null);
 
+  const activeProviderId = filterMode === 'provider' ? selectedProviderId : undefined;
+  const activeTokenId = filterMode === 'token' ? selectedTokenId : undefined;
+
   // 使用 Infinite Query
   const { data, fetchNextPage, hasNextPage, isFetchingNextPage, isLoading, refetch } =
-    useInfiniteProxyRequests(selectedProviderId, selectedStatus);
+    useInfiniteProxyRequests(activeProviderId, selectedStatus, activeTokenId);
 
   const { data: totalCount, refetch: refetchCount } = useProxyRequestsCount(
-    selectedProviderId,
+    activeProviderId,
     selectedStatus,
+    activeTokenId,
   );
-  const { data: providers = [] } = useProviders();
+  const { data: providers = [], isSuccess: providersIsSuccess } = useProviders();
   const { data: projects = [] } = useProjects();
-  const { data: apiTokens = [] } = useAPITokens();
+  const { data: apiTokens = [], isSuccess: apiTokensIsSuccess } = useAPITokens();
   const { data: settings } = useSettings();
 
   // Check if API Token auth is enabled
@@ -149,6 +188,53 @@ export function RequestsPage() {
     return () => observer.disconnect();
   }, [hasNextPage, isFetchingNextPage, fetchNextPage]);
 
+  useEffect(() => {
+    if (typeof window === 'undefined') {
+      return;
+    }
+    window.localStorage.setItem(REQUEST_FILTER_MODE_STORAGE_KEY, filterMode);
+  }, [filterMode]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') {
+      return;
+    }
+    if (selectedProviderId === undefined) {
+      window.localStorage.removeItem(REQUEST_PROVIDER_FILTER_STORAGE_KEY);
+      return;
+    }
+    window.localStorage.setItem(REQUEST_PROVIDER_FILTER_STORAGE_KEY, String(selectedProviderId));
+  }, [selectedProviderId]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') {
+      return;
+    }
+    if (selectedTokenId === undefined) {
+      window.localStorage.removeItem(REQUEST_TOKEN_FILTER_STORAGE_KEY);
+      return;
+    }
+    window.localStorage.setItem(REQUEST_TOKEN_FILTER_STORAGE_KEY, String(selectedTokenId));
+  }, [selectedTokenId]);
+
+  useEffect(() => {
+    if (!providersIsSuccess || selectedProviderId === undefined) {
+      return;
+    }
+    if (!providers.some((provider) => provider.id === selectedProviderId)) {
+      setSelectedProviderId(undefined);
+    }
+  }, [providers, providersIsSuccess, selectedProviderId]);
+
+  useEffect(() => {
+    if (!apiTokensIsSuccess || selectedTokenId === undefined) {
+      return;
+    }
+    if (!apiTokens.some((token) => token.id === selectedTokenId)) {
+      setSelectedTokenId(undefined);
+    }
+  }, [apiTokens, apiTokensIsSuccess, selectedTokenId]);
+
   // 刷新
   const handleRefresh = () => {
     scrollContainerRef.current?.scrollTo({ top: 0 });
@@ -156,9 +242,21 @@ export function RequestsPage() {
     refetchCount();
   };
 
+  // 过滤模式变化时重置滚动
+  const handleFilterModeChange = (mode: RequestFilterMode) => {
+    setFilterMode(mode);
+    scrollContainerRef.current?.scrollTo({ top: 0 });
+  };
+
   // Provider 过滤器变化时重置
   const handleProviderFilterChange = (providerId: number | undefined) => {
     setSelectedProviderId(providerId);
+    scrollContainerRef.current?.scrollTo({ top: 0 });
+  };
+
+  // Token 过滤器变化时重置
+  const handleTokenFilterChange = (tokenId: number | undefined) => {
+    setSelectedTokenId(tokenId);
     scrollContainerRef.current?.scrollTo({ top: 0 });
   };
 
@@ -183,12 +281,19 @@ export function RequestsPage() {
         title={t('requests.title')}
         description={t('requests.description', { count: total })}
       >
-        {/* Provider Filter */}
-        {providers.length > 0 && (
+        {/* Filter Mode + Dynamic Target Filter */}
+        <FilterModeSelect mode={filterMode} onSelect={handleFilterModeChange} />
+        {filterMode === 'provider' ? (
           <ProviderFilter
             providers={providers}
             selectedProviderId={selectedProviderId}
             onSelect={handleProviderFilterChange}
+          />
+        ) : (
+          <TokenFilter
+            tokens={apiTokens}
+            selectedTokenId={selectedTokenId}
+            onSelect={handleTokenFilterChange}
           />
         )}
         {/* Status Filter */}
@@ -857,6 +962,38 @@ const MemoMobileRequestCard = memo(
   },
 );
 
+function FilterModeSelect({
+  mode,
+  onSelect,
+}: {
+  mode: RequestFilterMode;
+  onSelect: (mode: RequestFilterMode) => void;
+}) {
+  const { t } = useTranslation();
+
+  const displayText =
+    mode === 'token' ? t('requests.filterByToken') : t('requests.filterByProvider');
+
+  return (
+    <Select
+      value={mode}
+      onValueChange={(value) => {
+        if (value === 'token' || value === 'provider') {
+          onSelect(value);
+        }
+      }}
+    >
+      <SelectTrigger className="w-24 md:w-28 h-8" size="sm">
+        <SelectValue>{displayText}</SelectValue>
+      </SelectTrigger>
+      <SelectContent>
+        <SelectItem value="token">{t('requests.filterByToken')}</SelectItem>
+        <SelectItem value="provider">{t('requests.filterByProvider')}</SelectItem>
+      </SelectContent>
+    </Select>
+  );
+}
+
 // Provider Filter Component using Select
 function ProviderFilter({
   providers,
@@ -929,6 +1066,46 @@ function ProviderFilter({
             </SelectGroup>
           );
         })}
+      </SelectContent>
+    </Select>
+  );
+}
+
+function TokenFilter({
+  tokens,
+  selectedTokenId,
+  onSelect,
+}: {
+  tokens: APIToken[];
+  selectedTokenId: number | undefined;
+  onSelect: (tokenId: number | undefined) => void;
+}) {
+  const { t } = useTranslation();
+
+  const selectedToken = tokens.find((token) => token.id === selectedTokenId);
+  const displayText = selectedToken?.name ?? t('requests.allTokens');
+
+  return (
+    <Select
+      value={selectedTokenId !== undefined ? String(selectedTokenId) : 'all'}
+      onValueChange={(value) => {
+        if (value === 'all') {
+          onSelect(undefined);
+        } else {
+          onSelect(Number(value));
+        }
+      }}
+    >
+      <SelectTrigger className="w-32 md:w-48 h-8" size="sm">
+        <SelectValue>{displayText}</SelectValue>
+      </SelectTrigger>
+      <SelectContent>
+        <SelectItem value="all">{t('requests.allTokens')}</SelectItem>
+        {tokens.map((token) => (
+          <SelectItem key={token.id} value={String(token.id)}>
+            {token.name}
+          </SelectItem>
+        ))}
       </SelectContent>
     </Select>
   );

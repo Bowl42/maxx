@@ -98,6 +98,9 @@ func (r *ProxyRequestRepository) ListCursor(limit int, before, after uint64, fil
 		if filter.Status != nil {
 			query = query.Where("status = ?", *filter.Status)
 		}
+		if filter.APITokenID != nil {
+			query = query.Where("api_token_id = ?", *filter.APITokenID)
+		}
 	}
 
 	var models []ProxyRequest
@@ -137,7 +140,7 @@ func (r *ProxyRequestRepository) Count() (int64, error) {
 // CountWithFilter 带过滤条件的计数
 func (r *ProxyRequestRepository) CountWithFilter(filter *repository.ProxyRequestFilter) (int64, error) {
 	// 如果没有过滤条件，使用缓存的总数
-	if filter == nil || (filter.ProviderID == nil && filter.Status == nil) {
+	if filter == nil || (filter.ProviderID == nil && filter.Status == nil && filter.APITokenID == nil) {
 		return atomic.LoadInt64(&r.count), nil
 	}
 
@@ -149,6 +152,9 @@ func (r *ProxyRequestRepository) CountWithFilter(filter *repository.ProxyRequest
 	}
 	if filter.Status != nil {
 		query = query.Where("status = ?", *filter.Status)
+	}
+	if filter.APITokenID != nil {
+		query = query.Where("api_token_id = ?", *filter.APITokenID)
 	}
 	if err := query.Count(&count).Error; err != nil {
 		return 0, err

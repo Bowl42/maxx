@@ -44,23 +44,25 @@ function ProjectClientTypeWrapper({
   return (
     <div className="flex flex-col h-full">
       {/* Header with Toggle */}
-      <div className="flex flex-col gap-y-2 px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:gap-y-0 sm:px-6 border-b border-border bg-card">
-        <div className="flex items-center gap-4">
-          <ClientIcon type={clientType} size={32} />
-          <div>
-            <h2 className="text-lg font-semibold text-foreground">{clientLabel}</h2>
-            <p className="text-xs text-muted-foreground">
-              {isCustomRoutesEnabled
-                ? t('routes.routesConfigured', {
-                    count: projectRoutes.filter((r) => r.clientType === clientType).length,
-                  })
-                : t('routes.usingGlobalRoutes')}
-            </p>
+      <div className="border-b border-border bg-card">
+        <div className="mx-auto max-w-[1400px] flex flex-col gap-y-2 px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:gap-y-0 sm:px-6">
+          <div className="flex items-center gap-4">
+            <ClientIcon type={clientType} size={32} />
+            <div>
+              <h2 className="text-lg font-semibold text-foreground">{clientLabel}</h2>
+              <p className="text-xs text-muted-foreground">
+                {isCustomRoutesEnabled
+                  ? t('routes.routesConfigured', {
+                      count: projectRoutes.filter((r) => r.clientType === clientType).length,
+                    })
+                  : t('routes.usingGlobalRoutes')}
+              </p>
+            </div>
           </div>
-        </div>
-        <div className="flex items-center gap-3">
-          <span className="text-sm text-text-secondary">{t('routes.customRoutes')}</span>
-          <Switch checked={isCustomRoutesEnabled} onCheckedChange={onToggleCustomRoutes} />
+          <div className="flex items-center gap-3">
+            <span className="text-sm text-muted-foreground">{t('routes.customRoutes')}</span>
+            <Switch checked={isCustomRoutesEnabled} onCheckedChange={onToggleCustomRoutes} />
+          </div>
         </div>
       </div>
 
@@ -71,10 +73,10 @@ function ProjectClientTypeWrapper({
             <ClientIcon type={clientType} size={48} className="opacity-30" />
           </div>
           <div className="space-y-3">
-            <h3 className="text-lg font-semibold text-text-primary">
+            <h3 className="text-lg font-semibold text-foreground">
               {t('routes.customRoutesDisabled')}
             </h3>
-            <p className="text-sm text-text-secondary leading-relaxed">
+            <p className="text-sm text-muted-foreground leading-relaxed">
               {t('routes.usingGlobalRoutesDesc', {
                 client: clientLabel,
               })}
@@ -171,44 +173,48 @@ export function RoutesTab({ project }: RoutesTabProps) {
   return (
     <div className="flex flex-col h-full overflow-hidden">
       {/* ClientType Tabs */}
-      <div className="px-4 py-4 sm:px-6 border-b border-border bg-card/80 backdrop-blur-xs shrink-0 overflow-x-auto">
-        <div className="flex items-center gap-2 min-w-max">
-          {CLIENT_TYPES.map((clientType) => {
-            const isActive = activeClientType === clientType;
-            const routeCount = getRouteCount(clientType);
-            const streamingCount = getStreamingCount(clientType);
-            const color = getClientColor(clientType);
-            const clientLabel = getClientTypeLabel(t, clientType);
+      <div className="border-b border-border bg-card shrink-0">
+        <div className="mx-auto max-w-[1400px] px-4 py-3 sm:px-6 overflow-x-auto">
+          <div className="flex items-center gap-2 min-w-max pb-1">
+            {CLIENT_TYPES.map((clientType) => {
+              const isActive = activeClientType === clientType;
+              const routeCount = getRouteCount(clientType);
+              const streamingCount = getStreamingCount(clientType);
+              const color = getClientColor(clientType);
+              const clientLabel = getClientTypeLabel(t, clientType);
 
-            return (
-              <button
-                key={clientType}
-                type="button"
-                onClick={() => setActiveClientType(clientType)}
-                aria-pressed={isActive}
-                className={cn(
-                  'relative flex items-center gap-2 px-4 py-2 rounded-lg border transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50',
-                  isActive
-                    ? 'bg-primary text-primary-foreground border-primary shadow-sm'
-                    : 'bg-muted text-muted-foreground border-transparent hover:bg-accent hover:text-accent-foreground',
-                )}
-              >
-                <ClientIcon type={clientType} size={16} />
-                <span className="text-sm font-medium">{clientLabel}</span>
-                {routeCount > 0 && (
-                  <span
-                    className={cn(
-                      'text-[10px] font-mono',
-                      isActive ? 'text-primary-foreground/85' : 'text-muted-foreground',
-                    )}
-                  >
-                    {routeCount}
-                  </span>
-                )}
-                {streamingCount > 0 && <StreamingBadge count={streamingCount} color={color} />}
-              </button>
-            );
-          })}
+              return (
+                <button
+                  key={clientType}
+                  type="button"
+                  onClick={() => setActiveClientType(clientType)}
+                  aria-pressed={isActive}
+                  className={cn(
+                    'relative flex items-center gap-2 px-4 py-2 rounded-lg border transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50',
+                    isActive
+                      ? 'bg-primary/10 text-primary border-primary/30 shadow-sm'
+                      : 'bg-muted/50 text-muted-foreground border-border/40 hover:bg-accent hover:text-accent-foreground',
+                  )}
+                >
+                  <ClientIcon type={clientType} size={16} />
+                  <span className="text-sm font-medium">{clientLabel}</span>
+                  {routeCount > 0 && (
+                    <span
+                      className={cn(
+                        'text-[10px] font-mono px-1.5 py-0.5 rounded-md border',
+                        isActive
+                          ? 'text-primary border-primary/30 bg-primary/10'
+                          : 'text-muted-foreground border-border/50 bg-muted/40',
+                      )}
+                    >
+                      {routeCount}
+                    </span>
+                  )}
+                  {streamingCount > 0 && <StreamingBadge count={streamingCount} color={color} />}
+                </button>
+              );
+            })}
+          </div>
         </div>
       </div>
 

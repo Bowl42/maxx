@@ -291,6 +291,8 @@ export interface CursorPaginationParams {
   providerId?: number;
   /** 按状态过滤 */
   status?: string;
+  /** 按 API Token ID 过滤 */
+  apiTokenId?: number;
 }
 
 /** 游标分页响应 */
