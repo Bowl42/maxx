@@ -385,9 +385,8 @@ func (a *CustomAdapter) handleStreamResponse(c *flow.Ctx, resp *http.Response, c
 			return nil
 		}
 
-		// Check for error type
+		// Check for Claude-style error: {"type": "error", "error": {...}}
 		if payloadType, ok := payload["type"].(string); ok && payloadType == "error" {
-			// Extract error message
 			if errObj, ok := payload["error"].(map[string]interface{}); ok {
 				msg := "SSE error"
 				if m, ok := errObj["message"].(string); ok {
@@ -408,6 +407,34 @@ func (a *CustomAdapter) handleStreamResponse(c *flow.Ctx, resp *http.Response, c
 				)
 			}
 		}
+
+		// Check for OpenAI-style error: {"error": {"message": "...", "type": "..."}}
+		// This format is used by some upstream providers (e.g., Poe, OpenAI-compatible APIs)
+		if errObj, ok := payload["error"].(map[string]interface{}); ok {
+			// Ensure this is an error object, not a normal response that happens to have an "error" field
+			if _, hasMsg := errObj["message"]; hasMsg {
+				msg := "SSE error"
+				if m, ok := errObj["message"].(string); ok {
+					msg = m
+				}
+				code := 0
+				if c, ok := errObj["code"].(float64); ok {
+					code = int(c)
+				}
+				errType := ""
+				if t, ok := errObj["type"].(string); ok {
+					errType = t
+				}
+				proxyErr := domain.NewProxyErrorWithMessage(
+					fmt.Errorf("SSE error (code=%d): %s", code, msg),
+					isRetryableSSEError(code, errType, msg),
+					msg,
+				)
+				proxyErr.IsServerError = errType == "internal_error" || errType == "server_error"
+				return proxyErr
+			}
+		}
+
 		return nil
 	}
 
@@ -451,12 +478,18 @@ func (a *CustomAdapter) handleStreamResponse(c *flow.Ctx, resp *http.Response, c
 				// Collect all SSE content (preserve complete format including newlines)
 				sseBuffer.WriteString(processedLine)
 
-				// Check for SSE error events in data lines
+				// Check for SSE error events in data lines BEFORE writing to client
 				lineStr := processedLine
 				if strings.HasPrefix(strings.TrimSpace(lineStr), "data:") {
 					if parseErr := parseSSEError(lineStr); parseErr != nil {
 						sseError = parseErr
-						// Continue to forward the error to client, but track it
+						// If no real data has been written to the client yet,
+						// return the error immediately so retry logic can try another route
+						if !firstChunkSent {
+							sendFinalEvents()
+							return sseError
+						}
+						// Otherwise continue to forward the error to client
 					}
 				}
 
@@ -630,7 +663,7 @@ func isRetryableSSEError(code int, errType, msg string) bool {
 	}
 
 	// Server errors are generally retryable
-	if errType == "server_error" {
+	if errType == "server_error" || errType == "internal_error" {
 		return true
 	}
 
@@ -640,7 +673,8 @@ func isRetryableSSEError(code int, errType, msg string) bool {
 		strings.Contains(lowerMsg, "timeout") ||
 		strings.Contains(lowerMsg, "overloaded") ||
 		strings.Contains(lowerMsg, "temporarily") ||
-		strings.Contains(lowerMsg, "rate limit") {
+		strings.Contains(lowerMsg, "rate limit") ||
+		strings.Contains(lowerMsg, "internal server error") {
 		return true
 	}
 
