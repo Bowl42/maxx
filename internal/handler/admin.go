@@ -746,8 +746,9 @@ func (h *AdminHandler) handleProxyRequests(w http.ResponseWriter, r *http.Reques
 			var filter *repository.ProxyRequestFilter
 			providerIDStr := r.URL.Query().Get("providerId")
 			statusStr := r.URL.Query().Get("status")
+			apiTokenIDStr := r.URL.Query().Get("apiTokenId")
 
-			if providerIDStr != "" || statusStr != "" {
+			if providerIDStr != "" || statusStr != "" || apiTokenIDStr != "" {
 				filter = &repository.ProxyRequestFilter{}
 				if providerIDStr != "" {
 					if providerID, err := strconv.ParseUint(providerIDStr, 10, 64); err == nil {
@@ -756,6 +757,11 @@ func (h *AdminHandler) handleProxyRequests(w http.ResponseWriter, r *http.Reques
 				}
 				if statusStr != "" {
 					filter.Status = &statusStr
+				}
+				if apiTokenIDStr != "" {
+					if apiTokenID, err := strconv.ParseUint(apiTokenIDStr, 10, 64); err == nil {
+						filter.APITokenID = &apiTokenID
+					}
 				}
 			}
 
@@ -782,8 +788,9 @@ func (h *AdminHandler) handleProxyRequestsCount(w http.ResponseWriter, r *http.R
 	var filter *repository.ProxyRequestFilter
 	providerIDStr := r.URL.Query().Get("providerId")
 	statusStr := r.URL.Query().Get("status")
+	apiTokenIDStr := r.URL.Query().Get("apiTokenId")
 
-	if providerIDStr != "" || statusStr != "" {
+	if providerIDStr != "" || statusStr != "" || apiTokenIDStr != "" {
 		filter = &repository.ProxyRequestFilter{}
 		if providerIDStr != "" {
 			providerID, err := strconv.ParseUint(providerIDStr, 10, 64)
@@ -795,6 +802,14 @@ func (h *AdminHandler) handleProxyRequestsCount(w http.ResponseWriter, r *http.R
 		}
 		if statusStr != "" {
 			filter.Status = &statusStr
+		}
+		if apiTokenIDStr != "" {
+			apiTokenID, err := strconv.ParseUint(apiTokenIDStr, 10, 64)
+			if err != nil {
+				writeJSON(w, http.StatusBadRequest, map[string]string{"error": "invalid apiTokenId"})
+				return
+			}
+			filter.APITokenID = &apiTokenID
 		}
 	}
 

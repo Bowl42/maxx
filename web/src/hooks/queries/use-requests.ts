@@ -17,8 +17,8 @@ export const requestKeys = {
   all: ['requests'] as const,
   lists: () => [...requestKeys.all, 'list'] as const,
   list: (params?: CursorPaginationParams) => [...requestKeys.lists(), params] as const,
-  infinite: (providerId?: number, status?: string) =>
-    [...requestKeys.all, 'infinite', providerId, status] as const,
+  infinite: (providerId?: number, status?: string, apiTokenId?: number) =>
+    [...requestKeys.all, 'infinite', providerId, status, apiTokenId] as const,
   details: () => [...requestKeys.all, 'detail'] as const,
   detail: (id: number) => [...requestKeys.details(), id] as const,
   attempts: (id: number) => [...requestKeys.detail(id), 'attempts'] as const,
@@ -33,15 +33,16 @@ export function useProxyRequests(params?: CursorPaginationParams) {
 }
 
 // 获取 ProxyRequests (无限滚动)
-export function useInfiniteProxyRequests(providerId?: number, status?: string) {
+export function useInfiniteProxyRequests(providerId?: number, status?: string, apiTokenId?: number) {
   return useInfiniteQuery({
-    queryKey: requestKeys.infinite(providerId, status),
+    queryKey: requestKeys.infinite(providerId, status, apiTokenId),
     queryFn: ({ pageParam }) =>
       getTransport().getProxyRequests({
         limit: 100,
         before: pageParam,
         providerId,
         status,
+        apiTokenId,
       }),
     getNextPageParam: (lastPage) => (lastPage.hasMore ? lastPage.lastId : undefined),
     initialPageParam: undefined as number | undefined,
@@ -49,10 +50,10 @@ export function useInfiniteProxyRequests(providerId?: number, status?: string) {
 }
 
 // 获取 ProxyRequests 总数
-export function useProxyRequestsCount(providerId?: number, status?: string) {
+export function useProxyRequestsCount(providerId?: number, status?: string, apiTokenId?: number) {
   return useQuery({
-    queryKey: ['requestsCount', providerId, status] as const,
-    queryFn: () => getTransport().getProxyRequestsCount(providerId, status),
+    queryKey: ['requestsCount', providerId, status, apiTokenId] as const,
+    queryFn: () => getTransport().getProxyRequestsCount(providerId, status, apiTokenId),
   });
 }
 
@@ -185,12 +186,16 @@ export function useProxyRequestUpdates() {
           const params = queryKey[2] as CursorPaginationParams | undefined;
           const filterProviderId = params?.providerId;
           const filterStatus = params?.status;
+          const filterAPITokenId = params?.apiTokenId;
 
           const matchesFilter = (request: ProxyRequest) => {
             if (filterProviderId !== undefined && request.providerID !== filterProviderId) {
               return false;
             }
             if (filterStatus !== undefined && request.status !== filterStatus) {
+              return false;
+            }
+            if (filterAPITokenId !== undefined && request.apiTokenID !== filterAPITokenId) {
               return false;
             }
             return true;
@@ -250,12 +255,16 @@ export function useProxyRequestUpdates() {
           const queryKey = query.queryKey as ReturnType<typeof requestKeys.infinite>;
           const filterProviderId = queryKey[2] as number | undefined;
           const filterStatus = queryKey[3] as string | undefined;
+          const filterAPITokenId = queryKey[4] as number | undefined;
 
           const matchesFilter = (request: ProxyRequest) => {
             if (filterProviderId !== undefined && request.providerID !== filterProviderId) {
               return false;
             }
             if (filterStatus !== undefined && request.status !== filterStatus) {
+              return false;
+            }
+            if (filterAPITokenId !== undefined && request.apiTokenID !== filterAPITokenId) {
               return false;
             }
             return true;
@@ -321,10 +330,14 @@ export function useProxyRequestUpdates() {
             for (const query of countQueries) {
               const filterProviderId = query.queryKey[1] as number | undefined;
               const filterStatus = query.queryKey[2] as string | undefined;
+              const filterAPITokenId = query.queryKey[3] as number | undefined;
               if (filterProviderId !== undefined && updatedRequest.providerID !== filterProviderId) {
                 continue;
               }
               if (filterStatus !== undefined && updatedRequest.status !== filterStatus) {
+                continue;
+              }
+              if (filterAPITokenId !== undefined && updatedRequest.apiTokenID !== filterAPITokenId) {
                 continue;
               }
               queryClient.setQueryData<number>(query.queryKey, (old) => (old ?? 0) + 1);
