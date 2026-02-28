@@ -321,11 +321,7 @@ stream_idle_timeout_ms = 300000`}
               <h3 className="text-sm font-semibold">{t('documentation.usage')}</h3>
               <p className="text-xs text-muted-foreground">{t('documentation.codexUsageDesc')}</p>
               <CodeBlock
-                code={`# 使用 --provider 参数指定
-codex --provider maxx
-
-# 或者设置为默认 provider 后直接使用
-codex`}
+                code={`codex`}
                 id="codex-usage"
                 copiedCode={copiedCode}
                 onCopy={copyToClipboard}
