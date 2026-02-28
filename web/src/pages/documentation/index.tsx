@@ -309,9 +309,7 @@ stream_idle_timeout_ms = 300000`}
               <p className="text-xs text-muted-foreground">{t('documentation.authJsonDesc')}</p>
               <CodeBlock
                 code={`{
-  "maxx": {
-    "OPENAI_API_KEY": "maxx_your_token_here"
-  }
+  "OPENAI_API_KEY": "maxx_your_token_here"
 }`}
                 id="codex-auth"
                 copiedCode={copiedCode}

@@ -191,9 +191,7 @@ Create or edit `~/.codex/auth.json`:
 
 ```json
 {
-  "maxx": {
-    "OPENAI_API_KEY": "maxx_your_token_here"
-  }
+  "OPENAI_API_KEY": "maxx_your_token_here"
 }
 ```
 
