@@ -117,9 +117,9 @@ export function RequestsPage() {
     selectedStatus,
     activeTokenId,
   );
-  const { data: providers = [], isFetched: providersLoaded } = useProviders();
+  const { data: providers = [], isSuccess: providersIsSuccess } = useProviders();
   const { data: projects = [] } = useProjects();
-  const { data: apiTokens = [], isFetched: apiTokensLoaded } = useAPITokens();
+  const { data: apiTokens = [], isSuccess: apiTokensIsSuccess } = useAPITokens();
   const { data: settings } = useSettings();
 
   // Check if API Token auth is enabled
@@ -218,22 +218,22 @@ export function RequestsPage() {
   }, [selectedTokenId]);
 
   useEffect(() => {
-    if (!providersLoaded || selectedProviderId === undefined) {
+    if (!providersIsSuccess || selectedProviderId === undefined) {
       return;
     }
     if (!providers.some((provider) => provider.id === selectedProviderId)) {
       setSelectedProviderId(undefined);
     }
-  }, [providers, providersLoaded, selectedProviderId]);
+  }, [providers, providersIsSuccess, selectedProviderId]);
 
   useEffect(() => {
-    if (!apiTokensLoaded || selectedTokenId === undefined) {
+    if (!apiTokensIsSuccess || selectedTokenId === undefined) {
       return;
     }
     if (!apiTokens.some((token) => token.id === selectedTokenId)) {
       setSelectedTokenId(undefined);
     }
-  }, [apiTokens, apiTokensLoaded, selectedTokenId]);
+  }, [apiTokens, apiTokensIsSuccess, selectedTokenId]);
 
   // 刷新
   const handleRefresh = () => {
